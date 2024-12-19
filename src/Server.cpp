@@ -2,9 +2,22 @@
 #include "Client.hpp"
 #include <iostream>
 
-
-
 #define TIMEOUT_SEC 5
+
+ERROR Server::send_and_close(SOCKET fd, std::vector<Client>::iterator client, Response response)
+{
+    ERROR error;
+    if(!(error = response.send_response(fd)))
+    {
+        std::cerr << "Error: sending response failed" << std::endl
+        << "Closing connection" << std::endl;
+        close(fd);
+        return error;
+    }
+    client = this->clients.erase(client);
+    return 0;
+
+}
 
 ERROR Server::handle_connections(){
     
@@ -17,31 +30,27 @@ ERROR Server::handle_connections(){
     std::vector<Client>::iterator client = this->clients.begin();
     while (client != this->clients.end())
     {
-        if(FD_ISSET(client->socket, &this->fds))
+        if(FD_ISSET(client->get_socket_fd(), &this->fds))
         {
-            if(MAX_REQUEST_SIZE == client->received)
+            if(client->get_recv_bytes() == MAX_REQUEST_SIZE)
             {
                 std::cerr << "Error: request too long: closing connection" << std::endl;
-                //TODO send 400 BAD REQUEST
-                close(client->socket);
-                client = this->clients.erase(client);
+                this->send_and_close(client->get_socket_fd(), client, Response(400, "Bad Request"));
                 continue;
             }
-            int bytes_received = recv(client->socket, client->request + client->received, MAX_REQUEST_SIZE - client->received, 0);
+            int bytes_received = recv(client->get_socket_fd(), client->get_request() + client->get_recv_bytes(), MAX_REQUEST_SIZE - client->get_recv_bytes(), 0);
             if (bytes_received < 1){
                 std::cerr << "Error: recv failed: closing connection" << std::endl;
-                //TODO send 500 INTERNAL SERVER ERROR
-                close(client->socket);
-                client = this->clients.erase(client);
+                this->send_and_close(client->get_socket_fd(), client, Response(500, "Internal Server Error"));
                 continue;
             }
-            client->received += bytes_received;
-            if(client->received > 2 && client->request[client->received - 2] == '\r' && client->request[client->received - 1] == '\n')
+            client->add_recv_bytes(bytes_received);
+            if(client->get_recv_bytes() > 2 && client->get_request()[client->get_recv_bytes() - 2] == '\r' && client->get_request()[client->get_recv_bytes() - 1] == '\n')
             {
-                std::cout << "Received: " << client->received << " bytes" << std::endl;
-                std::cout << "Request: " << client->request << std::endl;
+                std::cout << "Received: " << client->get_recv_bytes() << " bytes" << std::endl;
+                std::cout << "Request: " << client->get_request() << std::endl;
                 //TODO process request
-                client->received = 0;
+                client->set_recv_bytes(0);
             }
         }
         ++client;
@@ -56,8 +65,8 @@ ERROR Server::monitor_new_connections(fd_set fds)
     if(FD_ISSET(this->server_socket, &fds))
     {
         Client client = this->get_client(-1);
-        client.socket = accept(this->server_socket, (sockaddr*)&client.address, &client.address_length);
-        if (client.socket < 0)
+        client.set_socket_fd(accept(this->server_socket, (sockaddr*)&client.get_addr(), &client.get_addr_len())); 
+        if (client.get_socket_fd() < 0)
         {
             std::cerr << "Error: accept failed" << std::endl;
             //TODO throw exception
@@ -80,10 +89,10 @@ void Server::monitor_socket_fds()
     
     for(it = this->clients.begin(); it != this->clients.end(); it++)
     {
-        FD_SET(it->socket, &this->fds);
-        if(it->socket > max_socket)
+        FD_SET(it->get_socket_fd(), &this->fds);
+        if(it->get_socket_fd() > max_socket)
         {
-            max_socket = it->socket;
+            max_socket = it->get_socket_fd();
         }
     }
 
@@ -100,9 +109,8 @@ Client Server::get_client(SOCKET fd)
 {
     std::vector<Client>::iterator it;
     std::cout << "Checking if client is already in the list" << std::endl;
-    for(it = this->clients.begin(); it != this->clients.end(); it++)
-    {
-        if(it->socket == fd) 
+    for(it = this->clients.begin(); it != this->clients.end(); it++){
+        if(it->get_socket_fd() == fd) 
             return *it;
     }
 
@@ -110,8 +118,8 @@ Client Server::get_client(SOCKET fd)
     
     Client new_client;
     
-    new_client.socket = fd;
-    new_client.address_length = sizeof(new_client.address);
+    new_client.set_socket_fd(fd);
+    new_client.set_addr_len(sizeof(new_client.get_addr()));
     
     return new_client;
 }
@@ -119,7 +127,7 @@ Client Server::get_client(SOCKET fd)
 const char *Server::get_clientIP(Client client)
 {
     static char address_info[INET6_ADDRSTRLEN];
-    getnameinfo((sockaddr*)&client.address, client.address_length, address_info, sizeof(address_info), 0, 0, NI_NUMERICHOST);
+    getnameinfo((sockaddr*)&client.get_addr(), client.get_addr_len(), address_info, sizeof(address_info), 0, 0, NI_NUMERICHOST);
     return address_info;
 }
 
@@ -135,6 +143,9 @@ SOCKET Server::boot_server(const char *host, const char *port)
 
     std::cout << "Creating socket" << std::endl;
     if((error = create_socket())) { return error; }
+
+    std::cout << "Setting non-blocking" << std::endl;
+    if((error = set_non_blocking_fd())) { return error; }
 
     std::cout << "Binding" << std::endl;
     if((error = bind_socket())) { return error; }
@@ -158,8 +169,7 @@ ERROR Server::resolve_address(const char *host, const char *port)
     ERROR error;
 
     error = getaddrinfo(host, port, &this->hints, &this->bind_address);
-    if(error)
-    {
+    if(error){
         std::cerr << gai_strerror(error) << std::endl;
         return error;
     }
@@ -169,8 +179,7 @@ ERROR Server::resolve_address(const char *host, const char *port)
 ERROR Server::create_socket()
 {
     this->server_socket = socket(this->hints.ai_family, this->hints.ai_socktype, this->hints.ai_protocol);
-    if (server_socket == -1)
-    {
+    if (server_socket == -1){
         std::cerr << "Error: socket creation failed" << std::endl;
         //TODO throw exception
         return 1;
@@ -178,10 +187,24 @@ ERROR Server::create_socket()
     return 0;
 }
 
+ERROR Server::set_non_blocking_fd()
+{
+    ERROR error;
+    int flags;
+    if((flags = fcntl(this->get_server_socket(), F_GETFL, 0)) == -1)
+    flags |= O_NONBLOCK;  
+    if((error = fcntl(this->get_server_socket(), F_SETFL, flags)))
+    {
+        std::cerr << "Error: setting socket to non-blocking failed" << std::endl;
+        //TODO throw exception
+        return error;
+    }
+    return 0;
+}
+
 ERROR Server::bind_socket()
 {
-    if(bind(this->server_socket, bind_address->ai_addr, bind_address->ai_addrlen) == -1)
-    {
+    if(bind(this->server_socket, bind_address->ai_addr, bind_address->ai_addrlen) == -1){
         std::cerr << "Error: bind failed" << std::endl;
         //TODO throw exception
         return 1;
@@ -191,8 +214,7 @@ ERROR Server::bind_socket()
 
 ERROR Server::start_listening()
 {
-    if(listen(this->server_socket, 10) == -1)
-    {
+    if(listen(this->server_socket, 10) == -1){
         std::cerr << "Error: listen failed" << std::endl;
         //TODO throw exception
         return 1;
@@ -201,13 +223,7 @@ ERROR Server::start_listening()
 }
 
 // GETTERS
-SOCKET Server::get_server_socket()
-{
-    return this->server_socket;
-}
-
-
-
+SOCKET Server::get_server_socket() { return this->server_socket;}
 
 
 Server::Server()
@@ -218,6 +234,4 @@ Server::Server()
     this->keep_alive = true;
 }
 
-Server::~Server()
-{
-}
+Server::~Server(){}

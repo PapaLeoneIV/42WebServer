@@ -8,8 +8,12 @@
 #include <cstdlib>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include "Client.hpp"
+#include "Response.hpp"
+#include "_200.hpp"
+#include "_400.hpp"
 
 
 typedef int SOCKET;
@@ -30,12 +34,16 @@ class Server{
     ERROR                       create_socket();
     ERROR                       bind_socket();
     ERROR                       start_listening();
+    ERROR                       set_non_blocking_fd();
     const char                  *get_clientIP(Client client);
+
+    
     
     //MONITOR
     void                        monitor_socket_fds();   
     ERROR                       monitor_new_connections(fd_set fds);
     ERROR                       handle_connections();
+    ERROR                       send_and_close(SOCKET fd, std::vector<Client>::iterator client, Response response);
 
     Client                      get_client(SOCKET socket);
     
