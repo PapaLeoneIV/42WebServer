@@ -1,52 +1,46 @@
 #ifndef RESPONSE_HPP
 #define RESPONSE_HPP
 
-#include <sys/socket.h>
-#include <cstddef>
-#include <map>
-#include <vector>
 #include <string>
-
-typedef int SOCKET;
-typedef int ERROR;
+#include <map>
+#include <iostream>
+#include <vector>
 
 
 class Response{
+    
     public:
 
-    ERROR       send_response(SOCKET fd);
-    void        prepare_response(std::string b);
+    Response();
+    Response(int status, const char *status_message);
+    ~Response();
 
-    std::string get_response();
-    int         get_content_length();
-    int         get_flags();
 
-    void        set_response(char *response);
-    void        set_content_length(int size);
-    void        set_flags(int flags);
+    void                                prepareResponse       (std::string b);
 
-                Response();
-                Response(int status, const char *status_message);
-                ~Response();
+    std::string                         &getResponse          ();
+    int                                 &getContentLength     ();
+    int                                 &getFlags             ();
+    std::string                         &getBody              ();
+    std::string                         &getContentType       ();
+    std::string                         &getStatusMessage     ();
+    int                                 &getStatus            ();
+    std::map<std::string, std::string>  &getHeaders           ();
 
+    void                                setResponse           (char *response);
+    void                                setContentLength      (int size);
+    void                                setFlags              (int flags);
 
     private:
 
-    std::string response;
-
-    std::map<std::string, std::string> headers;
-    
-    std::string body;
-
-    std::string content_type;
-    
-    std::string status_message;
-    
-    int     content_length;
-
-    int     status;
-    
-    int     flags;
+    std::string                         _response;
+    std::map<std::string, std::string>  _headers;
+    std::string                         _body;
+    std::string                         _content_type; 
+    int                                 _content_length;
+    std::string                         _status_message; 
+    int                                 _status;
+    int                                 _flags;
 };
 
 
