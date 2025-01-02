@@ -6,11 +6,13 @@ SRCS = 	src/main.cpp \
 		src/Server.cpp \
 		src/Client.cpp \
 		src/msg/Response.cpp \
-		src/msg/_200.cpp \
-		src/msg/_400.cpp 
+		src/msg/Request.cpp \
+		src/Parser.cpp \
+		src/Booter.cpp \
+		src/Utils.cpp
 
-
-
+re: clean
+	$(CC) $(CFLAGS) -o $(TARGET) $(SRCS)
 
 TARGET = webserver
 

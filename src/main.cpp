@@ -1,38 +1,25 @@
 #include "Server.hpp"
-#include <iostream>
-#include "stdlib.h"
-#include <signal.h>
-#include "_200.hpp"
-
-void signal_handler(int signal)
-{
-    std::cout << "Signal received: " << signal << std::endl;
-    Server server;
-    server.keep_alive = false;
-}
-
+#include "Booter.hpp"
 
 int main()
 {
 
     ERROR error;
     Server server;
+    Booter booter;
 
-    signal(SIGINT, signal_handler);
     try {
-        if((error = server.boot_server("localhost", "6969")))
-        {
+        if((error = booter.bootServer(&server, "localhost", "6968"))){
             //TODO print error
-            throw std::runtime_error("Error: booting process failed\n"); ;
+            return 1;
         }
     }
-    catch(const std::exception& e) { std::cerr << "Error: booting process failed" << e.what() << '\n'; exit(1);}
+    catch(const std::exception& e) { std::cerr << "Error: booting process failed\n" << e.what() << '\n'; return(1);}
     try
     {
-        for(;server.keep_alive;)
+        for(;server._keep_alive;)
         {
-            if((error = server.handle_connections()))
-            {
+            if((error = server.handleConnections())){
                 throw std::runtime_error("Error: handling connections failed\n");
             }
         }
