@@ -1,64 +1,92 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
-#include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
-#include <vector>
-#include <cstdlib>
-#include <sys/socket.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <iostream>
+#include <string.h>
+#include <vector>
+#include <stdexcept>
 
+#include "Utils.hpp"
 #include "Client.hpp"
+#include "Parser.hpp"
 #include "Response.hpp"
-#include "_200.hpp"
-#include "_400.hpp"
 
 
-typedef int SOCKET;
-typedef int ERROR;
 
-
+/**
+ * 
+ * 
+ * 
+ */
 class Server{
 
-    public:
+    public:    
+    Server();
+    ~Server();
 
-    std::vector<Client>clients;
-    
-    bool keep_alive;
-    
-    //BOOT
-    SOCKET                      boot_server(const char *host, const char *port);
-    ERROR                       resolve_address(const char *host, const char *port);
-    ERROR                       create_socket();
-    ERROR                       bind_socket();
-    ERROR                       start_listening();
-    ERROR                       set_non_blocking_fd();
-    const char                  *get_clientIP(Client client);
 
-    
-    
-    //MONITOR
-    void                        monitor_socket_fds();   
-    ERROR                       monitor_new_connections(fd_set fds);
-    ERROR                       handle_connections();
-    ERROR                       send_and_close(SOCKET fd, std::vector<Client>::iterator client, Response response);
+    //REQUEST PARSER
 
-    Client                      get_client(SOCKET socket);
+    //RESOURCE FINDER
     
+    // Main function to handle incoming connections
+    ERROR                       handleConnections       ();
+
+    // Main loop where the server loops through all the list of clients and check if any of them has data to be read
+    void                        serveClients            ();
+    
+    // Function to check if there is any new socket to be registred and accepted
+    void                        registerNewConnections  ();
+
+    // Monitor the sockets for an IO event 
+    void                        monitorSocketIO         ();
+
+    // Shut down all or part of the connection open on socket FD
+    void                        closeClient             (SOCKET fd);
+
+    // Send a response to the client
+    ERROR                       sendResponse            (Response *response, SOCKET fd);
+    
+    // Get the client from the list of clients or creates a new one
+    Client                      *getClient              (SOCKET socket);
+
+    // Get the IP address of the client
+    const char                  *getClientIP            (Client client);
+
+    // Signal handler to stop the server
+    void                        signalHandler           ();
+
     // GETTERS
-    SOCKET                       get_server_socket();
+    SOCKET                       getServerSocket        ();
+    fd_set                       getFdsSet              ();
+    addrinfo                    &getHints               ();
+    addrinfo                    *getBindAddrss          ();
 
-                                Server();
-                                ~Server();
+    //SETTERS
+    void                         setServerSocket        (SOCKET server_socket);
+    void                         setFds                 (fd_set fds);
+    void                         setHints               (addrinfo hints);
+    void                         setBindAddress         (addrinfo *bind_address);
+
+    //Vector of registred clients
+    std::vector<Client*>        _clients;
+    
+    //Flag to keep the server alive
+    bool                        _keep_alive;
 
     private:
 
-    SOCKET                       server_socket;
-    fd_set                       fds;
-    addrinfo                     hints;
-    addrinfo *                   bind_address;
+    //Object to parse data from the client
+    Parser                       _parser;
+
+    addrinfo                     _hints;
+    SOCKET                       _server_socket;
+    fd_set                       _fds;
+    addrinfo                    *_bind_address;
 
 };
 
