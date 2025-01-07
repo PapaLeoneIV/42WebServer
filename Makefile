@@ -9,6 +9,7 @@ SRCS = 	src/main.cpp \
 		src/msg/Request.cpp \
 		src/Parser.cpp \
 		src/Booter.cpp \
+		src/ServerManager.cpp \
 		src/Utils.cpp
 
 re: clean
