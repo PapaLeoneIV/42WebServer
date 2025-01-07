@@ -1,10 +1,7 @@
 #ifndef RESPONSE_HPP
 #define RESPONSE_HPP
 
-#include <string>
-#include <map>
-#include <iostream>
-#include <vector>
+#include "Utils.hpp"
 
 
 class Response{
@@ -13,34 +10,38 @@ class Response{
 
     Response();
     Response(int status, const char *status_message);
+    Response(int status, std::string status_message);
     ~Response();
 
+    void                                print                 (void);
+    void                                prepareResponse       (void);
 
-    void                                prepareResponse       (std::string b);
-
-    std::string                         &getResponse          ();
-    int                                 &getContentLength     ();
-    int                                 &getFlags             ();
-    std::string                         &getBody              ();
-    std::string                         &getContentType       ();
-    std::string                         &getStatusMessage     ();
-    int                                 &getStatus            ();
-    std::map<std::string, std::string>  &getHeaders           ();
+    void                                fillStatusLine        (void);
+    void                                fillHeader            (std::string headerKey, std::string headerValue);
+    
+    std::string                         &getResponse          (void);
+    std::string                         &getBody              (void);
+    std::string                         &getContentType       (void);
+    std::string                         &getStatusMessage     (void);
+    int                                 &getStatus            (void);
+    std::map<std::string, std::string>  &getHeaders           (void);
 
     void                                setResponse           (char *response);
-    void                                setContentLength      (int size);
-    void                                setFlags              (int flags);
+    void                                setBody               (std::string body);
+    void                                setContentType        (std::string content_type);
+    void                                setStatusMessage      (std::string status_message);
+    void                                setStatusCode         (int status);
+    void                                setHeaders            (std::string key, std::string value);
+
 
     private:
 
-    std::string                         _response;
+    std::string                         _finalResponse;
     std::map<std::string, std::string>  _headers;
     std::string                         _body;
     std::string                         _content_type; 
-    int                                 _content_length;
     std::string                         _status_message; 
     int                                 _status;
-    int                                 _flags;
 };
 
 
