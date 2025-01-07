@@ -1,67 +1,128 @@
 #include "Parser.hpp"
 
 Parser::Parser() {
-    this->_allowd_methods.push_back("GET");
-    this->_allowd_methods.push_back("POST");
 
-    this->_allowd_versions.push_back("HTTP/1.1");
-
-    this->_mandatory_headers.push_back("host");
+    this->_allowd_versions.insert("HTTP/1.1");
     
-    this->_allowd_headers.push_back("accept");
-    this->_allowd_headers.push_back("content-length");
-    this->_allowd_headers.push_back("content-type");
-    this->_allowd_headers.push_back("accept-language");
-    this->_allowd_headers.push_back("alt-used");
-    this->_allowd_headers.push_back("accept-encoding");
-    this->_allowd_headers.push_back("date");
-    this->_allowd_headers.push_back("from");
-    this->_allowd_headers.push_back("user-agent");
+    this->_implemnted_methods.insert("GET");
+    this->_implemnted_methods.insert("POST");
+    this->_implemnted_methods.insert("DELETE");
+
+
+    this->_allowd_methods.insert("GET");
+    this->_allowd_methods.insert("POST");
+    this->_allowd_methods.insert("DELETE");
+    
+    //this->_allowd_methods.insert("PUT");
+    //this->_allowd_methods.insert("HEAD");
+
+    this->_allowd_headers.insert("host");
+    this->_allowd_headers.insert("connection");
+    this->_allowd_headers.insert("accept");
+    this->_allowd_headers.insert("content-length");
+    this->_allowd_headers.insert("content-type");
+    this->_allowd_headers.insert("accept-language");
+    this->_allowd_headers.insert("alt-used");
+    this->_allowd_headers.insert("accept-encoding");
+    this->_allowd_headers.insert("date");
+    this->_allowd_headers.insert("from");
+    this->_allowd_headers.insert("user-agent");
 }
 
 Parser::~Parser(){}
 
-ERROR Parser::checkMaxRecvBytes(int recv_bytes){
-    if(recv_bytes >= MAX_REQUEST_SIZE){
-        std::cerr << "Error: request too long" << std::endl;
-        return INVALID_REQUEST_SIZE;
+void Parser::parse(Request *request, Client *client) {
+    
+    //check if the method is implemented, consult section 5.1.1 of RFC 2616
+    switch (this->_allowd_methods.count(request->getMethod())) {
+        case true:
+            if (this->_implemnted_methods.find(request->getMethod()) == this->_implemnted_methods.end()) {
+                // not permitted
+                client->getResponse()->setStatusCode(405);
+                client->getResponse()->setStatusMessage("Method Not Allowed");
+                client->getResponse()->fillHeader("Allow", "GET, POST, DELETE");
+                return;
+            }
+            break;
+        case false:
+                // not implemented
+                client->getResponse()->setStatusCode(501);
+                client->getResponse()->setStatusMessage("Not Implemented");
+                client->getResponse()->fillHeader("Allow", "GET, POST, DELETE");
+                return;
+        }
+
+    //only allowing http/1.1 at the moment
+    if (this->_allowd_versions.find(request->getVersion()) == this->_allowd_versions.end()) {
+        client->getResponse()->setStatusCode(505);
+        client->getResponse()->setStatusMessage("HTTP Version Not Supported");
+        return;
     }
-    return 0;
+
+    //TODO check section 3.2 of RFC 2616 for the correct format of the URL
+    // http_URL = "http:" "//" host [ ":" port ] [ abs_path [ "?" query ]]    
+    if (this->isValidUrl(request->getUrl()) == false) {
+        client->getResponse()->setStatusCode(400);
+        client->getResponse()->setStatusMessage("Bad Request");
+        return; 
+    }
+
+    //TODO more checks on headers
+    if (request->getHeaders().find("content-length") != request->getHeaders().end()) {
+        std::string contentLen = request->getHeaders().find("content-length")->second;
+        if (request->getBody().size() != static_cast<size_t>(strToInt(contentLen))) {
+            client->getResponse()->setStatusCode(400);
+            client->getResponse()->setStatusMessage("Bad Request");
+            return;
+        }
+    }
+    else if(request->getHeaders().find("transfer-encoding") != request->getHeaders().end()) {
+        if (request->getHeaders().find("transfer-encoding")->second == "chunked") {
+            //TODO handle it in the future
+        }
+    } else {
+        //missing content-length and transfer encoding
+        client->getResponse()->setStatusCode(411);
+        client->getResponse()->setStatusMessage("Length Required");
+        return;
+    }
+
+    //for reference check 9.1.1  Safe Methods of RFC 2616
+    //and sectiion 4.4
+    if(request->getMethod() == "GET" || request->getMethod() == "DELETE" || request->getMethod() == "HEAD") {
+        //TODO ATM i bounce the request if it has a body, but in the future i should handle it,
+        //i can set it to null probably and ignore it
+        if (request->getBody().length() != 0) {
+            client->getResponse()->setStatusCode(400);
+            client->getResponse()->setStatusMessage("Bad Request");
+            return;
+        }
+    } else if (request->getMethod() == "POST" || request->getMethod() == "PUT") {
+        std::string contentLen = request->getHeaders().find("content-length")->second;
+        if(request->getBody().length() != static_cast<size_t>(strToInt(contentLen))) {
+            client->getResponse()->setStatusCode(400);
+            client->getResponse()->setStatusMessage("Bad Request");
+            return;
+        }
+    }
 }
 
-ERROR Parser::checkRecvBytes(int recv_bytes){
+Request* Parser::decompose(char *data) {
+    std::string url, version, method;
+    std::string line, body;
 
-        if(recv_bytes == -1){
-            std::cerr << "Error: recv failed: closing connection" << std::endl;
-            return INTERNAL_RECV_ERROR;
-        }
-        if(recv_bytes == 0){
-            std::cerr << "Error: connection closed by client" << std::endl;
-            return INVALID_CONNECTION_CLOSE_BY_CLIENT;
-        }
-        return 0;
-}
+    std::istringstream iss(data);
 
-
-Request* Parser::parse(std::vector<Client*>::iterator client) {
-    Request *request = new Request();
-    std::istringstream iss((*client)->getRequest());
-
-    std::string url;
-    std::string version;
-    std::string method;
-
-    std::string line;
-    std::string body;
+    Request *tmpRequest = new Request();
 
     if (std::getline(iss, line)) {
         std::istringstream firstLineStream(line);
         firstLineStream >> method >> url >> version;
-
-        request->setMethod(method);
-        request->setUrl(url);
-        request->setVersion(version);
     }
+    
+    tmpRequest->setMethod(method);
+    tmpRequest->setUrl(url);
+    tmpRequest->setVersion(version);
 
     std::map<std::string, std::string> headers;
 
@@ -74,74 +135,23 @@ Request* Parser::parse(std::vector<Client*>::iterator client) {
             headerName = headerName.substr(headerName.find_first_not_of(" \t"));
             headerValue = headerValue.substr(headerValue.find_first_not_of(" \t"));
 
+            //case insensitive
             headerName = to_lowercase(headerName);
 
             headers[headerName] = headerValue;
         }
     }
 
-    request->setHeaders(headers);
+    tmpRequest->setHeaders(headers);
 
     std::getline(iss, body, '\0');
-    request->setBody(body);
+    
+    tmpRequest->setBody(body);
 
-    if(this->validate(request) != 0){
-        
-    }
-
-    return request;
+    return tmpRequest;
 }
 
-ERROR Parser::checkMethod(std::string method) {
-    std::vector<std::string>::iterator it;
-    for (it = this->_allowd_methods.begin(); it != this->_allowd_methods.end(); ++it) {
-        if (method == *it) {
-            return 0; 
-        }
-    }
-    return INVALID_METHOD;
-}
-
-ERROR Parser::checkUrl(std::string url) {
-    if (url.empty() || url[0] != '/') {
-        return INVALID_URL; 
-    }
-    return 0; 
-}
-
-ERROR Parser::checkVersion(std::string version) {
-    std::vector<std::string>::iterator it;
-    for (it = this->_allowd_versions.begin(); it != this->_allowd_versions.end(); ++it) {
-        if (version != *it) {
-            return INVALID_VERSION; 
-        }
-    }
-    return 0; 
-}
-
-ERROR Parser::checkHeaders(std::map<std::string, std::string> req_headers) {
-    std::vector<std::string>::iterator mand_headers_it;
-    for (mand_headers_it = this->_mandatory_headers.begin(); mand_headers_it != this->_mandatory_headers.end(); ++mand_headers_it) {
-        if (req_headers.find(*mand_headers_it) == req_headers.end() || req_headers[*mand_headers_it].empty()) {
-            return INVALID_HEADER; 
-        }
-    }
-    return 0; 
-}
-
-ERROR Parser::checkBody(std::string body, Request *request) {
-    (void)request;
-    (void)body; 
-    return 0;
-}
-
-ERROR Parser::validate(Request *request) {
-    ERROR error;
-    if ((error = checkMethod(request->getMethod()))) return error;
-    if ((error = checkUrl(request->getUrl()))) return error;
-    if ((error = checkVersion(request->getVersion()))) return error;
-    if ((error = checkHeaders(request->getHeaders()))) return error;
-    if ((error = checkBody(request->getBody(), request))) return error;
-
-    return 0;
+bool Parser::isValidUrl(std::string &url) {
+    (void)url;
+    return true;
 }
