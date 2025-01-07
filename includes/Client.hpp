@@ -1,13 +1,10 @@
 #ifndef CLIENTS_HPP
 #define CLIENTS_HPP
 
+#include "Response.hpp"
 #include "Request.hpp"
 #include "Utils.hpp"
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <string.h>
-#include <iostream>
 
 class Client{
 
@@ -15,29 +12,36 @@ class Client{
 
     Client();
     Client(Client& other);
+    Client(SOCKET fd);
+
     ~Client();
 
-    sockaddr_storage        &getAddr();
-    socklen_t               &getAddrLen();
-    SOCKET                  &getSocketFd();
-    Request                 *get_Request();
-    char                    *getRequest();
-    int                     &getRecvBytes();
+    Response                *getResponse        (void);
+    Request                 *getRequest         (void);
+    
+    sockaddr_storage        &getAddr            (void);
+    socklen_t               &getAddrLen         (void);
+    SOCKET                  &getSocketFd        (void);
+    char                    *getRequestData     (void);
+    int                     &getRecvBytes       (void);
 
-    void                    setAddr(sockaddr_storage addr); 
-    void                    setAddrLen(socklen_t len);
-    void                    setSocketFd(SOCKET fd);
-    void                    setRequestData(char * requestData);
-    void                    set_Request(Request *request);
-    void                    set_recv_bytes(int bytes);
+    void                    set_Request         (Request *request);
+    void                    set_Response        (Response *response);
+
+    void                    setAddr             (sockaddr_storage addr); 
+    void                    setAddrLen          (socklen_t len);
+    void                    setSocketFd         (SOCKET fd);
+    void                    setRequestData      (char * requestData);
+    void                    setRecvData         (int bytes);
     
                             
     private:
 
 
     Request                 *_Request;
-    socklen_t               _address_length;
+    Response                *_Response;
     sockaddr_storage        _address;
+    socklen_t               _address_length;
     SOCKET                  _socket;
     char                    _requestData[MAX_REQUEST_SIZE + 1];
     int                     _received;

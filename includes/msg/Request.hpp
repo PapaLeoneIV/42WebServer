@@ -1,8 +1,7 @@
 #ifndef REQUEST_HPP
 #define REQUEST_HPP
 
-#include <string>
-#include <map>
+#include "Utils.hpp"
 
 
 /**Request class, contains the data rappresentation that an incoming request might contain*/
@@ -13,12 +12,14 @@ public:
     Request();
     Request(Request &other);
     ~Request();
-   
-    std::string                         &getMethod         ();
-    std::string                         &getUrl            ();
-    std::string                         &getVersion        ();
-    std::map<std::string, std::string>  &getHeaders        ();
-    std::string                         &getBody           ();
+
+    void                                print              (void);
+    void                                printHeaders       (void);
+    std::string                         &getMethod         (void);
+    std::string                         &getUrl            (void);
+    std::string                         &getVersion        (void);
+    std::map<std::string, std::string>  &getHeaders        (void);
+    std::string                         &getBody           (void);
 
    
     void                                setMethod           (std::string& method);

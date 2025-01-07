@@ -5,7 +5,7 @@ Booter::Booter(){};
 
 Booter::~Booter(){};
 
-SOCKET Booter::bootServer(Server *server, const char *host, const char *port)
+ERROR Booter::bootServer(Server *server, const char *host, const char *port)
 {
     server->_keep_alive = true;
 
@@ -28,22 +28,19 @@ SOCKET Booter::bootServer(Server *server, const char *host, const char *port)
 
     freeaddrinfo(server->getBindAddrss());
 
-    return 0;
+    return SUCCESS;
 }
 
 ERROR Booter::resolveAddress(Server *server, const char *host, const char *port) {
     struct addrinfo *addrinfo = NULL;
-    ERROR error;
 
-    error = getaddrinfo(host, port, &server->getHints(), &addrinfo);
-    if (error != 0) {
-        std::cerr << "Error resolving address: " << gai_strerror(error) << std::endl;
-        return error;
+    if (getaddrinfo(host, port, &server->getHints(), &addrinfo)) {
+        return ERR_RESOLVE_ADDR;
     }
 
     server->setBindAddress(addrinfo);
 
-    return 0;
+    return SUCCESS;
 }
 
 
@@ -53,15 +50,14 @@ ERROR Booter::createSocket(Server *server)
     SOCKET socket_fd;
 
     socket_fd = socket((server->getHints()).ai_family, (server->getHints()).ai_socktype, (server->getHints()).ai_protocol);
+
     if (socket_fd == -1){
-        std::cerr << "Error: socket creation failed" << std::endl;
-        //TODO throw exception
-        return 1;
+        return ERR_SOCK_CREATION;
     }
 
     server->setServerSocket(socket_fd); 
 
-    return 0;
+    return SUCCESS;
 }
 
 ERROR Booter::setNonBlockingFd(Server *server)
@@ -72,30 +68,24 @@ ERROR Booter::setNonBlockingFd(Server *server)
     if((flags = fcntl(server->getServerSocket(), F_GETFL, 0)) == -1)
         flags |= O_NONBLOCK;  
     if((error = fcntl(server->getServerSocket(), F_SETFL, flags))){
-        std::cerr << "Error: setting socket to non-blocking failed" << std::endl;
-        //TODO throw exception
-        return error;
+        return ERR_SOCKET_NBLOCK;
     }
-    return 0;
+    return SUCCESS;
 }
 
 ERROR Booter::bindSocket(Server *server)
 {
     if(bind(server->getServerSocket(), server->getBindAddrss()->ai_addr, server->getBindAddrss()->ai_addrlen) == -1){
-        std::cerr << "Error: bind failed" << std::endl;
-        //TODO throw exception
-        return 1;
+        return ERR_BIND;
     }
-    return 0;
+    return SUCCESS;
 }
 
 ERROR Booter::startListening(Server *server)
 {
     if(listen(server->getServerSocket(), 10) == -1){
-        std::cerr << "Error: listen failed" << std::endl;
-        //TODO throw exception
-        return 1;
+        return ERR_LISTEN;
     }
-    return 0;
+    return SUCCESS;
 }
 

@@ -2,28 +2,62 @@
 
 
 
-std::string error_to_string(int error) {
+std::string ErrorToString(int error) {
     switch (error) {
         case SUCCESS:
             return "Success";
+        //BOOTING ERRORS
+        case ERR_RESOLVE_ADDR:
+            return "Could not resolve address";
+        case ERR_SOCK_CREATION:
+            return "Error: socket creation failed";
+        case ERR_SOCKET_NBLOCK:
+            return "Error: setting socket to non-blocking failed";
+        case ERR_BIND:
+            return "Error: bind failed";
+        case ERR_LISTEN:
+            return "Error: listen failed";
+        //MONITOR ERRORS
+        case ERR_SELECT:
+            return "Error: select failed";
+        case ERR_SEND:
+            return "Error: send failed";
+        case ERR_RECV:
+            return "Error: recv failed: closing connection";
+        //PARSER ERRORS
         case INVALID_METHOD:
-            return "Invalid Method";
+            return "Error: the method is not supported (yet)";
         case INVALID_URL:
-            return "Invalid URL";
+            return "Error: Invalid URL";
         case INVALID_VERSION:
-            return "Invalid Version";
-        case INVALID_HEADER:
-            return "Invalid Header";
+            return "Error: HTTP version not supported";
+        case INVALID_MANDATORY_HEADER:
+            return "Error: Missing mandatory header";
         case INVALID_BODY:
-            return "Invalid Body";
+            return "Error: Invalid body";
         case INVALID_BODY_LENGTH:
-            return "Invalid Body Length";
+            return "Error: Invalid body length";
+        case INVALID_MAX_REQUEST_SIZE:
+            return "Error: Request too long";
+        case INVALID_CONNECTION_CLOSE_BY_CLIENT:
+            return "Error: Connection closed by client";
+        case INVALID_REQUEST:
+            return "Error: Invalid request";
+        case INVALID_CONTENT_LENGTH:
+            return "Error: Invalid content length";
         default:
             return "Unknown Error";
     }
 }
 
-std::string int_to_string(int number) {
+int strToInt(std::string str) {
+    std::stringstream ss(str);
+    int number;
+    ss >> number;
+    return number;
+}
+
+std::string intToStr(int number) {
     std::stringstream ss;
     ss << number;
     return ss.str();

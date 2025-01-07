@@ -1,10 +1,23 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
+#include <string.h>
+#include <unistd.h>
+#include <sstream>
+#include <iostream>
+#include <stdexcept>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <fcntl.h>
+#include <netdb.h>
 
 #include <string>
+#include <map>
 #include <iostream>
-#include <sstream>
+#include <vector>
+#include <set>
+
 
 typedef int SOCKET;
 typedef int ERROR;
@@ -13,22 +26,42 @@ typedef int ERROR;
 
 #define TIMEOUT_SEC 5
 
-enum err_parsing{
+#define SERVER_NAME "UrMom"
+
+
+//List of possible error in the program, used to return a string error message
+//to check the actual error message, checkout functionn ErrorToString in Utlis.cpp
+enum POSSIBLE_ERRORS{
     SUCCESS,
+    //BOOTING ERRORS
+    ERR_RESOLVE_ADDR,
+    ERR_SOCK_CREATION,
+    ERR_SOCKET_NBLOCK,
+    ERR_BIND,
+    ERR_LISTEN,
+    //MONITOR ERRORS
+    ERR_SELECT,
+    ERR_SEND,
+    ERR_RECV,
+    //PARSER ERRORS
     INVALID_METHOD,
     INVALID_URL,
     INVALID_VERSION,
-    INVALID_HEADER,
+    INVALID_MANDATORY_HEADER,
     INVALID_BODY,
     INVALID_BODY_LENGTH,
-    INVALID_REQUEST_SIZE,
-    INTERNAL_RECV_ERROR,
+    INVALID_MAX_REQUEST_SIZE,
     INVALID_CONNECTION_CLOSE_BY_CLIENT,
+    INVALID_REQUEST,
+    MISSING_HEADER,
+    INVALID_CONTENT_LENGTH,
 };
 
-std::string error_to_string             (int error);
+std::string ErrorToString               (int error);
 
-std::string int_to_string               (int number);
+std::string intToStr                    (int number);
+
+int         strToInt                    (std::string str);
 
 std::string to_lowercase                (const std::string& str);
 

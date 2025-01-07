@@ -6,30 +6,44 @@ Request::Request(Request& other) {
     this->_url = other._url;
     this->_version = other._version;
     this->_body = other._body;
-
     this->_headers = other._headers;
 }
 Request::~Request(){};
 
-std::string &Request::getMethod(){return _method;}
+void Request::print() {
+    std::cout << "Method: " << this->_method << std::endl;
+    std::cout << "Url: " << this->_url << std::endl;
+    std::cout << "Version: " << this->_version << std::endl;
+    std::cout << "Headers: " << std::endl;
+    this->printHeaders() ;  
+    std::cout << "Body: " << this->_body << std::endl;
+}
 
-std::string &Request::getUrl(){return _url;}
+void Request::printHeaders() {
+    std::string headers = "";
+    for (std::map<std::string, std::string>::iterator it = this->_headers.begin(); it != this->_headers.end(); ++it) {
+        headers += it->first + ": " + it->second + "\n";
+    }
+}
+std::string &Request::getMethod()                                       {return this->_method;}
 
-std::string &Request::getVersion(){return _version;}
+std::string &Request::getUrl()                                          {return this->_url;}
 
-std::map<std::string, std::string> &Request::getHeaders(){return _headers;}
+std::string &Request::getVersion()                                      {return this->_version;}
 
-std::string &Request::getBody(){return _body;}
+std::map<std::string, std::string> &Request::getHeaders()               {return this->_headers;}
 
-void Request::setMethod(std::string& method) {this->_method = method;}
+std::string &Request::getBody()                                         {return this->_body;}
 
-void Request::setUrl(std::string& url) {    this->_url = url;}
+void Request::setMethod(std::string& method)                            {this->_method = method;}
 
-void Request::setVersion(std::string& version) {this->_version = version;}
+void Request::setUrl(std::string& url)                                  {this->_url = url;}
 
-void Request::setHeaders(std::map<std::string, std::string>& headers) {this->_headers = headers;}
+void Request::setVersion(std::string& version)                          {this->_version = version;}
 
-void Request::setBody(std::string& body) {this->_body = body;}
+void Request::setHeaders(std::map<std::string, std::string>& headers)   {this->_headers = headers;}
+
+void Request::setBody(std::string& body)                                {this->_body = body;}
 
 
 

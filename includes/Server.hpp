@@ -1,14 +1,7 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
-#include <sys/socket.h>
-#include <netdb.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <iostream>
-#include <string.h>
-#include <vector>
-#include <stdexcept>
+
 
 #include "Utils.hpp"
 #include "Client.hpp"
@@ -28,43 +21,20 @@ class Server{
     Server();
     ~Server();
 
-
-    //REQUEST PARSER
-
-    //RESOURCE FINDER
-    
-    // Main function to handle incoming connections
-    ERROR                       handleConnections       ();
-
-    // Main loop where the server loops through all the list of clients and check if any of them has data to be read
-    void                        serveClients            ();
-    
-    // Function to check if there is any new socket to be registred and accepted
-    void                        registerNewConnections  ();
-
-    // Monitor the sockets for an IO event 
-    void                        monitorSocketIO         ();
-
     // Shut down all or part of the connection open on socket FD
-    void                        closeClient             (SOCKET fd);
+    void                        closeConnection         (SOCKET fd);
 
-    // Send a response to the client
-    ERROR                       sendResponse            (Response *response, SOCKET fd);
-    
     // Get the client from the list of clients or creates a new one
     Client                      *getClient              (SOCKET socket);
 
     // Get the IP address of the client
     const char                  *getClientIP            (Client client);
 
-    // Signal handler to stop the server
-    void                        signalHandler           ();
-
     // GETTERS
-    SOCKET                       getServerSocket        ();
-    fd_set                       getFdsSet              ();
-    addrinfo                    &getHints               ();
-    addrinfo                    *getBindAddrss          ();
+    SOCKET                       getServerSocket        (void);
+    fd_set                       getFdsSet              (void);
+    addrinfo                    &getHints               (void);
+    addrinfo                    *getBindAddrss          (void);
 
     //SETTERS
     void                         setServerSocket        (SOCKET server_socket);
@@ -79,9 +49,6 @@ class Server{
     bool                        _keep_alive;
 
     private:
-
-    //Object to parse data from the client
-    Parser                       _parser;
 
     addrinfo                     _hints;
     SOCKET                       _server_socket;

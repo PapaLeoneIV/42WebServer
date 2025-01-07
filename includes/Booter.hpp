@@ -18,7 +18,7 @@ class Booter {
     Booter();
     ~Booter();
 
-    SOCKET                      bootServer          (Server *server, const char *host, const char *port);
+    ERROR                       bootServer          (Server *server, const char *host, const char *port);
     
     ERROR                       resolveAddress      (Server *server, const char *host, const char *port);
     ERROR                       setNonBlockingFd    (Server *server);
