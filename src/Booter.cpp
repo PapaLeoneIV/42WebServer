@@ -23,7 +23,7 @@ ERROR Booter::bootServer(Server *server, const char *host, const char *port)
     std::cout << "Binding" << std::endl;
     if((error = bindSocket(server))) { return error; }
 
-    std::cout << "Listening" << std::endl;
+    std::cout << "Listening on port: " << port << std::endl;
     if((error = startListening(server))) { return error; }
 
     freeaddrinfo(server->getBindAddrss());
@@ -42,8 +42,6 @@ ERROR Booter::resolveAddress(Server *server, const char *host, const char *port)
 
     return SUCCESS;
 }
-
-
 
 ERROR Booter::createSocket(Server *server)
 {   

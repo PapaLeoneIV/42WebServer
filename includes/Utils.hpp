@@ -30,7 +30,7 @@ typedef int ERROR;
 
 
 //List of possible error in the program, used to return a string error message
-//to check the actual error message, checkout functionn ErrorToString in Utlis.cpp
+//to check the actual error message, checkout functionn ErrToStr in Utlis.cpp
 enum POSSIBLE_ERRORS{
     SUCCESS,
     //BOOTING ERRORS
@@ -57,7 +57,7 @@ enum POSSIBLE_ERRORS{
     INVALID_CONTENT_LENGTH,
 };
 
-std::string ErrorToString               (int error);
+std::string ErrToStr               (int error);
 
 std::string intToStr                    (int number);
 

@@ -2,7 +2,7 @@
 
 
 
-std::string ErrorToString(int error) {
+std::string ErrToStr(int error) {
     switch (error) {
         case SUCCESS:
             return "Success";
