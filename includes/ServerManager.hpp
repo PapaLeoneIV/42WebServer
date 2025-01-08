@@ -20,6 +20,7 @@ class ServerManager{
     void                            processRequest          (Client *client);
     void                            sendResponse            (SOCKET fd, Client *client);
 
+    Client                          *getClient              (SOCKET clientFd);
     void                            removeClient            (SOCKET fd);
     void                            addServer               (Server *server);
     void                            addToSet                (SOCKET fd, fd_set *fdSet);

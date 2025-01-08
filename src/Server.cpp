@@ -6,19 +6,6 @@ void Server::closeConnection(SOCKET fd) {
     close(fd);
 }
 
-Client *Server::getClient(SOCKET clientFd)
-{
-    std::vector<Client*>::iterator clientIt;
-    
-    //se il clientFd passato esiste tra i clienti registrati lo ritorno
-    for(clientIt = this->_clients.begin(); clientIt != this->_clients.end(); clientIt++){
-        if((*clientIt)->getSocketFd() == clientFd) 
-            return (*clientIt);
-    }
-
-    //altrimenti ne creo uno nuovo
-    return new Client(clientFd);
-}
 
 const char *Server::getClientIP(Client client)
 {
