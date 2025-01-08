@@ -3,8 +3,10 @@
 
 ServerManager::ServerManager()
 {
-    FD_ZERO(&_readPool);
-    FD_ZERO(&_writePool);
+    this->_maxSocket = 0;
+    
+    FD_ZERO(&this->_readPool);
+    FD_ZERO(&this->_writePool);
 }
 
 ServerManager::~ServerManager(){}
@@ -12,25 +14,25 @@ ServerManager::~ServerManager(){}
 
 void ServerManager::mainLoop()
 {
-    struct timeval timeout;
-    timeout.tv_sec = TIMEOUT_SEC;
-    timeout.tv_usec = 0;
-    
     Server *server = new Server();
     Booter booter;
 
     //creo i/il server
-    booter.bootServer(server, "localhost", "8081");
+    booter.bootServer(server, "localhost", "9002");
 
     //aggiungo il server alla lista dei server
     this->addServer(server);
 
-    this->initFdSets();
+    while(1){
+        
+        struct timeval timeout;
+        timeout.tv_sec = TIMEOUT_SEC;
+        timeout.tv_usec = 0;
 
-    while(420){
+        this->initFdSets();
 
         if (select(this->_maxSocket + 1, &this->_readPool, &this->_writePool, 0, &timeout) < 0){
-            throw std::runtime_error(ErrorToString(ERR_SELECT));
+            throw std::runtime_error(ErrToStr(ERR_SELECT));
         }
 
         for (SOCKET fd = 0; fd < this->_maxSocket + 1; ++fd){
@@ -44,9 +46,7 @@ void ServerManager::mainLoop()
             else if(FD_ISSET(fd, &this->_writePool) && this->_clients_map.count(fd) > 0){
                 this->sendResponse(fd, this->_clients_map[fd]);
             }
-            else if(FD_ISSET(fd, &this->_writePool) && this->_servers_map.count(fd) > 0){
-                std::cout << "Server " << fd << " is ready to write" << std::endl;
-            }
+            
         }
     }
 }
@@ -73,38 +73,33 @@ void ServerManager::initFdSets()
 
 void ServerManager::registerNewConnections(Server *server, SOCKET serverFd)
 {
-        //se il server è pronto ad accettare nuove connessioni perche messo in modalita di lettura
-        if (FD_ISSET(serverFd,  &this->_readPool))
-        {
-            //creo un nuovo client
-            Client* client = server->getClient(-1);
-            if (client == NULL) { //allocazione andata male
-                return;            
-            }
-            
-            //accetto la connessione
-            SOCKET new_socket = accept(serverFd, (sockaddr*)&client->getAddr(), &client->getAddrLen()); 
-            if (new_socket < 0){
-                delete client;
-                return;
-            }
-            
-            //setto il socket come non bloccante
-            if(fcntl(new_socket, F_SETFL, O_NONBLOCK) < 0){
-                delete client;
-                close(new_socket);
-                return;
-            }
-            //aggiungo il socket al pool di socket da monitorare
-            this->addToSet(new_socket, &this->_readPool);
-
-            //setto il nuovo socket al client
-            client->setSocketFd(new_socket);
-            
-            this->_clients_map[new_socket] = client;
-            
-            std::cout << "New connection from " << server->getClientIP(*client) << std::endl;
-        }
+    //creo un nuovo client
+    Client* client = this->getClient(-1);
+    if (client == NULL) { //allocazione andata male
+        return;
+    }
+    
+    //accetto la connessione
+    SOCKET new_socket = accept(serverFd, (sockaddr*)&client->getAddr(), &client->getAddrLen()); 
+    if (new_socket < 0){
+        delete client;
+        return;
+    }
+    
+    //setto il socket come non bloccante
+    if(fcntl(new_socket, F_SETFL, O_NONBLOCK) < 0){
+        delete client;
+        close(new_socket);
+        return;
+    }
+    //aggiungo il socket al pool di socket da monitorare
+    this->addToSet(new_socket, &this->_readPool);
+    //setto il nuovo socket al client
+    client->setSocketFd(new_socket);
+    
+    this->_clients_map[new_socket] = client;
+    
+    std::cout << "New connection from " << server->getClientIP(*client) << std::endl;
 }
 
 void ServerManager::processRequest(Client *client)
@@ -121,14 +116,13 @@ void ServerManager::processRequest(Client *client)
         return;
     }
     if(bytes_received == 0){
-        std::cerr << "Error: connection closed by client" << std::endl;
         this->removeClient(client->getSocketFd());
         return;
     }
 
     client->setRecvData(bytes_received + client->getRecvBytes());
 
-    
+    std::cout << "Data received: " << client->getRequestData() << std::endl;
 
     Request* request = parser.decompose(client->getRequestData());
 
@@ -144,7 +138,6 @@ void ServerManager::processRequest(Client *client)
 
 void ServerManager::sendResponse(SOCKET fd, Client *client)
 {
-    client->getResponse()->setHeaders("Content-Type", "text/html");
     client->getResponse()->setHeaders("Content-Length", intToStr(client->getResponse()->getBody().size()));
     client->getResponse()->setHeaders("Connection", "close");
 
@@ -160,10 +153,24 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
         return;
     }
 
-    this->removeFromSet(fd, &this->_writePool);
-    this->addToSet(fd, &this->_readPool);
-
+    //this->removeFromSet(fd, &this->_writePool);
+    //this->addToSet(fd, &this->_readPool);   
+     
+    this->removeClient(fd);
+    
     return; 
+}
+
+
+Client *ServerManager::getClient(SOCKET clientFd)
+{
+    
+    //se il clientFd passato esiste tra i clienti registrati lo ritorno
+    if (this->_clients_map.count(clientFd) > 0){
+        return this->_clients_map[clientFd];
+    }
+    //altrimenti ne creo uno nuovo
+    return new Client(clientFd);
 }
 
 void ServerManager::removeClient(SOCKET fd)
@@ -178,6 +185,8 @@ void ServerManager::removeClient(SOCKET fd)
     if(FD_ISSET(fd, &this->_writePool)){
         removeFromSet(fd, &this->_writePool);
     }
+    shutdown(fd, SHUT_RDWR);
+    close(fd);
 }
 
 void ServerManager::addServer(Server *server)
