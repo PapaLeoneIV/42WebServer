@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <netdb.h>
 
+#include <algorithm>
 #include <string>
 #include <map>
 #include <iostream>
@@ -27,6 +28,8 @@ typedef int ERROR;
 #define TIMEOUT_SEC 5
 
 #define SERVER_NAME "UrMom"
+
+#define ALLOWED_CHARS "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~:/?#[]@!$&'()*+,;=%"
 
 
 //List of possible error in the program, used to return a string error message
@@ -56,6 +59,10 @@ enum POSSIBLE_ERRORS{
     MISSING_HEADER,
     INVALID_CONTENT_LENGTH,
 };
+
+std::string getContentType              (std::string& url);
+
+std::string analyzeUrl                  (std::string& url);
 
 std::string ErrToStr                    (int error);
 

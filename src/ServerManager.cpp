@@ -18,7 +18,7 @@ void ServerManager::mainLoop()
     Booter booter;
 
     //creo i/il server
-    booter.bootServer(server, "localhost", "9011");
+    booter.bootServer(server, "localhost", "8081");
 
     //aggiungo il server alla lista dei server
     this->addServer(server);
@@ -122,25 +122,26 @@ void ServerManager::processRequest(Client *client)
 
     client->setRecvData(bytes_received + client->getRecvBytes());
 
-    std::cout << "---DATA RECEIVED----: \n" << client->getRequestData() << std::endl;
-
     Request* request = parser.decompose(client->getRequestData());
     
-    std::cout << "--------REQUEST DECOMPOSED--------- : \n" << std::endl;
-    request->print();
 
     parser.parse(request, client);
     
     client->set_Request(request);
 
-    
+    client->getResponse()->setBody("Hello World");
+
     this->removeFromSet(client->getSocketFd(), &this->_readPool);
     this->addToSet(client->getSocketFd(), &this->_writePool);
 }
 
 void ServerManager::sendResponse(SOCKET fd, Client *client)
 {
-    client->getResponse()->setHeaders("Content-Length", intToStr(client->getResponse()->getBody().size()));
+    if(client->getResponse()->getBody().empty()){
+        client->getResponse()->setHeaders("Content-Type", getContentType(client->getRequest()->getUrl()));
+        client->getResponse()->setHeaders("Content-Length", intToStr(client->getResponse()->getBody().size()));
+    }
+    client->getResponse()->setHeaders("Host", "localhost");
     client->getResponse()->setHeaders("Connection", "close");
 
     client->getResponse()->prepareResponse();

@@ -3,6 +3,8 @@
 Parser::Parser() {
 
     this->_allowd_versions.insert("HTTP/1.1");
+    this->_allowd_versions.insert("undefined");
+
     
     this->_implemnted_methods.insert("GET");
     this->_implemnted_methods.insert("POST");
@@ -31,7 +33,14 @@ Parser::Parser() {
 Parser::~Parser(){}
 
 void Parser::parse(Request *request, Client *client) {
-    
+
+    std::string dataStr(client->getRequestData());
+    //CLRF not found
+    if (!dataStr.find("\r\n\r\n")) {
+        client->getResponse()->setStatusCode(400);
+        client->getResponse()->setStatusMessage("Bad Request: CLRF not found");
+        return ;
+    }
     //check if the method is implemented, consult section 5.1.1 of RFC 2616
     switch (this->_allowd_methods.count(request->getMethod())) {
         case true:
@@ -59,10 +68,11 @@ void Parser::parse(Request *request, Client *client) {
     }
 
     //TODO check section 3.2 of RFC 2616 for the correct format of the URL
-    // http_URL = "http:" "//" host [ ":" port ] [ abs_path [ "?" query ]]    
-    if (this->isValidUrl(request->getUrl()) == false) {
+    request->print();
+    std::string url = request->getUrl();
+    if (url.find_first_not_of(ALLOWED_CHARS) != std::string::npos || url.find_first_of("/") != 0) {
         client->getResponse()->setStatusCode(400);
-        client->getResponse()->setStatusMessage("Bad Request");
+        client->getResponse()->setStatusMessage("Bad Request: Invalid URL");
         return; 
     }
 
@@ -70,18 +80,17 @@ void Parser::parse(Request *request, Client *client) {
     //for reference check 9.1.1  Safe Methods of RFC 2616
     //and sectiion 4.4
     if(request->getMethod() == "GET" || request->getMethod() == "DELETE" /* || request->getMethod() == "HEAD" */) {
-        //i can set it to null  and ignore the body 
+        //i can set it to null and ignore the body 
         std::string empty = "";
         request->setBody(empty);
-
-
-        
+ 
     } else if (request->getMethod() == "POST"/*  || request->getMethod() == "PUT" */) {
         if (request->getHeaders().find("content-length") != request->getHeaders().end()) {
         std::string contentLen = request->getHeaders().find("content-length")->second;
         if (request->getBody().size() != static_cast<size_t>(strToInt(contentLen))) {
             client->getResponse()->setStatusCode(400);
-            client->getResponse()->setStatusMessage("Bad Request");
+            client->getResponse()->setStatusMessage("Bad Request: Content-Length does not match the body size");
+
             return;
         }
         }
@@ -96,8 +105,8 @@ void Parser::parse(Request *request, Client *client) {
             return;
         }
         
-        }
     }
+}
 
 Request* Parser::decompose(char *data) {
     std::string url, version, method;
@@ -113,6 +122,9 @@ Request* Parser::decompose(char *data) {
     }
     
     tmpRequest->setMethod(method);
+    //if we find % we should parse the next two char as HEX and replace it with the actual char
+    url = analyzeUrl(url);
+
     tmpRequest->setUrl(url);
     tmpRequest->setVersion(version);
 
@@ -140,12 +152,6 @@ Request* Parser::decompose(char *data) {
     
     tmpRequest->setBody(body);
 
-    std::cout << "print body: " << body << std::endl; 
 
     return tmpRequest;
-}
-
-bool Parser::isValidUrl(std::string &url) {
-    (void)url;
-    return true;
 }

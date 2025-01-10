@@ -49,6 +49,55 @@ std::string ErrToStr(int error) {
             return "Unknown Error";
     }
 }
+static char hexToAsciiChar(const std::string& hex) {
+    if (hex.length() != 2) {
+        throw std::invalid_argument("Hex string must be exactly 2 characters long.");
+    }
+
+    int decimalValue;
+    std::istringstream(hex) >> std::hex >> decimalValue;
+    return static_cast<char>(decimalValue);
+}
+
+std::string getContentType(std::string& url) {
+    std::string extension = url.substr(url.find_last_of(".") + 1);
+    char * urlC = new char[url.length() + 1];
+    if(!extension.empty())
+    {
+        if (strcmp(urlC,  "/") == 0)    return "text/html";
+        if (strcmp(urlC, ".css") == 0)  return "text/css";
+        if (strcmp(urlC, ".csv") == 0)  return "text/csv";
+        if (strcmp(urlC, ".gif") == 0)  return "image/gif";
+        if (strcmp(urlC, ".htm") == 0)  return "text/html";
+        if (strcmp(urlC, ".html") == 0) return "text/html";
+        if (strcmp(urlC, ".ico") == 0)  return "image/x-icon";
+        if (strcmp(urlC, ".jpeg") == 0) return "image/jpeg";
+        if (strcmp(urlC, ".jpg") == 0)  return "image/jpeg";
+        if (strcmp(urlC, ".js") == 0)   return "application/javascript";
+        if (strcmp(urlC, ".json") == 0) return "application/json";
+        if (strcmp(urlC, ".png") == 0)  return "image/png";
+        if (strcmp(urlC, ".pdf") == 0)  return "application/pdf";
+        if (strcmp(urlC, ".svg") == 0)  return "image/svg+xml";
+        if (strcmp(urlC, ".txt") == 0)  return "text/plain";
+    }   
+    return NULL; 
+}
+
+std::string analyzeUrl(std::string& url) {
+    std::string result;
+    for (std::size_t i = 0; i < url.length(); ++i) {
+        if (url[i] == '%' && i + 2 < url.length()) {
+            std::string hex = url.substr(i + 1, 2); // Extract the two hex characters after '%'
+            char asciiChar = hexToAsciiChar(hex);
+            result += asciiChar; // Append the ASCII character to the result
+            i += 2; // Skip the processed hex characters
+        } else {
+            result += url[i]; // Keep other characters unchanged
+        }
+    }
+    return result;
+}
+
 
 int strToInt(std::string str) {
     std::stringstream ss(str);

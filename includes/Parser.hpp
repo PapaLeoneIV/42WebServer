@@ -10,11 +10,9 @@
 class Parser{
     public:
 
-    Request *decompose                          (char *data);
+    Request *decompose                       (char *data);
 
-    void    parse                               (Request *request, Client *client);
-
-    bool    isValidUrl                          (std::string &url);
+    void    parse                            (Request *request, Client *client);
 
     Parser();
     ~Parser();
