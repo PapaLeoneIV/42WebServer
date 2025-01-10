@@ -23,6 +23,7 @@ void Request::printHeaders() {
     std::string headers = "";
     for (std::map<std::string, std::string>::iterator it = this->_headers.begin(); it != this->_headers.end(); ++it) {
         headers += it->first + ": " + it->second + "\n";
+        std::cout << it->first << " : " << it->second << std::endl;
     }
 }
 std::string &Request::getMethod()                                       {return this->_method;}

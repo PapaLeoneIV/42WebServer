@@ -57,7 +57,7 @@ enum POSSIBLE_ERRORS{
     INVALID_CONTENT_LENGTH,
 };
 
-std::string ErrToStr               (int error);
+std::string ErrToStr                    (int error);
 
 std::string intToStr                    (int number);
 

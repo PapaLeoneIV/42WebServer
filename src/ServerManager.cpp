@@ -18,7 +18,7 @@ void ServerManager::mainLoop()
     Booter booter;
 
     //creo i/il server
-    booter.bootServer(server, "localhost", "9002");
+    booter.bootServer(server, "localhost", "9011");
 
     //aggiungo il server alla lista dei server
     this->addServer(server);
@@ -122,15 +122,17 @@ void ServerManager::processRequest(Client *client)
 
     client->setRecvData(bytes_received + client->getRecvBytes());
 
-    std::cout << "Data received: " << client->getRequestData() << std::endl;
+    std::cout << "---DATA RECEIVED----: \n" << client->getRequestData() << std::endl;
 
     Request* request = parser.decompose(client->getRequestData());
-
+    
+    std::cout << "--------REQUEST DECOMPOSED--------- : \n" << std::endl;
     request->print();
 
     parser.parse(request, client);
     
     client->set_Request(request);
+
     
     this->removeFromSet(client->getSocketFd(), &this->_readPool);
     this->addToSet(client->getSocketFd(), &this->_writePool);

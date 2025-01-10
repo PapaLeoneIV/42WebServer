@@ -1,15 +1,7 @@
 #ifndef BOOTER_HPP
 #define BOOTER_HPP
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <unistd.h>
-#include <fcntl.h>
-
-#include <iostream>
-#include <string.h>
-
+#include "Utils.hpp"
 #include "Server.hpp"
 
 class Booter {
@@ -18,13 +10,13 @@ class Booter {
     Booter();
     ~Booter();
 
-    ERROR                       bootServer          (Server *server, const char *host, const char *port);
+    ERROR                       bootServer    (Server *server, const char *host, const char *port);
     
-    ERROR                       resolveAddress      (Server *server, const char *host, const char *port);
-    ERROR                       setNonBlockingFd    (Server *server);
-    ERROR                       startListening      (Server *server);
-    ERROR                       createSocket        (Server *server);
-    ERROR                       bindSocket          (Server *server);
+    ERROR                       GetAddrInfo   (Server *server, const char *host, const char *port);
+    ERROR                       Socket        (Server *server);
+    ERROR                       Bind          (Server *server);
+    ERROR                       Fcntl         (Server *server);
+    ERROR                       Listen        (Server *server);
 };
 
 

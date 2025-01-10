@@ -15,16 +15,15 @@ Parser::Parser() {
     
     //this->_allowd_methods.insert("PUT");
     //this->_allowd_methods.insert("HEAD");
-
-    this->_allowd_headers.insert("host");
-    this->_allowd_headers.insert("connection");
-    this->_allowd_headers.insert("accept");
     this->_allowd_headers.insert("content-length");
     this->_allowd_headers.insert("content-type");
+    this->_allowd_headers.insert("date");
+    this->_allowd_headers.insert("connection");
+    this->_allowd_headers.insert("host");
+    this->_allowd_headers.insert("accept");
     this->_allowd_headers.insert("accept-language");
     this->_allowd_headers.insert("alt-used");
     this->_allowd_headers.insert("accept-encoding");
-    this->_allowd_headers.insert("date");
     this->_allowd_headers.insert("from");
     this->_allowd_headers.insert("user-agent");
 }
@@ -68,44 +67,37 @@ void Parser::parse(Request *request, Client *client) {
     }
 
     //TODO more checks on headers
-    if (request->getHeaders().find("content-length") != request->getHeaders().end()) {
+    //for reference check 9.1.1  Safe Methods of RFC 2616
+    //and sectiion 4.4
+    if(request->getMethod() == "GET" || request->getMethod() == "DELETE" /* || request->getMethod() == "HEAD" */) {
+        //i can set it to null  and ignore the body 
+        std::string empty = "";
+        request->setBody(empty);
+
+
+        
+    } else if (request->getMethod() == "POST"/*  || request->getMethod() == "PUT" */) {
+        if (request->getHeaders().find("content-length") != request->getHeaders().end()) {
         std::string contentLen = request->getHeaders().find("content-length")->second;
         if (request->getBody().size() != static_cast<size_t>(strToInt(contentLen))) {
             client->getResponse()->setStatusCode(400);
             client->getResponse()->setStatusMessage("Bad Request");
             return;
         }
-    }
-    else if(request->getHeaders().find("transfer-encoding") != request->getHeaders().end()) {
-        if (request->getHeaders().find("transfer-encoding")->second == "chunked") {
-            //TODO handle it in the future
         }
-    } else {
-        //missing content-length and transfer encoding
-        client->getResponse()->setStatusCode(411);
-        client->getResponse()->setStatusMessage("Length Required");
-        return;
-    }
-
-    //for reference check 9.1.1  Safe Methods of RFC 2616
-    //and sectiion 4.4
-    if(request->getMethod() == "GET" || request->getMethod() == "DELETE" || request->getMethod() == "HEAD") {
-        //TODO ATM i bounce the request if it has a body, but in the future i should handle it,
-        //i can set it to null probably and ignore it
-        if (request->getBody().length() != 0) {
-            client->getResponse()->setStatusCode(400);
-            client->getResponse()->setStatusMessage("Bad Request");
+        else if(request->getHeaders().find("transfer-encoding") != request->getHeaders().end()) {
+            if (request->getHeaders().find("transfer-encoding")->second == "chunked") {
+                //TODO handle it in the future
+            }
+        } else {
+            //missing content-length and transfer encoding
+            client->getResponse()->setStatusCode(411);
+            client->getResponse()->setStatusMessage("Length Required");
             return;
         }
-    } else if (request->getMethod() == "POST" || request->getMethod() == "PUT") {
-        std::string contentLen = request->getHeaders().find("content-length")->second;
-        if(request->getBody().length() != static_cast<size_t>(strToInt(contentLen))) {
-            client->getResponse()->setStatusCode(400);
-            client->getResponse()->setStatusMessage("Bad Request");
-            return;
+        
         }
     }
-}
 
 Request* Parser::decompose(char *data) {
     std::string url, version, method;
@@ -126,7 +118,7 @@ Request* Parser::decompose(char *data) {
 
     std::map<std::string, std::string> headers;
 
-    while (std::getline(iss, line) && !line.empty()) {
+    while (std::getline(iss, line) && line[0] != '\r' && line[1] != '\n') {   
         size_t colonPos = line.find(':');
         if (colonPos != std::string::npos) {
             std::string headerName = line.substr(0, colonPos);
@@ -147,6 +139,8 @@ Request* Parser::decompose(char *data) {
     std::getline(iss, body, '\0');
     
     tmpRequest->setBody(body);
+
+    std::cout << "print body: " << body << std::endl; 
 
     return tmpRequest;
 }

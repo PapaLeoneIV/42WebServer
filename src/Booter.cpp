@@ -12,26 +12,26 @@ ERROR Booter::bootServer(Server *server, const char *host, const char *port)
     ERROR error;
 
     std::cout << "Getting address info" << std::endl;
-    if((error = resolveAddress(server, host, port))) { return error; }
+    if((error = GetAddrInfo(server, host, port))) { return error; }
 
     std::cout << "Creating socket" << std::endl;
-    if((error = createSocket(server))) { return error; }
+    if((error = Socket(server))) { return error; }
 
     std::cout << "Setting non-blocking" << std::endl;
-    if((error = setNonBlockingFd(server))) { return error; }
+    if((error = Fcntl(server))) { return error; }
 
     std::cout << "Binding" << std::endl;
-    if((error = bindSocket(server))) { return error; }
+    if((error = Bind(server))) { return error; }
 
     std::cout << "Listening on port: " << port << std::endl;
-    if((error = startListening(server))) { return error; }
+    if((error = Listen(server))) { return error; }
 
     freeaddrinfo(server->getBindAddrss());
 
     return SUCCESS;
 }
 
-ERROR Booter::resolveAddress(Server *server, const char *host, const char *port) {
+ERROR Booter::GetAddrInfo(Server *server, const char *host, const char *port) {
     struct addrinfo *addrinfo = NULL;
 
     if (getaddrinfo(host, port, &server->getHints(), &addrinfo)) {
@@ -43,7 +43,7 @@ ERROR Booter::resolveAddress(Server *server, const char *host, const char *port)
     return SUCCESS;
 }
 
-ERROR Booter::createSocket(Server *server)
+ERROR Booter::Socket(Server *server)
 {   
     SOCKET socket_fd;
 
@@ -58,7 +58,7 @@ ERROR Booter::createSocket(Server *server)
     return SUCCESS;
 }
 
-ERROR Booter::setNonBlockingFd(Server *server)
+ERROR Booter::Fcntl(Server *server)
 {
     ERROR error;
     int flags;
@@ -71,7 +71,7 @@ ERROR Booter::setNonBlockingFd(Server *server)
     return SUCCESS;
 }
 
-ERROR Booter::bindSocket(Server *server)
+ERROR Booter::Bind(Server *server)
 {
     if(bind(server->getServerSocket(), server->getBindAddrss()->ai_addr, server->getBindAddrss()->ai_addrlen) == -1){
         return ERR_BIND;
@@ -79,7 +79,7 @@ ERROR Booter::bindSocket(Server *server)
     return SUCCESS;
 }
 
-ERROR Booter::startListening(Server *server)
+ERROR Booter::Listen(Server *server)
 {
     if(listen(server->getServerSocket(), 10) == -1){
         return ERR_LISTEN;
