@@ -7,32 +7,38 @@
 
 class ServerManager{
 
-    public:
-    
-    ServerManager();
-    ~ServerManager();
+	public:
+
+	ServerManager();
+	~ServerManager();
 
 
-    void                            mainLoop                (void);
+	void                            mainLoop                (void);
 
-    void                            initFdSets              (void);
-    void                            registerNewConnections  (Server *server, SOCKET serverFd);
-    void                            processRequest          (Client *client);
-    void                            sendResponse            (SOCKET fd, Client *client);
+	void                            initFdSets              (void);
+	void                            registerNewConnections  (SOCKET serverFd, Server *server);
+	void                            processRequest          (Client *client);
+	void                            sendResponse            (SOCKET fd, Client *client);
 
-    Client                          *getClient              (SOCKET clientFd);
-    void                            removeClient            (SOCKET fd);
-    void                            addServer               (Server *server);
-    void                            addToSet                (SOCKET fd, fd_set *fdSet);
-    void                            removeFromSet           (SOCKET fd, fd_set *fd_set);
-    
-    private:
-    
-    fd_set                          _readPool;
-    fd_set                          _writePool;
-    SOCKET                          _maxSocket;
-    std::map<SOCKET, Client*>       _clients_map; 
-    std::map<SOCKET, Server*>       _servers_map;
+	Client                         *getClient               (SOCKET clientFd);
+	const char *                    getClientIP             (Client client);
+	void                            removeClient            (SOCKET fd);
+	void                            addServer               (Server *server);
+	void                            addToSet                (SOCKET fd, fd_set *fdSet);
+	void                            removeFromSet			(SOCKET fd, fd_set *fd_set);
+	
+
+	
+	private:
+
+	fd_set                          _masterPool;
+	fd_set                          _readPool;
+	fd_set                          _writePool;
+
+	SOCKET                          _maxSocket;
+
+	std::map<SOCKET, Client*>       _clients_map;
+	std::map<SOCKET, Server*>       _servers_map;
 };
 
 
