@@ -2,6 +2,8 @@ CC = g++
 
 CFLAGS = -Wall -Wextra -Werror -g -std=c++98 -I./includes -I./includes/msg
 
+TARGET = webserver
+
 SRCS = 	src/main.cpp \
 		src/Server.cpp \
 		src/Client.cpp \
@@ -15,7 +17,7 @@ SRCS = 	src/main.cpp \
 re: clean
 	$(CC) $(CFLAGS) -o $(TARGET) $(SRCS)
 
-TARGET = webserver
+
 
 all: $(TARGET)
 
