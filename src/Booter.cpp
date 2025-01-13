@@ -7,8 +7,6 @@ Booter::~Booter(){};
 
 ERROR Booter::bootServer(Server *server, const char *host, const char *port)
 {
-    server->_keep_alive = true;
-
     ERROR error;
 
     std::cout << "Getting address info" << std::endl;
@@ -28,6 +26,7 @@ ERROR Booter::bootServer(Server *server, const char *host, const char *port)
 
     freeaddrinfo(server->getBindAddrss());
 
+
     return SUCCESS;
 }
 
@@ -46,28 +45,25 @@ ERROR Booter::GetAddrInfo(Server *server, const char *host, const char *port) {
 ERROR Booter::Socket(Server *server)
 {   
     SOCKET socket_fd;
-
+    int optval = 1;
     socket_fd = socket((server->getHints()).ai_family, (server->getHints()).ai_socktype, (server->getHints()).ai_protocol);
 
     if (socket_fd == -1){
         return ERR_SOCK_CREATION;
     }
 
+   
     server->setServerSocket(socket_fd); 
-
+    if (setsockopt(server->getServerSocket(), SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0) {
+        throw std::runtime_error(ErrToStr(1));
+	}
     return SUCCESS;
 }
 
 ERROR Booter::Fcntl(Server *server)
 {
-    ERROR error;
-    int flags;
-
-    if((flags = fcntl(server->getServerSocket(), F_GETFL, 0)) == -1)
-        flags |= O_NONBLOCK;  
-    if((error = fcntl(server->getServerSocket(), F_SETFL, flags))){
-        return ERR_SOCKET_NBLOCK;
-    }
+    if(fcntl(server->getServerSocket(), F_SETFL, O_NONBLOCK) < 0)
+        return ERR_FCNTL;
     return SUCCESS;
 }
 

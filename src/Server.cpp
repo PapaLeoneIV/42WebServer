@@ -1,33 +1,32 @@
 #include "Server.hpp"
 
-
-void Server::closeConnection(SOCKET fd) {
-    shutdown(fd, SHUT_RDWR);
-    close(fd);
-}
-
-
-const char *Server::getClientIP(Client client)
-{
-    static char address_info[INET6_ADDRSTRLEN];
-    getnameinfo((sockaddr*)&client.getAddr(), client.getAddrLen(), address_info, sizeof(address_info), 0, 0, NI_NUMERICHOST);
-    return address_info;
-}
-
-
 //GETTERS
-SOCKET                       Server::getServerSocket() { return this->_server_socket;}
-fd_set                       Server::getFdsSet() { return this->_fds;}
-addrinfo                     &Server::getHints() { return this->_hints;}
-addrinfo                     *Server::getBindAddrss() { return this->_bind_address;}
+SOCKET      Server::getServerSocket()   {return this->_server_socket;}
+fd_set      Server::getFdsSet()         {return this->_fds;}
+addrinfo    &Server::getHints()         {return this->_hints;}
+addrinfo    *Server::getBindAddrss()    {return this->_bind_address;}
+std::string &Server::getHost()          {return this->_host;};
+std::string &Server::getServerName()    {return this->_server_name;};
+std::string &Server::getPort()          {return this->_port;};
+std::string &Server::getRoot()          {return this->_root;};
+std::string &Server::getIndex()         {return this->_index;};
+size_t      &Server::getMaxRequestSize(){return this->_max_request_size;};
+
 
 //SETTERS
-void                         Server::setServerSocket(SOCKET server_socket){this->_server_socket = server_socket;};
-void                         Server::setFds(fd_set fds){this->_fds = fds;};
-void                         Server::setHints(addrinfo hints){this->_hints = hints;};
-void                         Server::setBindAddress(addrinfo *bind_address){this->_bind_address = bind_address;};
+void    Server::setServerSocket(SOCKET server_socket)      {this->_server_socket = server_socket;};
+void    Server::setFds(fd_set fds)                         {this->_fds = fds;};
+void    Server::setHints(addrinfo hints)                   {this->_hints = hints;};
+void    Server::setBindAddress(addrinfo *bind_address)     {this->_bind_address = bind_address;};
+void    Server::setHost(std::string host)                  {this->_host = host;};
+void    Server::setServerName(std::string server_name)     {this->_server_name = server_name;};
+void    Server::setPort(std::string port)                  {this->_port = port;};
+void    Server::setRoot(std::string root)                  {this->_root = root;};
+void    Server::setIndex(std::string index)                {this->_index = index;};
+void    Server::setMaxRequestSize(size_t max_request_size) {this->_max_request_size = max_request_size;};
 
-Server::Server(): _clients(),_keep_alive(true), _hints(), _server_socket(-1), _bind_address(0) {
+
+Server::Server(): _hints(), _server_socket(-1), _bind_address(0) {
 
     this->_hints.ai_family = AF_INET;      
     this->_hints.ai_socktype = SOCK_STREAM;

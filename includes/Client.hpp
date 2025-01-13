@@ -5,6 +5,7 @@
 #include "Request.hpp"
 #include "Utils.hpp"
 
+class Server;
 
 class Client{
 
@@ -24,6 +25,7 @@ class Client{
     SOCKET                  &getSocketFd        (void);
     char                    *getRequestData     (void);
     int                     &getRecvBytes       (void);
+    Server*                 getServer           (void); 
 
     void                    set_Request         (Request *request);
     void                    set_Response        (Response *response);
@@ -33,13 +35,16 @@ class Client{
     void                    setSocketFd         (SOCKET fd);
     void                    setRequestData      (char * requestData);
     void                    setRecvData         (int bytes);
-    
+    void                    setServer           (Server *server);
                             
     private:
 
 
     Request                 *_Request;
     Response                *_Response;
+
+    Server                  *_server;
+    
     sockaddr_storage        _address;
     socklen_t               _address_length;
     SOCKET                  _socket;

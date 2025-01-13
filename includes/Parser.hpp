@@ -4,15 +4,16 @@
 #include "Request.hpp"
 #include "Client.hpp"
 #include "Utils.hpp"
-
-
+#include "Server.hpp"
 
 class Parser{
     public:
 
-    Request *decompose                       (char *data);
+    Request *decompose  (char *data);
 
-    void    parse                            (Request *request, Client *client);
+    void    parse   (Request *request, Client *client);
+
+    void    validateResource    (Client *client, Server *server);
 
     Parser();
     ~Parser();

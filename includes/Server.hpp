@@ -21,39 +21,47 @@ class Server{
     Server();
     ~Server();
 
-    // Shut down all or part of the connection open on socket FD
-    void                        closeConnection         (SOCKET fd);
-
-    // Get the client from the list of clients or creates a new one
-    Client                      *getClient              (SOCKET socket);
-
-    // Get the IP address of the client
-    const char                  *getClientIP            (Client client);
-
     // GETTERS
-    SOCKET                       getServerSocket        (void);
-    fd_set                       getFdsSet              (void);
-    addrinfo                    &getHints               (void);
-    addrinfo                    *getBindAddrss          (void);
+    SOCKET       getServerSocket        (void);
+    fd_set       getFdsSet              (void);
+    addrinfo        &getHints               (void);
+    addrinfo        *getBindAddrss          (void);
+    std::string     &getHost                (void);
+    std::string     &getServerName          (void);
+    std::string     &getPort                (void);
+    std::string     &getRoot                (void);
+    std::string     &getIndex               (void);
+    size_t      &getMaxRequestSize      (void);
+
 
     //SETTERS
-    void                         setServerSocket        (SOCKET server_socket);
-    void                         setFds                 (fd_set fds);
-    void                         setHints               (addrinfo hints);
-    void                         setBindAddress         (addrinfo *bind_address);
-
-    //Vector of registred clients
-    std::vector<Client*>        _clients;
+    void    setServerSocket   (SOCKET server_socket);
+    void    setFds            (fd_set fds);
+    void    setHints          (addrinfo hints);
+    void    setBindAddress    (addrinfo *bind_address);
+    void    setHost           (std::string host);
+    void    setServerName     (std::string server_name);
+    void    setPort           (std::string port);
+    void    setRoot           (std::string root);
+    void    setIndex          (std::string index);
+    void    setMaxRequestSize (size_t max_request_size);
     
-    //Flag to keep the server alive
-    bool                        _keep_alive;
-
     private:
 
-    addrinfo                     _hints;
-    SOCKET                       _server_socket;
-    fd_set                       _fds;
-    addrinfo                    *_bind_address;
+    //Server configuration
+    std::string                     _host;
+    std::string                     _server_name;
+    std::string                     _port;
+    std::string                     _root;
+    std::string                     _index;
+    size_t                          _max_request_size;
+    //Location configuration
+
+
+    addrinfo                        _hints;
+    SOCKET                          _server_socket;
+    fd_set                          _fds;
+    addrinfo                        *_bind_address;
 
 };
 

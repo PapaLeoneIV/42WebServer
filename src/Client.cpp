@@ -26,10 +26,11 @@ Client::Client( Client& other) {
 sockaddr_storage        &Client::getAddr()                          {return this->_address;};
 socklen_t               &Client::getAddrLen()                       {return this->_address_length;};
 SOCKET                  &Client::getSocketFd()                      {return this->_socket;};
-Request                 *Client::getRequest()                      {return this->_Request;}
-Response                *Client::getResponse()                     {return this->_Response;}
-char                    *Client::getRequestData()                       {return this->_requestData;}
+Request                 *Client::getRequest()                       {return this->_Request;}
+Response                *Client::getResponse()                      {return this->_Response;}
+char                    *Client::getRequestData()                   {return this->_requestData;}
 int                     &Client::getRecvBytes()                     {return this->_received;}
+Server *                Client::getServer()                         {return this->_server;}
 
 void                    Client::setAddr(sockaddr_storage addr)      {this->_address = addr;}
 void                    Client::setAddrLen(socklen_t len)           {this->_address_length = len;}
@@ -38,7 +39,8 @@ void                    Client::set_Request(class Request *_Request){this->_Requ
 void                    Client::set_Response(class Response *_Response){this->_Response = _Response;} 
 void                    Client::setRequestData(char *requestData)   {strncpy(this->_requestData, requestData, sizeof(this->_requestData) - 1);
                                                                     this->_requestData[sizeof(this->_requestData) - 1] = '\0';}
-void                    Client::setRecvData(int bytes)           {this->_received = bytes;}
+void                    Client::setRecvData(int bytes)              {this->_received = bytes;}
+void                    Client::setServer(Server *server)           {this->_server = server;}
 
 Client::Client() {
   this->_Request = NULL;
