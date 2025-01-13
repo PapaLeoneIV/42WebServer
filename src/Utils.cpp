@@ -45,6 +45,12 @@ std::string ErrToStr(int error) {
             return "Error: Invalid request";
         case INVALID_CONTENT_LENGTH:
             return "Error: Invalid content length";
+        case ERR_FCNTL:
+            return "Error: fcntl failed";
+        case FILE_NOT_FOUND:
+            return "Error: File not found";
+        case FILE_READ_DENIED:
+            return "Error: Read access denied";
         default:
             return "Unknown Error";
     }
@@ -60,42 +66,60 @@ static char hexToAsciiChar(const std::string& hex) {
 }
 
 std::string getContentType(std::string& url) {
-    std::string extension = url.substr(url.find_last_of(".") + 1);
-    char * urlC = new char[url.length() + 1];
-    if(!extension.empty())
-    {
-        if (strcmp(urlC,  "/") == 0)    return "text/html";
-        if (strcmp(urlC, ".css") == 0)  return "text/css";
-        if (strcmp(urlC, ".csv") == 0)  return "text/csv";
-        if (strcmp(urlC, ".gif") == 0)  return "image/gif";
-        if (strcmp(urlC, ".htm") == 0)  return "text/html";
-        if (strcmp(urlC, ".html") == 0) return "text/html";
-        if (strcmp(urlC, ".ico") == 0)  return "image/x-icon";
-        if (strcmp(urlC, ".jpeg") == 0) return "image/jpeg";
-        if (strcmp(urlC, ".jpg") == 0)  return "image/jpeg";
-        if (strcmp(urlC, ".js") == 0)   return "application/javascript";
-        if (strcmp(urlC, ".json") == 0) return "application/json";
-        if (strcmp(urlC, ".png") == 0)  return "image/png";
-        if (strcmp(urlC, ".pdf") == 0)  return "application/pdf";
-        if (strcmp(urlC, ".svg") == 0)  return "image/svg+xml";
-        if (strcmp(urlC, ".txt") == 0)  return "text/plain";
-    }   
-    return NULL; 
+    if (url ==  "/") return "text/html"; 
+    size_t idx = url.find_last_of(".");
+    if(idx == std::string::npos) return "text/plain";
+
+    std::string extension = url.substr(idx);
+    if(extension.empty()) return "text/plain";
+    std::string urlC = &extension[0];
+    if (urlC == ".css")  {return "text/css";}
+    if (urlC == ".csv")  {return "text/csv";}
+    if (urlC == ".gif")  {return "image/gif";}
+    if (urlC == ".htm")  {return "text/html";}
+    if (urlC == ".html") {return "text/html";}
+    if (urlC == ".ico")  {return "image/x-icon";}
+    if (urlC == ".jpeg") {return "image/jpeg";} 
+    if (urlC == ".jpg")  {return "image/jpeg";}
+    if (urlC == ".js")   {return "application/javascript";}
+    if (urlC == ".json") {return "application/json";}
+    if (urlC == ".png")  {return "image/png";}
+    if (urlC == ".pdf")  {return "application/pdf";}
+    if (urlC == ".svg")  {return "image/svg+xml";}
+    if (urlC == ".txt")  {return "text/plain";}
+
+    return "text/plain";
 }
 
+
+//TODO add checks
 std::string analyzeUrl(std::string& url) {
     std::string result;
-    for (std::size_t i = 0; i < url.length(); ++i) {
+    for(std::size_t i = 0; i < url.length(); ++i) {
         if (url[i] == '%' && i + 2 < url.length()) {
-            std::string hex = url.substr(i + 1, 2); // Extract the two hex characters after '%'
-            char asciiChar = hexToAsciiChar(hex);
-            result += asciiChar; // Append the ASCII character to the result
-            i += 2; // Skip the processed hex characters
+            std::string hex = url.substr(i + 1, 2); 
+            result += hexToAsciiChar(hex); 
+            i += 2;
         } else {
-            result += url[i]; // Keep other characters unchanged
+            result += url[i];
         }
     }
+    size_t pos;
+    while ((pos = result.find("..")) != std::string::npos) {
+        result.erase(pos, 2);
+    }
+    while ((pos = result.find("../")) != std::string::npos) {
+        result.erase(pos, 3);
+    }
     return result;
+}
+
+ERROR checkPermissions(std::string fullPath, int mode) {
+    ERROR error = 0;
+    if ((error = access(fullPath.c_str(), mode))) {
+        return error;
+    }
+    return SUCCESS;
 }
 
 

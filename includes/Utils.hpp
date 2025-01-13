@@ -6,6 +6,8 @@
 #include <sstream>
 #include <iostream>
 #include <stdexcept>
+#include <sys/stat.h>
+#include <bits/stdc++.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -42,6 +44,7 @@ enum POSSIBLE_ERRORS{
     ERR_SOCKET_NBLOCK,
     ERR_BIND,
     ERR_LISTEN,
+    ERR_FCNTL,
     //MONITOR ERRORS
     ERR_SELECT,
     ERR_SEND,
@@ -58,6 +61,8 @@ enum POSSIBLE_ERRORS{
     INVALID_REQUEST,
     MISSING_HEADER,
     INVALID_CONTENT_LENGTH,
+    FILE_NOT_FOUND,
+    FILE_READ_DENIED,
 };
 
 std::string getContentType              (std::string& url);
@@ -73,6 +78,10 @@ int         strToInt                    (std::string str);
 std::string to_lowercase                (const std::string& str);
 
 std::string trim                        (const std::string& str);
+
+ERROR   checkPermissions                  (std::string fullPath,int mode);
+
+ERROR   parseResource                   ();
 
 
 #endif
