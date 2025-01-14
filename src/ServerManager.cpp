@@ -23,7 +23,7 @@ void ServerManager::mainLoop()
     //std::vector<Server*> = parser.parseConfigFile(argv[2]);
 
     //creo i/il server
-    booter.bootServer(server, "localhost", "8080");
+    booter.bootServer(server, "10.11.2.2", "8080");
 
     //aggiungo il server alla lista dei server
     
@@ -112,11 +112,9 @@ void ServerManager::registerNewConnections(SOCKET serverFd, Server *server)
     this->addToSet(new_socket, &this->_masterPool);
     //setto il nuovo socket al client
     client->setSocketFd(new_socket);
-
+    //aggiungo un riferimento al server all interno del client
     client->setServer(server);
     
-    //std::cout << "Assigned socket " << new_socket << " to client" << std::endl;
-
     this->_clients_map[new_socket] = client;
 }
 
@@ -125,7 +123,7 @@ void ServerManager::processRequest(Client *client)
 {
     Parser parser;
 
-
+    //read from client socket
     int bytes_received = recv(client->getSocketFd(),
                               client->getRequestData() + client->getRecvBytes(),
                               MAX_REQUEST_SIZE - client->getRecvBytes(), 0);
@@ -139,14 +137,23 @@ void ServerManager::processRequest(Client *client)
         this->removeClient(client->getSocketFd());
         return;
     }
+    //request size is too large for what the server is willing to accept
+    //TODO get the MAX_REQUEST_SIZE from the server configuration
+    if(bytes_received > MAX_REQUEST_SIZE - client->getRecvBytes()){
+        client->getResponse()->setStatusCode(413);
+        return;
+    }
 
     client->setRecvData(bytes_received + client->getRecvBytes());
 
+    //split request into headers and body
     Request* request = parser.decompose(client->getRequestData());
-    
+        
     client->set_Request(request);
     
-    parser.parse(request, client);
+    //once the request is parsed, we can try to validate and in case of error we start to fill the client response
+    if(parser.parse(request, client) != SUCCESS)
+        return;
 
     parser.validateResource(client, client->getServer());
 
@@ -154,54 +161,27 @@ void ServerManager::processRequest(Client *client)
 
 void ServerManager::sendResponse(SOCKET fd, Client *client)
 {
-    bool keepAlive = false;
-
     Request *request = client->getRequest();
     Response *response = client->getResponse();
+
     if(!request || !response){
         return;
     }
-    std::string test = std::string(getcwd(NULL, 0)) +  client->getServer()->getRoot() + client->getRequest()->getUrl();
-    std::ifstream f(test.c_str());
-    std::string s;
-    std::string res;
-    while (getline(f, s))
-    {
-        res += s;
-    }
-    response->setBody(res.c_str());
-    
+
     if(!response->getBody().empty()){
-        response->setHeaders("Content-Type", getContentType(request->getUrl()));
+        response->setHeaders("Content-Type", getContentType(request->getUrl(), response->getStatus()));
         response->setHeaders("Content-Length", intToStr(response->getBody().size()));
-    }
-    else{
+    } else{
         response->setHeaders("Content-Length", "0");
     }
 
-
     response->setHeaders("Host", "localhost");
 
-    //request->printHeaders();
-
-    if(request->getHeaders().find("connection") != request->getHeaders().end()){
-        if(request->getHeaders().count("connection") > 0 && request->getHeaders()["connection"] == "keep-alive"){
-            response->setHeaders("connection", request->getHeaders()["connection"]);
-            keepAlive = true;
-    }
-        else{
-        response->setHeaders("Connection", "close");
-        }    
-    
-    }else{
-        response->setHeaders("Connection", "close");
-    }
-    
+    response->setHeaders("Connection", "close");
 
     response->prepareResponse();
 
     response->print();
-
     int bytes_sent = send(fd, response->getResponse().c_str(), response->getResponse().size(), 0);
 
     if (bytes_sent == -1){
@@ -210,9 +190,6 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
         return;
     }
 
-    if(keepAlive){
-        return;
-    }
     this->removeClient(fd);
     
     return; 

@@ -1,58 +1,55 @@
 #include "Utils.hpp"
 
+std::string readTextFile(std::string filePath)
+{
+    std::string fileContent;
+    std::ifstream file(filePath.c_str(), std::ios::in);
+    std::string line;
+    while (std::getline(file, line)) {
+        fileContent += line + "\n";
+    }
+    file.close();
+    return fileContent;
+}
 
+std::string readFileBinary(std::string filePath)
+{
+    std::string fileContent;
+    std::ifstream file(filePath.c_str(), std::ios::in | std::ios::binary);
+    std::vector<char> buffer((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    file.close();
+    for (std::vector<char>::iterator it = buffer.begin(); it != buffer.end(); ++it) {
+        fileContent.push_back(*it);
+    }
+
+    return fileContent;
+}
 
 std::string ErrToStr(int error) {
     switch (error) {
-        case SUCCESS:
-            return "Success";
-        //BOOTING ERRORS
-        case ERR_RESOLVE_ADDR:
-            return "Could not resolve address";
-        case ERR_SOCK_CREATION:
-            return "Error: socket creation failed";
-        case ERR_SOCKET_NBLOCK:
-            return "Error: setting socket to non-blocking failed";
-        case ERR_BIND:
-            return "Error: bind failed";
-        case ERR_LISTEN:
-            return "Error: listen failed";
-        //MONITOR ERRORS
-        case ERR_SELECT:
-            return "Error: select failed";
-        case ERR_SEND:
-            return "Error: send failed";
-        case ERR_RECV:
-            return "Error: recv failed: closing connection";
-        //PARSER ERRORS
-        case INVALID_METHOD:
-            return "Error: the method is not supported (yet)";
-        case INVALID_URL:
-            return "Error: Invalid URL";
-        case INVALID_VERSION:
-            return "Error: HTTP version not supported";
-        case INVALID_MANDATORY_HEADER:
-            return "Error: Missing mandatory header";
-        case INVALID_BODY:
-            return "Error: Invalid body";
-        case INVALID_BODY_LENGTH:
-            return "Error: Invalid body length";
-        case INVALID_MAX_REQUEST_SIZE:
-            return "Error: Request too long";
-        case INVALID_CONNECTION_CLOSE_BY_CLIENT:
-            return "Error: Connection closed by client";
-        case INVALID_REQUEST:
-            return "Error: Invalid request";
-        case INVALID_CONTENT_LENGTH:
-            return "Error: Invalid content length";
-        case ERR_FCNTL:
-            return "Error: fcntl failed";
-        case FILE_NOT_FOUND:
-            return "Error: File not found";
-        case FILE_READ_DENIED:
-            return "Error: Read access denied";
-        default:
-            return "Unknown Error";
+        case SUCCESS: return "Success";
+        case ERR_RESOLVE_ADDR: return "Could not resolve address";
+        case ERR_SOCK_CREATION: return "Error: socket creation failed";
+        case ERR_SOCKET_NBLOCK: return "Error: setting socket to non-blocking failed";
+        case ERR_BIND: return "Error: bind failed";
+        case ERR_LISTEN: return "Error: listen failed";
+        case ERR_SELECT: return "Error: select failed";
+        case ERR_SEND: return "Error: send failed";
+        case ERR_RECV: return "Error: recv failed: closing connection";
+        case INVALID_METHOD: return "Error: the method is not supported (yet)";
+        case INVALID_URL: return "Error: Invalid URL";
+        case INVALID_VERSION: return "Error: HTTP version not supported";
+        case INVALID_MANDATORY_HEADER: return "Error: Missing mandatory header";
+        case INVALID_BODY: return "Error: Invalid body";
+        case INVALID_BODY_LENGTH: return "Error: Invalid body length";
+        case INVALID_MAX_REQUEST_SIZE: return "Error: Request too long";
+        case INVALID_CONNECTION_CLOSE_BY_CLIENT: return "Error: Connection closed by client";
+        case INVALID_REQUEST: return "Error: Invalid request";
+        case INVALID_CONTENT_LENGTH: return "Error: Invalid content length";
+        case ERR_FCNTL: return "Error: fcntl failed";
+        case FILE_NOT_FOUND: return "Error: File not found";
+        case FILE_READ_DENIED: return "Error: Read access denied";
+        default: return "Unknown Error";
     }
 }
 static char hexToAsciiChar(const std::string& hex) {
@@ -65,7 +62,8 @@ static char hexToAsciiChar(const std::string& hex) {
     return static_cast<char>(decimalValue);
 }
 
-std::string getContentType(std::string& url) {
+std::string getContentType(std::string& url, int status) {
+    if(status != 200) return "text/html";
     if (url ==  "/") return "text/html"; 
     size_t idx = url.find_last_of(".");
     if(idx == std::string::npos) return "text/plain";
@@ -87,11 +85,30 @@ std::string getContentType(std::string& url) {
     if (urlC == ".pdf")  {return "application/pdf";}
     if (urlC == ".svg")  {return "image/svg+xml";}
     if (urlC == ".txt")  {return "text/plain";}
-
+    //TODO add support for error 415 unsupported media type
     return "text/plain";
 }
 
-
+std::string getMessageFromStatusCode(int status) {
+    switch(status) {
+        case 200: return "OK";
+        case 400: return "Bad Request";
+        case 403: return "Forbidden";
+        case 404: return "Not Found";
+        case 405: return "Method Not Allowed";
+        case 411: return "Length Required";
+        case 413: return "Payload Too Large";
+        case 414: return "URI Too Long";
+        case 415: return "Unsupported Media Type";
+        case 500: return "Internal Server Error";
+        case 501: return "Not Implemented";
+        //case 502: return "Bad Gateway";
+        //case 503: return "Service Unavailable";
+        case 505: return "HTTP Version Not Supported";
+        default: return "Status Code not recognized";
+    }
+    return "Status Code not recognized";
+}
 //TODO add checks
 std::string analyzeUrl(std::string& url) {
     std::string result;

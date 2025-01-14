@@ -33,74 +33,83 @@ Parser::Parser() {
 Parser::~Parser(){}
 
 
+std::string Parser::readFile(std::string filePath, Response *response)
+{
+    std::string fileContent;
+    std::ifstream file(filePath.c_str(), std::ios::in | std::ios::binary);
+    if (!file) {
+        std::cerr << "Error: Unable to open file " << filePath << std::endl;
+        response->setStatusCode(404);
+        return "";
+    }
+
+    std::vector<char> buffer((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    file.close();
+    for (std::vector<char>::iterator it = buffer.begin(); it != buffer.end(); ++it) {
+        fileContent.push_back(*it);
+    }
+
+    return fileContent;
+}
+
+void Parser::checkAccessability(std::string filePath, Response* response) {
+    struct stat sb;
+
+    if (access(filePath.c_str(), F_OK) == -1) {
+        response->setStatusCode(404);
+        return;
+    }
+
+    if (stat(filePath.c_str(), &sb) == -1) {
+        response->setStatusCode(500);
+        return;
+    }
+
+    if (S_ISREG(sb.st_mode) || S_ISDIR(sb.st_mode)) {
+        if (checkPermissions(filePath, R_OK) != SUCCESS) {
+            response->setStatusCode(403);
+        }
+    } else {
+        response->setStatusCode(403);
+    }
+}
+
+
 void Parser::validateResource(Client *client, Server *server)
 {
     Request *request = client->getRequest();
     Response *response = client->getResponse();
 
-    std::string fullPath = (std::string(getcwd(NULL, 0)) +  server->getRoot() + request->getUrl());
-    struct stat sb;
+    if(!request || !response)
+        return;
 
-    if(access(fullPath.c_str(), F_OK) == -1){
-        response->setStatusCode(404);
-        response->setStatusMessage("Not Found");
-        return ;
+    //get the full path of the requested resource
+    std::string filePath = server->getCwd() +  server->getRoot() + request->getUrl();
+
+    //check if the requested resource is accessible
+    this->checkAccessability(filePath, response);
+   
+   //read the content of the requested resource
+    std::string fileContent = this->readFile(filePath, response);
+   
+    //final check to see if there has been an error
+    if(response->getStatus() != 200)
+    {
+        response->setBody(response->getErrorPage(response->getStatus()));
+        return;
     }
 
-    if(stat(fullPath.c_str(), &sb) == -1){
-        response->setStatusCode(500);
-        response->setStatusMessage("Internal Server Error");
-        return ;
-    }
-
-
-    if(S_ISREG(sb.st_mode)){
-        if(checkPermissions(fullPath, R_OK) != SUCCESS){
-            response->setStatusCode(403);
-            response->setStatusMessage("Forbidden: Permission Denied: Read access denied");
-            return ;
-        }
-    }
-    else if(S_ISDIR(sb.st_mode)){
-        if(checkPermissions(fullPath, R_OK) == SUCCESS){
-            response->setStatusCode(403);
-            response->setStatusMessage("Forbidden: Permission Denied: Read access denied");
-            return ;
-        }
-        //TODO check if index.html exists
-        //TODO check if the directory is readable
-        //TODO check if the directory is executable
-    }else{
-        response->setStatusCode(403);
-        response->setStatusMessage("Forbidden: Permission Denied: Not a regular file or directory");
-        return ;
-    }
-    
-
-    //check if is it accessible
-    if(access(fullPath.c_str(), F_OK) == -1){
-        response->setStatusCode(404);
-        response->setStatusMessage("Not Found");
-        return ;
-    }
-    //check if is it readable
-    if(access(fullPath.c_str(), R_OK) == -1){
-        response->setStatusCode(403);
-        response->setStatusMessage("Forbidden: Permission Denied: Read access denied");
-        return ;
-    }
+    response->setBody(fileContent);
 
     return ;
 }
 
-void Parser::parse(Request *request, Client *client) {
-
+ERROR Parser::parse(Request *request, Client *client) {
     std::string dataStr(client->getRequestData());
     //CLRF not found
     if (!dataStr.find("\r\n\r\n")) {
         client->getResponse()->setStatusCode(400);
-        client->getResponse()->setStatusMessage("Bad Request: CLRF not found");
-        return ;
+        return INVALID_HEADER;
     }
     //check if the method is implemented, consult section 5.1.1 of RFC 2616
     switch (this->_allowd_methods.count(request->getMethod())) {
@@ -108,34 +117,29 @@ void Parser::parse(Request *request, Client *client) {
             if (this->_implemnted_methods.find(request->getMethod()) == this->_implemnted_methods.end()) {
                 // not permitted
                 client->getResponse()->setStatusCode(405);
-                client->getResponse()->setStatusMessage("Method Not Allowed");
-                client->getResponse()->fillHeader("Allow", "GET, POST, DELETE");
-                return;
+                client->getResponse()->setHeaders("Allow", "GET, POST, DELETE");
+                return INVALID_HEADER;
             }
             break;
         case false:
                 // not implemented
                 client->getResponse()->setStatusCode(501);
-                client->getResponse()->setStatusMessage("Not Implemented");
-                client->getResponse()->fillHeader("Allow", "GET, POST, DELETE");
-                return;
+                client->getResponse()->setHeaders("Allow", "GET, POST, DELETE");
+                return INVALID_HEADER;
         }
 
     //only allowing http/1.1 at the moment
     if (this->_allowd_versions.find(request->getVersion()) == this->_allowd_versions.end()) {
         client->getResponse()->setStatusCode(505);
-        client->getResponse()->setStatusMessage("HTTP Version Not Supported");
-        return;
+        return INVALID_HEADER;
     }
 
     //TODO check section 3.2 of RFC 2616 for the correct format of the URL
-    request->print();
     std::string url = analyzeUrl(request->getUrl());
 
     if (url.find_first_not_of(ALLOWED_CHARS) != std::string::npos || url.find_first_of("/") != 0) {
         client->getResponse()->setStatusCode(400);
-        client->getResponse()->setStatusMessage("Bad Request: Invalid URL");
-        return; 
+        return INVALID_HEADER; 
     }
 
     //TODO more checks on headers
@@ -145,15 +149,13 @@ void Parser::parse(Request *request, Client *client) {
         //i can set it to null and ignore the body 
         std::string empty = "";
         request->setBody(empty);
- 
     } else if (request->getMethod() == "POST"/*  || request->getMethod() == "PUT" */) {
         if (request->getHeaders().find("content-length") != request->getHeaders().end()) {
-        std::string contentLen = request->getHeaders().find("content-length")->second;
-        if (request->getBody().size() != static_cast<size_t>(strToInt(contentLen))) {
-            client->getResponse()->setStatusCode(400);
-            client->getResponse()->setStatusMessage("Bad Request: Content-Length does not match the body size");
-            return;
-        }
+            std::string contentLen = request->getHeaders().find("content-length")->second;
+            if (request->getBody().size() != static_cast<size_t>(strToInt(contentLen))) {
+                client->getResponse()->setStatusCode(400);
+                return INVALID_HEADER;
+            }
         } else if(request->getHeaders().find("transfer-encoding") != request->getHeaders().end()) {
             if (request->getHeaders().find("transfer-encoding")->second == "chunked") {
                 //TODO handle it in the future
@@ -161,10 +163,10 @@ void Parser::parse(Request *request, Client *client) {
         } else {
             //missing content-length and transfer encoding
             client->getResponse()->setStatusCode(411);
-            client->getResponse()->setStatusMessage("Length Required");
-            return;
+            return INVALID_HEADER;
         }
     }
+    return SUCCESS;
 }
 
 Request* Parser::decompose(char *data) {

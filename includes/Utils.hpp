@@ -63,9 +63,14 @@ enum POSSIBLE_ERRORS{
     INVALID_CONTENT_LENGTH,
     FILE_NOT_FOUND,
     FILE_READ_DENIED,
+    INVALID_HEADER,
 };
 
-std::string getContentType              (std::string& url);
+std::string readTextFile(std::string filePath);
+std::string readFileBinary(std::string filePath);
+
+std::string getMessageFromStatusCode    (int status);
+std::string getContentType              (std::string& url, int status);
 
 std::string analyzeUrl                  (std::string& url);
 

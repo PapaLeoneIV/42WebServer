@@ -11,9 +11,13 @@ class Parser{
 
     Request *decompose  (char *data);
 
-    void    parse   (Request *request, Client *client);
+    ERROR    parse   (Request *request, Client *client);
 
     void    validateResource    (Client *client, Server *server);
+
+    std::string readFile    (std::string filePath, Response *response);
+
+    void   checkAccessability  (std::string filePath, Response *response);
 
     Parser();
     ~Parser();

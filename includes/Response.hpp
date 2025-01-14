@@ -15,6 +15,7 @@ class Response{
 
     void                                print                 (void);
     void                                prepareResponse       (void);
+    std::string                         getErrorPage          (int status);
 
     void                                fillStatusLine        (void);
     void                                fillHeader            (std::string headerKey, std::string headerValue);

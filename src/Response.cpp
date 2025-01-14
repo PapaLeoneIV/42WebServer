@@ -28,6 +28,7 @@ void Response::prepareResponse(){
     }
     this->_finalResponse.append("\r\n");
 
+    
     this->_finalResponse.append(this->_body);
 }
 
@@ -35,7 +36,7 @@ void Response::fillStatusLine(){
     this->_finalResponse.append("HTTP/1.1 ");
     this->_finalResponse.append(intToStr(this->_status));
     this->_finalResponse.append(" ");
-    this->_finalResponse.append(this->_status_message);
+    this->_finalResponse.append(getMessageFromStatusCode(this->_status));
 }
 
 void Response::fillHeader(std::string headerKey, std::string headerValue){
@@ -46,6 +47,19 @@ void Response::fillHeader(std::string headerKey, std::string headerValue){
 }
 
 
+std::string Response::getErrorPage(int status) {
+    switch (status) {
+        case 400: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/400.html");
+        case 403: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/403.html");
+        case 404: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/404.html");
+        case 405: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/405.html");
+        case 411: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/411.html");
+        case 500: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/500.html");
+        case 501: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/501.html");
+        case 505: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/505.html");
+    }
+    return "";
+}
 
 
 

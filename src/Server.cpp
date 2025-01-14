@@ -11,6 +11,7 @@ std::string &Server::getPort()          {return this->_port;};
 std::string &Server::getRoot()          {return this->_root;};
 std::string &Server::getIndex()         {return this->_index;};
 size_t      &Server::getMaxRequestSize(){return this->_max_request_size;};
+std::string &Server::getCwd()           {return this->_cwd;};
 
 
 //SETTERS
@@ -24,10 +25,11 @@ void    Server::setPort(std::string port)                  {this->_port = port;}
 void    Server::setRoot(std::string root)                  {this->_root = root;};
 void    Server::setIndex(std::string index)                {this->_index = index;};
 void    Server::setMaxRequestSize(size_t max_request_size) {this->_max_request_size = max_request_size;};
-
+void    Server::setCwd(std::string cwd)                    {this->_cwd = cwd;};
 
 Server::Server(): _hints(), _server_socket(-1), _bind_address(0) {
 
+    this->_cwd = getcwd(NULL, 0);
     this->_hints.ai_family = AF_INET;      
     this->_hints.ai_socktype = SOCK_STREAM;
     this->_hints.ai_flags = AI_PASSIVE;

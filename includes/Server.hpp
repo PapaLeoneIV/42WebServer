@@ -31,7 +31,8 @@ class Server{
     std::string     &getPort                (void);
     std::string     &getRoot                (void);
     std::string     &getIndex               (void);
-    size_t      &getMaxRequestSize      (void);
+    size_t       &getMaxRequestSize      (void);
+    std::string     &getCwd                 (void);
 
 
     //SETTERS
@@ -45,10 +46,11 @@ class Server{
     void    setRoot           (std::string root);
     void    setIndex          (std::string index);
     void    setMaxRequestSize (size_t max_request_size);
-    
+    void    setCwd            (std::string cwd);
     private:
 
-    //Server configuration
+    //Server configuration taken from config file
+    std::string                     _cwd;
     std::string                     _host;
     std::string                     _server_name;
     std::string                     _port;

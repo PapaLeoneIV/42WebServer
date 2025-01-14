@@ -1,23 +1,18 @@
 CC = g++
 
-CFLAGS = -Wall -Wextra -Werror -g -std=c++98 -I./includes -I./includes/msg
+CFLAGS = -Wall -Wextra -Werror -g -std=c++98 -I./includes
 
 TARGET = webserver
 
 SRCS = 	src/main.cpp \
 		src/Server.cpp \
 		src/Client.cpp \
-		src/msg/Response.cpp \
-		src/msg/Request.cpp \
+		src/Response.cpp \
+		src/Request.cpp \
 		src/Parser.cpp \
 		src/Booter.cpp \
 		src/ServerManager.cpp \
 		src/Utils.cpp
-
-re: clean
-	$(CC) $(CFLAGS) -o $(TARGET) $(SRCS)
-
-
 
 all: $(TARGET)
 
@@ -26,5 +21,9 @@ $(TARGET): $(SRCS)
 
 clean:
 	rm -f $(TARGET)
+
+re: clean
+	$(CC) $(CFLAGS) -o $(TARGET) $(SRCS)
+
 
 .PHONY: all clean
