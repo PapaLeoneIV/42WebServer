@@ -27,9 +27,15 @@ void    Server::setIndex(std::string index)                {this->_index = index
 void    Server::setMaxRequestSize(size_t max_request_size) {this->_max_request_size = max_request_size;};
 void    Server::setCwd(std::string cwd)                    {this->_cwd = cwd;};
 
-Server::Server(): _hints(), _server_socket(-1), _bind_address(0) {
+Server::Server(): _hints(), _server_socket(-1), _bind_address(NULL) {
 
     this->_cwd = getcwd(NULL, 0);
+    this->_host = "";
+    this->_server_name = "";
+    this->_port = "";
+    this->_root = "";
+    this->_index = "";
+    this->_max_request_size = MAX_REQUEST_SIZE;
     this->_hints.ai_family = AF_INET;      
     this->_hints.ai_socktype = SOCK_STREAM;
     this->_hints.ai_flags = AI_PASSIVE;

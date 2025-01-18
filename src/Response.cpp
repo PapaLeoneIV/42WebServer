@@ -86,19 +86,19 @@ void Response::setHeaders(std::string key, std::string value) {
 Response::Response()
 {
     this->_finalResponse = "";
-    this->_status = 200;
-    this->_status_message = "OK";
     this->_body = "";
     this->_content_type = "";
+    this->_status_message = "OK";
+    this->_status = 200;
 }
 
 Response::Response(int status, const char *status_message)
 {
     this->_finalResponse = "";
-    this->_status = status;
-    this->_status_message = status_message;
     this->_body = "";
     this->_content_type = "";
+    this->_status_message = status_message;
+    this->_status = status;
 }
 
 

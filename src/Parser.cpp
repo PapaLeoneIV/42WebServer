@@ -263,7 +263,7 @@ Request* Parser::decompose(std::string data) {
     tmpRequest->setHeaders(headers);
 
 
-    tmpRequest->printHeaders();
+    /* tmpRequest->printHeaders(); */
     //After we got the headers from the request, we should check what type of request is GET, POST, DELETE 
     //and if it has a body parse it accordingly reference blog(https://http.dev/post)
     if(tmpRequest->getMethod() == "POST" && tmpRequest->hasBody()) {

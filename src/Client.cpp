@@ -1,7 +1,7 @@
 #include "Client.hpp"
 #include "Utils.hpp"
 
-Client::Client( Client& other) {
+Client::Client(Client & other) {
     
     this->_address_length = other._address_length;
     this->_socket = other._socket;
@@ -52,23 +52,28 @@ void                    Client::setServer(Server *server)           {this->_serv
 Client::Client() {
   this->_Request = NULL;
   this->_Response = new Response();
+  this->_server = NULL;
   memset(&this->_address, 0, sizeof(this->_address));
   this->_address_length = sizeof(this->_address);
   this->_socket = 0;
+  this->_requestData = "";
+  this->_headersData = "";
+  this->_bodyData = "";
   this->_received = 0;
-  this->_bodyData = ""; 
-
 };
 
 Client::Client(SOCKET fd) {
   this->_Request = NULL;
   this->_Response = new Response();
+  this->_server = NULL;
+
   memset(&this->_address, 0, sizeof(this->_address));
   this->_address_length = sizeof(this->_address);
   this->_socket = fd;
+  this->_requestData = "";
+  this->_headersData = "";
+  this->_bodyData = "";
   this->_received = 0;
-  this->_bodyData = ""; 
-
 };
 
 Client::~Client(){

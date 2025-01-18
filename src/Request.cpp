@@ -1,12 +1,14 @@
 #include "Request.hpp"
 
-Request::Request() : _method(""), _url(""), _version(""), _body(""), _headers(), _hasBody(false) {};
+Request::Request() : _method(""), _url(""), _version(""), _body(""), _headers(), _contType(""), _hasBody(false) {};
+
 Request::Request(Request& other) {
     this->_method = other._method;
     this->_url = other._url;
     this->_version = other._version;
     this->_body = other._body;
     this->_headers = other._headers;
+    this->_contType = other._contType;
     this->_hasBody = other._hasBody;
 }
 Request::~Request(){};

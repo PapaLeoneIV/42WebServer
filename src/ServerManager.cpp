@@ -23,7 +23,7 @@ void ServerManager::mainLoop()
     //std::vector<Server*> = parser.parseConfigFile(argv[2]);
 
     //creo i/il server
-    booter.bootServer(server, "localhost", "8083");
+    booter.bootServer(server, "localhost", "8080");
 
     //aggiungo il server alla lista dei server
     
@@ -47,8 +47,8 @@ void ServerManager::mainLoop()
         if (select(this->_maxSocket + 1, &this->_readPool, &this->_writePool, 0, &timeout) < 0){
             throw std::runtime_error(ErrToStr(ERR_SELECT));
         }
-
-        for (SOCKET fd = 0; fd <= this->_maxSocket; ++fd){
+        int max = this->_maxSocket;
+        for (SOCKET fd = 0; fd <= max; ++fd){
 
             if(FD_ISSET(fd, &this->_readPool) && this->_servers_map.count(fd) > 0){
                 this->registerNewConnections(fd, this->_servers_map[fd]);
@@ -110,20 +110,21 @@ void ServerManager::registerNewConnections(SOCKET serverFd, Server *server)
         return;
     }
 
-    //aggiungo il socket al pool di socket da monitorare
-    this->addToSet(new_socket, &this->_masterPool);
     //setto il nuovo socket al client
     client->setSocketFd(new_socket);
+    //aggiungo il socket al pool di socket da monitorare
+    this->addToSet(new_socket, &this->_masterPool);
     //aggiungo un riferimento al server all interno del client
     client->setServer(server);
     
     this->_clients_map[new_socket] = client;
-}
 
+}
 
 void ServerManager::processRequest(Client *client)
 {
     Parser parser;
+
     //I decided to split the reading of the headers and the body in two different functions
     //because the headers part does not have a limit but the body part yes
     //read headers
@@ -137,6 +138,7 @@ void ServerManager::processRequest(Client *client)
         client->getHeadersData().find("Transfer-Encoding") != std::string::npos ||
         client->getHeadersData().find("Content-Type") != std::string::npos){
         
+        std::cout << "Reading body before readBodyData" << std::endl;
         if(this->readBodyData(client) != SUCCESS){
             this->removeClient(client->getSocketFd());
             return;
@@ -220,6 +222,7 @@ void ServerManager::removeClient(SOCKET fd)
     if(FD_ISSET(fd, &this->_masterPool)){
         removeFromSet(fd, &this->_masterPool);
     }
+
     /* if(FD_ISSET(fd, &this->_readPool)){
         removeFromSet(fd, &this->_readPool);
     }
@@ -228,6 +231,7 @@ void ServerManager::removeClient(SOCKET fd)
 //    removeFromSet(fd, &this->_writePool);
     shutdown(fd, SHUT_RDWR);
     close(fd);
+    fd = -1;
 }
 
 void ServerManager::addServer(Server *server)
@@ -266,35 +270,57 @@ const char *ServerManager::getClientIP(Client *client)
     return address_info;
 }
 
-
 ERROR ServerManager::readHeaderData(Client *client)
 {
-    char headerBuff[1];
+    char headerBuff[1024]; // Use a larger buffer
+    int max_attempts = 1000; // Prevent infinite loops
+    int attempts = 0;
 
-    while(true)
-    {
-        //fine degl headers
-        if(client->getHeadersData().find("\r\n\r\n") != std::string::npos){
+    while (true) {
+        if (++attempts > max_attempts) {
+            std::cerr << "Header read timeout or too many attempts" << std::endl;
+            return ERR_RECV;
+        }
+
+        // Check if headers are fully received
+        if (client->getHeadersData().find("\r\n\r\n") != std::string::npos) {
             break;
         }
+
+        std::cout << "sizeof(headerBuff): " << sizeof(headerBuff) << std::endl;
         int bytes_received = recv(client->getSocketFd(), headerBuff, sizeof(headerBuff), 0);
 
-        if(bytes_received == -1){return ERR_RECV;}
-        if(bytes_received == 0){return ERR_RECV;}
+        if (bytes_received == -1) {
+            std::cerr << "headers bytes = -1" << std::endl;
+            std::cerr << strerror(errno) << std::endl;
+            return ERR_RECV;
+        }
+        if (bytes_received == 0) {
+            std::cerr << "headers bytes = 0" << std::endl;
+            std::cerr << strerror(errno) << std::endl;
+            return ERR_RECV;
+        }
 
-        std::string joined = client->getHeadersData() + std::string(headerBuff);
-
+        // Construct string with actual received size
+        std::string received_data(headerBuff, bytes_received);
+        std::string joined = client->getHeadersData() + received_data;
         client->setHeadersData(joined);
     }
+
+    std::cout << "Headers received: " << client->getHeadersData() << std::endl;
     return SUCCESS;
 }
 
 
-ERROR ServerManager::readBodyData(Client *client)
-{
+ERROR ServerManager::readBodyData(Client *client) {
+
+
+    std::cout << "Reading body" << std::endl;
     char bodyBuff[MAX_REQUEST_SIZE + 1];
     int bytes_received = recv(client->getSocketFd(), bodyBuff, sizeof(bodyBuff), 0);
-        
+
+    std::cout << "bytes received: " << bytes_received << std::endl;
+
     if(bytes_received > MAX_REQUEST_SIZE){
         std::cout << "Request too large" << std::endl;
         client->getResponse()->setStatusCode(413);
