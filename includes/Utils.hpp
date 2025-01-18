@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <sys/stat.h>
 #include <bits/stdc++.h>
+#include <dirent.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -25,7 +26,7 @@
 typedef int SOCKET;
 typedef int ERROR;
 
-#define MAX_REQUEST_SIZE 4096
+#define MAX_REQUEST_SIZE 1024*1024*1024 //1GB
 
 #define TIMEOUT_SEC 5
 
@@ -37,6 +38,7 @@ typedef int ERROR;
 //List of possible error in the program, used to return a string error message
 //to check the actual error message, checkout functionn ErrToStr in Utlis.cpp
 enum POSSIBLE_ERRORS{
+    FAILURE = -1,
     SUCCESS,
     //BOOTING ERRORS
     ERR_RESOLVE_ADDR,
@@ -66,6 +68,8 @@ enum POSSIBLE_ERRORS{
     INVALID_HEADER,
 };
 
+
+std::string fromDIRtoHTML(std::string dirPath, std::string url);
 std::string readTextFile(std::string filePath);
 std::string readFileBinary(std::string filePath);
 

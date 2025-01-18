@@ -1,5 +1,34 @@
 #include "Utils.hpp"
 
+std::string fromDIRtoHTML(std::string dirPath, std::string url)
+{
+    (void)url;
+    std::string html =  "<!DOCTYPE html>" \
+                        "<html lang=\"en\">" \
+                        "<head>" \
+                            "<meta charset=\"UTF-8\">" \
+                            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" \
+                            "<title>WebServer</title>" \
+                        "</head>" \
+                        "<body>";
+    DIR *dir;
+    struct dirent *ent;
+    if ((dir = opendir(dirPath.c_str())) != NULL) {
+        while ((ent = readdir(dir)) != NULL) {
+            if(url != "/") {
+                html += "<li><a href=\"" + url + std::string(ent->d_name) + "\">" + std::string(ent->d_name) + "</a></li>";
+            } else{
+            html += "<li><a href=\"" + std::string(ent->d_name) + "\">" + std::string(ent->d_name) + "</a></li>";
+            }
+        }
+        closedir(dir);
+    } else {
+        return "Error: could not open directory";
+    }
+    html += "</ul></body></html>";
+    return html;
+}
+
 std::string readTextFile(std::string filePath)
 {
     std::string fileContent;
@@ -64,10 +93,10 @@ static char hexToAsciiChar(const std::string& hex) {
 
 std::string getContentType(std::string& url, int status) {
     if(status != 200) return "text/html";
-    if (url ==  "/") return "text/html"; 
+    if (url ==  "/") return "text/html";
+    if(*(url.rbegin()) == '/') return "text/html";
     size_t idx = url.find_last_of(".");
     if(idx == std::string::npos) return "text/plain";
-
     std::string extension = url.substr(idx);
     if(extension.empty()) return "text/plain";
     std::string urlC = &extension[0];

@@ -20,8 +20,11 @@ class ServerManager{
 	void                            processRequest          (Client *client);
 	void                            sendResponse            (SOCKET fd, Client *client);
 
+	ERROR							readHeaderData (Client *client);
+	ERROR							readBodyData 	(Client *client);
+
 	Client                         *getClient               (SOCKET clientFd);
-	const char *                    getClientIP             (Client client);
+	const char *                    getClientIP             (Client *client);
 	void                            removeClient            (SOCKET fd);
 	void                            addServer               (Server *server);
 	void                            addToSet                (SOCKET fd, fd_set *fdSet);

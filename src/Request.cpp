@@ -1,12 +1,13 @@
 #include "Request.hpp"
 
-Request::Request() : _method(""), _url(""), _version(""), _body(""), _headers(){};
+Request::Request() : _method(""), _url(""), _version(""), _body(""), _headers(), _hasBody(false) {};
 Request::Request(Request& other) {
     this->_method = other._method;
     this->_url = other._url;
     this->_version = other._version;
     this->_body = other._body;
     this->_headers = other._headers;
+    this->_hasBody = other._hasBody;
 }
 Request::~Request(){};
 
@@ -35,6 +36,12 @@ std::string &Request::getVersion()                                      {return 
 std::map<std::string, std::string> &Request::getHeaders()               {return this->_headers;}
 
 std::string &Request::getBody()                                         {return this->_body;}
+
+std::string &Request::getContType()                                     {return this->_contType;}
+
+bool &Request::hasBody()                                                 {return this->_hasBody;}
+
+void Request::setHasBody(bool hasBody)                                  {this->_hasBody = hasBody;}
 
 void Request::setMethod(std::string& method)                            {this->_method = method;}
 

@@ -9,15 +9,16 @@
 class Parser{
     public:
 
-    Request *decompose  (char *data);
+    Request     *decompose  (std::string data);
 
-    ERROR    parse   (Request *request, Client *client);
+    ERROR       parse   (Request *request, Client *client);
 
-    void    validateResource    (Client *client, Server *server);
+    void        validateResource    (Client *client, Server *server);
 
     std::string readFile    (std::string filePath, Response *response);
 
-    void   checkAccessability  (std::string filePath, Response *response);
+    int         checkResource  (std::string filePath, Response *response);
+    void        parseMultipart(std::istringstream &iss, std::string boundary);
 
     Parser();
     ~Parser();

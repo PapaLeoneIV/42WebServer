@@ -20,14 +20,16 @@ public:
     std::string                         &getVersion        (void);
     std::map<std::string, std::string>  &getHeaders        (void);
     std::string                         &getBody           (void);
-
+    std::string                         &getContType       (void);
+    bool                                &hasBody           (void);
+    
    
     void                                setMethod           (std::string& method);
     void                                setUrl              (std::string& url);
     void                                setVersion          (std::string& version);
     void                                setHeaders          (std::map<std::string, std::string>& headers);
     void                                setBody             (std::string& body);
-
+    void                                setHasBody          (bool hasBody);
 private:
 
     std::string                         _method;  
@@ -35,6 +37,9 @@ private:
     std::string                         _version; 
     std::string                         _body;   
     std::map<std::string, std::string>  _headers;
+    
+    std::string                         _contType;
+    bool                                _hasBody;
 
 };
 
