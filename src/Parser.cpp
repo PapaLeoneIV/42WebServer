@@ -1,4 +1,9 @@
 #include "Parser.hpp"
+#include "Request.hpp"
+#include "Client.hpp"
+#include "Server.hpp"
+#include "Response.hpp"
+#include "Utils.hpp"
 
 //TODO understand how to handle errors in decompose function
 Request* Parser::decompose(std::string headerData, std::string bodyData, Client *client) {

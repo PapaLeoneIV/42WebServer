@@ -238,20 +238,17 @@ std::string joinBoundaries(std::istringstream &iss, const std::string &boundary)
             content += line + "\n";
         }
     }
-
-    if (!content.empty() && *content.rbegin() == '\n') {
-        content.erase(content.size() - 1);
-    }
+    std::cout << "CONTETN DURING JOIN BOUNDAIRES: " << content << std::endl;
+    std::cout << "DURING JOIN BOUNDARIES content size: " << content.size() << std::endl;
     return content;
 }
-
 
 std::vector<std::string> splitIntoSections(std::istringstream &iss) {
     std::vector<std::string> sections;
     std::string line;
     std::string currentSection;
 
-    while (std::getline(iss, line) && !iss.eof()) {
+    while (std::getline(iss, line, '\n')) {
         if (line.find("Content-Disposition: form-data;") != std::string::npos) {
             if (!currentSection.empty()) {
                 sections.push_back(currentSection);
@@ -266,7 +263,6 @@ std::vector<std::string> splitIntoSections(std::istringstream &iss) {
 
     return sections;
 }
-
 std::map<std::string, std::string> extractSection(const std::string &section) {
     std::map<std::string, std::string> extractedData;
     std::istringstream sectionStream(section);
@@ -275,10 +271,6 @@ std::map<std::string, std::string> extractSection(const std::string &section) {
     std::string body;
 
     while (std::getline(sectionStream, line)) {
-        if (!line.empty() && line[line.size() - 1] == '\r') {
-            line = line.substr(0, line.size() - 1);
-        }
-
         if (isBody) {
             body += line + "\n";
         } else if (line.find("Content-Disposition:") != std::string::npos) {
@@ -301,14 +293,9 @@ std::map<std::string, std::string> extractSection(const std::string &section) {
             }
         } else if (line.find("Content-Type:") != std::string::npos) {
             extractedData["contentType"] = line.substr(14);
-        } else if (line.empty()) {
+        } else if (line == "\r") {
             isBody = true;
         }
-    }
-
-    // Remove trailing newline from the body
-    if (!body.empty() && body[body.size() - 1] == '\n') {
-        body = body.substr(0, body.size() - 1);
     }
 
     extractedData["body"] = body;

@@ -1,6 +1,6 @@
-CC = c++
+CC = g++
 
-CFLAGS = -Wall -Wextra -Werror -g -O0 -std=c++98 -I./includes
+CFLAGS = -Wall -Wextra -Werror -g  -std=c++98 -I./includes -I./includes/utils
 
 TARGET = webserver
 

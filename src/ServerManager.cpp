@@ -1,5 +1,12 @@
-#include "ServerManager.hpp"
+
 #include "Booter.hpp"
+#include "Parser.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
+#include "Server.hpp"
+#include "Client.hpp"
+#include "ServerManager.hpp"
+#include "Utils.hpp"
 
 void ServerManager::mainLoop()
 {
@@ -32,7 +39,7 @@ void ServerManager::mainLoop()
         this->_readPool = this->_masterPool;
         this->_writePool = this->_masterPool;
         
-        if (select(this->_maxSocket + 1, &this->_readPool, &this->_writePool, 0, &timeout) < 0){
+       if (select(this->_maxSocket + 1, &this->_readPool, &this->_writePool, 0, &timeout) < 0){
             throw std::runtime_error(ErrToStr(ERR_SELECT));
         }
         int max = this->_maxSocket;
@@ -137,7 +144,7 @@ void ServerManager::processRequest(Client *client)
             }
         }
     std::cout << "Headers data received: client->getHeadersData() " << client->getHeadersData() << std::endl;
-    std::cout << "Body data received: client->getBodyData()" << client->getBodyData() << std::endl;
+    //std::cout << "Body data received: client->getBodyData()" << client->getBodyData() << std::endl;
 
     //split request into headers and body
     Request* request = parser.decompose(client->getHeadersData(), client->getBodyData(), client);

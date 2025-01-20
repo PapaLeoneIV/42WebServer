@@ -1,5 +1,15 @@
+#pragma once
+
 #ifndef UTILS_HPP
 #define UTILS_HPP
+
+#include "Booter.hpp"
+#include "Client.hpp"
+#include "Parser.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
+#include "Server.hpp"
+#include "ServerManager.hpp"
 
 #include <string.h>
 #include <unistd.h>
@@ -27,7 +37,7 @@
 typedef int SOCKET;
 typedef int ERROR;
 
-#define MAX_REQUEST_SIZE 2*1024*1024 //2MB
+#define MAX_REQUEST_SIZE 3*1024*1024 //2MB
 
 #define TIMEOUT_SEC 5
 

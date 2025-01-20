@@ -1,20 +1,35 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
+#define MAX_REQUEST_SIZE 3*1024*1024 //2MB
+
+
+#include <string.h>
+#include <unistd.h>
+#include <sstream>
+#include <iostream>
+#include <stdexcept>
+#include <sys/stat.h>
+#include <bits/stdc++.h>
+#include <dirent.h>
+#include <assert.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <fcntl.h>
+#include <netdb.h>
+
+#include <algorithm>
+#include <string>
+#include <map>
+#include <iostream>
+#include <vector>
+#include <set>
 
 
 
-#include "Utils.hpp"
-#include "Client.hpp"
-#include "Parser.hpp"
-#include "Response.hpp"
+typedef int SOCKET;
+typedef int ERROR;
 
-
-
-/**
- * 
- * 
- * 
- */
 class Server{
 
     public:    

@@ -1,4 +1,10 @@
 #include "Parser.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
+#include "Server.hpp"
+#include "Client.hpp"
+#include "Utils.hpp"
+
 
 void Parser::decomposeFirstLine(Request *request, std::string firstLine) {
     std::istringstream firstLineStream(firstLine);
@@ -68,13 +74,14 @@ void Parser::decomposeBody(Request *request, std::string bodyData) {
     //After we got the headers from the request, 
     //we should check what type of request is GET, POST, DELETE 
     //and if it has a body decompose it accordingly reference blog(https://http.dev/post)
+    std::cout << "BODY DATA: " << bodyData << std::endl;
     if(request->getMethod() == "POST" && request->hasBody()) {
 
         if(request->getHeaders().find("content-length") != request->getHeaders().end()){
             std::string contentLength = request->getHeaders()["content-length"];
             int contLength = strToInt(contentLength);
             request->setContentLength(contLength);
-        }else if(request->getHeaders().find("transfer-encoding") != request->getHeaders().end()){
+        } else if(request->getHeaders().find("transfer-encoding") != request->getHeaders().end()){
             this->parseChunked(request, bodyStream);
             //TODO handle chunked encoding
         }
@@ -95,15 +102,6 @@ void Parser::decomposeBody(Request *request, std::string bodyData) {
                 request->setBoundary(tmpBoundary);
                 this->parseMultipart(request, bodyStream, request->getBoundary());
 
-                std::ofstream fs("example.jpg", std::ios::out | std::ios::binary | std::ios::app);
-
-                std::string bodyContent = request->getBody();
-                for (std::string::iterator it = bodyContent.begin(); it != bodyContent.end(); ++it) {
-                    fs.put(*it);
-                }
-                fs.close();
-
-
             } else if (contTypeValue == "application/x-www-form-urlencoded") {
                 
                 //TODO handle other content types
@@ -121,26 +119,51 @@ void Parser::parseMultipart(Request *request, std::istringstream &formDataStream
 
     std::string sections = joinBoundaries(formDataStream, boundary);
 
+
     std::istringstream sectionsStream(sections);
     
     std::vector<std::string> sezioni = splitIntoSections(sectionsStream);
-    
+
+    // int totalLength = 0;
+    // std::string totat;
+    // for (std::vector<std::string>::const_iterator it = sezioni.begin(); it != sezioni.end(); ++it) {
+    //     totalLength += it->length();
+    //     totat += *it;
+    // }
+
+    int i = 0;
     for (std::vector<std::string>::const_iterator it = sezioni.begin(); it != sezioni.end(); ++it) {
         
+       
+
         std::map<std::string, std::string> extractedData = extractSection(*it);
 
         request->setContentName(extractedData["name"]);
         request->setContentFilename(extractedData["filename"]);
         request->setContType(extractedData["contentType"]);
         request->setBody(extractedData["body"]);
-
+        
+        i++;
         // std::cout << "+++++++++" << request->getBody() << std::endl;   
         // std::cout << "+++++++++" << request->getContentFilename() << std::endl;   
         // std::cout << "+++++++++" << request->getContType() << std::endl;   
         // std::cout << "+++++++++" << request->getContentName() << std::endl;   
-
+         std::cout << "+++++++++" << extractedData["body"] << std::endl;
+        std::vector<char> bodyDataVector(extractedData["body"].begin(), extractedData["body"].end());
+        std::ofstream outFile("output.jpg", std::ios::out | std::ios::binary);
+        if (outFile) {
+            outFile.write(bodyDataVector.data(), bodyDataVector.size());
+            outFile.close();
         }
+        }
+       
+        
+
+       
+                  
 }
+
+
 
 
 int Parser::checkResource(std::string filePath, Response* response) {

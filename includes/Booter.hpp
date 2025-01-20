@@ -1,8 +1,36 @@
+#pragma once
+
 #ifndef BOOTER_HPP
 #define BOOTER_HPP
 
-#include "Utils.hpp"
+
+#include <string.h>
+#include <unistd.h>
+#include <sstream>
+#include <iostream>
+#include <stdexcept>
+#include <sys/stat.h>
+#include <bits/stdc++.h>
+#include <dirent.h>
+#include <assert.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <fcntl.h>
+#include <netdb.h>
+
+#include <algorithm>
+#include <string>
+#include <map>
+#include <iostream>
+#include <vector>
+#include <set>
+
 #include "Server.hpp"
+
+
+typedef int SOCKET;
+typedef int ERROR;
 
 class Booter {
     public:

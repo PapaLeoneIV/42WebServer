@@ -1,5 +1,11 @@
 #include "ServerManager.hpp"
-
+#include "Booter.hpp"
+#include "Parser.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
+#include "Server.hpp"
+#include "Client.hpp"
+#include "Utils.hpp"
 
 
 Client *ServerManager::getClient(SOCKET clientFd)
@@ -118,9 +124,14 @@ ERROR ServerManager::readBodyData(Client *client, int contentLength) {
         joined.insert(joined.end(), bodyBuff.begin(), bodyBuff.begin() + bytes_received);
         totReceived += bytes_received;
     }
+
+
     joined.resize(contentLength);
     client->setBodyData(std::string(joined.begin(), joined.end()));
 
 
+    std::cout << "Body data received size: " << client->getBodyData().length() << std::endl;
+
+   
     return SUCCESS;
 }

@@ -1,10 +1,38 @@
+#pragma once
+
 #ifndef PARSER_HPP
 #define PARSER_HPP
 
+
+#include <string.h>
+#include <unistd.h>
+#include <sstream>
+#include <iostream>
+#include <stdexcept>
+#include <sys/stat.h>
+#include <bits/stdc++.h>
+#include <dirent.h>
+#include <assert.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <fcntl.h>
+#include <netdb.h>
+
+#include <algorithm>
+#include <string>
+#include <map>
+#include <iostream>
+#include <vector>
+#include <set>
+
 #include "Request.hpp"
-#include "Client.hpp"
-#include "Utils.hpp"
+#include "Response.hpp"
 #include "Server.hpp"
+#include "Client.hpp"
+
+typedef int SOCKET;
+typedef int ERROR;
 
 class Parser{
     public:
