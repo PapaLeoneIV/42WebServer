@@ -21,7 +21,7 @@ class ServerManager{
 	void                            sendResponse            (SOCKET fd, Client *client);
 
 	ERROR							readHeaderData (Client *client);
-	ERROR							readBodyData 	(Client *client);
+	ERROR							readBodyData 	(Client *client, int contLength);
 
 	Client                         *getClient               (SOCKET clientFd);
 	const char *                    getClientIP             (Client *client);

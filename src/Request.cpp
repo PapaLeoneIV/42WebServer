@@ -2,6 +2,52 @@
 
 Request::Request() : _method(""), _url(""), _version(""), _body(""), _headers(), _contType(""), _hasBody(false) {};
 
+
+int         &Request::getContentLength()                                 {return this->_contentLength;}
+
+std::string &Request::getContentName()                                   {return this->_contentName;}
+
+std::string &Request::getContentFilename()                               {return this->_contentFilename;}
+
+std::string &Request::getBoundary()                                      {return this->_boundary;}
+
+std::string &Request::getMethod()                                       {return this->_method;}
+
+std::string &Request::getUrl()                                          {return this->_url;}
+
+std::string &Request::getVersion()                                      {return this->_version;}
+
+std::map<std::string, std::string> &Request::getHeaders()               {return this->_headers;}
+
+std::string &Request::getBody()                                         {return this->_body;}
+
+std::string &Request::getContType()                                     {return this->_contType;}
+
+bool &Request::hasBody()                                                 {return this->_hasBody;}
+
+void Request::setHasBody(bool hasBody)                                  {this->_hasBody = hasBody;}
+
+void Request::setMethod(std::string& method)                            {this->_method = method;}
+
+void Request::setUrl(std::string& url)                                  {this->_url = url;}
+
+void Request::setVersion(std::string& version)                          {this->_version = version;}
+
+void Request::setHeaders(std::map<std::string, std::string>& headers)   {this->_headers = headers;}
+
+void Request::setBody(std::string& body)                                {this->_body = body;}
+
+void Request::setContType(std::string& contType)                        {this->_contType = contType;}
+
+void Request::setContentLength(int contentLength)              {this->_contentLength = contentLength;}
+
+void Request::setContentName(std::string& contentName)                  {this->_contentName = contentName;}
+
+void Request::setContentFilename(std::string& contentFilename)          {this->_contentFilename = contentFilename;}
+
+void Request::setBoundary(std::string& boundary)                        {this->_boundary = boundary;}
+
+
 Request::Request(Request& other) {
     this->_method = other._method;
     this->_url = other._url;
@@ -29,32 +75,3 @@ void Request::printHeaders() {
         std::cout << it->first << " : " << it->second << std::endl;
     }
 }
-std::string &Request::getMethod()                                       {return this->_method;}
-
-std::string &Request::getUrl()                                          {return this->_url;}
-
-std::string &Request::getVersion()                                      {return this->_version;}
-
-std::map<std::string, std::string> &Request::getHeaders()               {return this->_headers;}
-
-std::string &Request::getBody()                                         {return this->_body;}
-
-std::string &Request::getContType()                                     {return this->_contType;}
-
-bool &Request::hasBody()                                                 {return this->_hasBody;}
-
-void Request::setHasBody(bool hasBody)                                  {this->_hasBody = hasBody;}
-
-void Request::setMethod(std::string& method)                            {this->_method = method;}
-
-void Request::setUrl(std::string& url)                                  {this->_url = url;}
-
-void Request::setVersion(std::string& version)                          {this->_version = version;}
-
-void Request::setHeaders(std::map<std::string, std::string>& headers)   {this->_headers = headers;}
-
-void Request::setBody(std::string& body)                                {this->_body = body;}
-
-
-
-

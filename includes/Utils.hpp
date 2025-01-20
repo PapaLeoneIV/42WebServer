@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <bits/stdc++.h>
 #include <dirent.h>
+#include <assert.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -26,7 +27,7 @@
 typedef int SOCKET;
 typedef int ERROR;
 
-#define MAX_REQUEST_SIZE 1024*1024*1024 //1GB
+#define MAX_REQUEST_SIZE 2*1024*1024 //2MB
 
 #define TIMEOUT_SEC 5
 
@@ -74,9 +75,10 @@ std::string readTextFile(std::string filePath);
 std::string readFileBinary(std::string filePath);
 
 std::string getMessageFromStatusCode    (int status);
+
 std::string getContentType              (std::string& url, int status);
 
-std::string analyzeUrl                  (std::string& url);
+std::string removeHexChars                  (std::string& url);
 
 std::string ErrToStr                    (int error);
 
@@ -90,7 +92,12 @@ std::string trim                        (const std::string& str);
 
 ERROR   checkPermissions                  (std::string fullPath,int mode);
 
-ERROR   parseResource                   ();
+std::string readBinaryStream(std::istringstream &stream, int size);
 
+std::string joinBoundaries(std::istringstream &iss, const std::string &boundary);
+
+std::vector<std::string> splitIntoSections(std::istringstream &iss);
+
+std::map<std::string, std::string> extractSection(const std::string &section);
 
 #endif

@@ -28,6 +28,7 @@ class Client{
     Server*                 getServer           (void); 
     std::string             getHeadersData     (void);
     std::string             getBodyData        (void);
+    int                     getContentLength    (void);
 
     void                    set_Request         (Request *request);
     void                    set_Response        (Response *response);
@@ -40,6 +41,7 @@ class Client{
     void                    setServer           (Server *server);
     void                    setHeadersData      (std::string headersData);
     void                    setBodyData         (std::string bodyData);
+    void                    setContentLength         (int content_length); 
                             
     private:
 
@@ -55,6 +57,7 @@ class Client{
     std::string             _requestData;
     std::string             _headersData;
     std::string             _bodyData; 
+    int                     _content_length;
     int                     _received;
 };
 

@@ -1,30 +1,6 @@
 #include "Client.hpp"
 #include "Utils.hpp"
 
-Client::Client(Client & other) {
-    
-    this->_address_length = other._address_length;
-    this->_socket = other._socket;
-    this->_received = other._received;
-    this->_address = other._address;
-    this->_bodyData = other._bodyData;
-    this->_headersData = other._headersData;
-    
-    for (int i = 0; i < MAX_REQUEST_SIZE + 1; i++) {
-        this->_requestData[i] = other._requestData[i];
-    }
-
-    if (other._Request) {
-        this->_Request = new Request(*other._Request);  // Assuming Request has a copy constructor
-    } else {
-        this->_Request = NULL;
-    }
-    if (other._Response) {
-        this->_Response = new Response(*other._Response);  // Assuming Response has a copy constructor
-    } else {
-        this->_Response = NULL;
-    }
-}
 
 sockaddr_storage        &Client::getAddr()                          {return this->_address;};
 socklen_t               &Client::getAddrLen()                       {return this->_address_length;};
@@ -36,7 +12,7 @@ int                     &Client::getRecvBytes()                     {return this
 Server *                Client::getServer()                         {return this->_server;}
 std::string             Client::getHeadersData()                   {return this->_headersData;}
 std::string             Client::getBodyData()                      {return this->_bodyData;}
-
+int           Client::getContentLength()                 {return this->_content_length;}
 
 void                    Client::setHeadersData(std::string headersData)   {this->_headersData = headersData;}
 void                    Client::setBodyData(std::string bodyData)         {this->_bodyData = bodyData;}
@@ -48,7 +24,7 @@ void                    Client::set_Response(class Response *_Response){this->_R
 void                    Client::setRequestData(std::string requestData)   {this->_requestData = requestData;}
 void                    Client::setRecvData(int bytes)              {this->_received = bytes;}
 void                    Client::setServer(Server *server)           {this->_server = server;}
-
+void                   Client::setContentLength(int content_length) {this->_content_length = content_length;}
 Client::Client() {
   this->_Request = NULL;
   this->_Response = new Response();
@@ -75,6 +51,32 @@ Client::Client(SOCKET fd) {
   this->_bodyData = "";
   this->_received = 0;
 };
+
+Client::Client(Client & other) {
+    
+    this->_address_length = other._address_length;
+    this->_socket = other._socket;
+    this->_received = other._received;
+    this->_address = other._address;
+    this->_bodyData = other._bodyData;
+    this->_headersData = other._headersData;
+    this->_content_length = other._content_length;
+    for (int i = 0; i < MAX_REQUEST_SIZE + 1; i++) {
+        this->_requestData[i] = other._requestData[i];
+    }
+
+    if (other._Request) {
+        this->_Request = new Request(*other._Request);  // Assuming Request has a copy constructor
+    } else {
+        this->_Request = NULL;
+    }
+    if (other._Response) {
+        this->_Response = new Response(*other._Response);  // Assuming Response has a copy constructor
+    } else {
+        this->_Response = NULL;
+    }
+}
+
 
 Client::~Client(){
   std::cout << "Client destroyed" << std::endl;

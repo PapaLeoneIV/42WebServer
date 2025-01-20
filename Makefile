@@ -1,6 +1,6 @@
 CC = c++
 
-CFLAGS = -Wall -Wextra -Werror -g -std=c++98 -I./includes
+CFLAGS = -Wall -Wextra -Werror -g -O0 -std=c++98 -I./includes
 
 TARGET = webserver
 
@@ -12,7 +12,9 @@ SRCS = 	src/main.cpp \
 		src/Parser.cpp \
 		src/Booter.cpp \
 		src/ServerManager.cpp \
-		src/Utils.cpp
+		src/Utils.cpp \
+		src/utils/utilsServerManager.cpp \
+		src/utils/utilsParser.cpp
 
 all: $(TARGET)
 

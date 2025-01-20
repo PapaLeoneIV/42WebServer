@@ -138,8 +138,19 @@ std::string getMessageFromStatusCode(int status) {
     }
     return "Status Code not recognized";
 }
+
+std::string sanitizeDots(std::string string) {
+    size_t pos;
+    while ((pos = string.find("..")) != std::string::npos) {
+        string.erase(pos, 2);
+    }
+    while ((pos = string.find("../")) != std::string::npos) {
+        string.erase(pos, 3);
+    }
+    return string;
+}
 //TODO add checks
-std::string analyzeUrl(std::string& url) {
+std::string removeHexChars(std::string& url) {
     std::string result;
     for(std::size_t i = 0; i < url.length(); ++i) {
         if (url[i] == '%' && i + 2 < url.length()) {
@@ -150,13 +161,7 @@ std::string analyzeUrl(std::string& url) {
             result += url[i];
         }
     }
-    size_t pos;
-    while ((pos = result.find("..")) != std::string::npos) {
-        result.erase(pos, 2);
-    }
-    while ((pos = result.find("../")) != std::string::npos) {
-        result.erase(pos, 3);
-    }
+    result = sanitizeDots(result);
     return result;
 }
 
@@ -197,4 +202,116 @@ std::string to_lowercase(const std::string& str) {
         lower_str[i] = static_cast<char>(std::tolower(lower_str[i]));
     }
     return lower_str;
+}
+
+std::string readBinaryStream(std::istringstream &stream, int size)
+{
+    int i = 0;
+    std::string fileContent;
+    while(i < size){
+        char ch;
+        stream.get(ch);
+        fileContent += ch;
+        i++;
+    }
+    return fileContent;
+}
+
+
+
+
+std::string joinBoundaries(std::istringstream &iss, const std::string &boundary) {
+    std::string line;
+    std::string content;
+    bool withinBoundary = false;
+
+    while (std::getline(iss, line)) {
+        if (line == "--" + boundary + "\r") {
+            withinBoundary = true;
+            continue;
+        }
+        if (withinBoundary && line == "--" + boundary + "--\r") {
+            withinBoundary = false;
+            break;
+        }
+        if (withinBoundary) {
+            content += line + "\n";
+        }
+    }
+
+    if (!content.empty() && *content.rbegin() == '\n') {
+        content.erase(content.size() - 1);
+    }
+    return content;
+}
+
+
+std::vector<std::string> splitIntoSections(std::istringstream &iss) {
+    std::vector<std::string> sections;
+    std::string line;
+    std::string currentSection;
+
+    while (std::getline(iss, line) && !iss.eof()) {
+        if (line.find("Content-Disposition: form-data;") != std::string::npos) {
+            if (!currentSection.empty()) {
+                sections.push_back(currentSection);
+                currentSection = ""; 
+            }
+        }
+        currentSection += line + "\n";
+    }
+    if (!currentSection.empty()) {
+        sections.push_back(currentSection);
+    }
+
+    return sections;
+}
+
+std::map<std::string, std::string> extractSection(const std::string &section) {
+    std::map<std::string, std::string> extractedData;
+    std::istringstream sectionStream(section);
+    std::string line;
+    bool isBody = false;
+    std::string body;
+
+    while (std::getline(sectionStream, line)) {
+        if (!line.empty() && line[line.size() - 1] == '\r') {
+            line = line.substr(0, line.size() - 1);
+        }
+
+        if (isBody) {
+            body += line + "\n";
+        } else if (line.find("Content-Disposition:") != std::string::npos) {
+            std::string::size_type namePos = line.find("name=\"");
+            if (namePos != std::string::npos) {
+                namePos += 6;
+                std::string::size_type endPos = line.find("\"", namePos);
+                if (endPos != std::string::npos) {
+                    extractedData["name"] = line.substr(namePos, endPos - namePos);
+                }
+            }
+
+            std::string::size_type filenamePos = line.find("filename=\"");
+            if (filenamePos != std::string::npos) {
+                filenamePos += 10;
+                std::string::size_type endPos = line.find("\"", filenamePos);
+                if (endPos != std::string::npos) {
+                    extractedData["filename"] = line.substr(filenamePos, endPos - filenamePos);
+                }
+            }
+        } else if (line.find("Content-Type:") != std::string::npos) {
+            extractedData["contentType"] = line.substr(14);
+        } else if (line.empty()) {
+            isBody = true;
+        }
+    }
+
+    // Remove trailing newline from the body
+    if (!body.empty() && body[body.size() - 1] == '\n') {
+        body = body.substr(0, body.size() - 1);
+    }
+
+    extractedData["body"] = body;
+
+    return extractedData;
 }
