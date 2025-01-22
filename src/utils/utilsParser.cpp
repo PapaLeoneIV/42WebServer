@@ -6,26 +6,58 @@
 #include "Utils.hpp"
 
 
-void Parser::decomposeFirstLine(Request *request, std::string firstLine) {
+ERROR Parser::extractFirstLine(Request *request, Response *response, std::string firstLine) {
+    
     std::istringstream firstLineStream(firstLine);
+    
     std::string method, url, version;
+    
     firstLineStream >> method >> url >> version;
     
     //if we find % we should parse the next two char as HEX and replace it with the actual char
-    url = removeHexChars(url);
+    switch (this->_allowd_methods.count(method)) {
+        case true:
+            if (this->_implemnted_methods.find(method) == this->_implemnted_methods.end()) {
+                // not permitted
+                response->setStatusCode(405);
+                response->setHeaders("Allow", "GET, POST, DELETE");
+                return INVALID_HEADER;
+            }
+            break;
+        case false:
+                // not implemented
+                response->setStatusCode(501);
+                response->setHeaders("Allow", "GET, POST, DELETE");
+                return INVALID_HEADER;
+    }
 
     request->setMethod(method);
+
+    url = removeHexChars(url);
+    
+    if (url.find_first_not_of(ALLOWED_CHARS) != std::string::npos || url.find_first_of("/") != 0) {
+        response->setStatusCode(400);
+        return INVALID_HEADER;
+    }
+    
     request->setUrl(url);
+
+    if (this->_allowd_versions.find(request->getVersion()) == this->_allowd_versions.end()) {
+        response->setStatusCode(505);
+        return INVALID_HEADER;
+    }
+    
     request->setVersion(version);
 }
 
-void Parser::decomposeHeaders(Request *request, std::string headerData) {
-    std::istringstream headerStream(headerData);
+
+
+void Parser::extractHeaders(Request *request, std::istringstream &headerStream) {
+    
     std::string line;
     std::map<std::string, std::string> headers;
 
     while (std::getline(headerStream, line) && line != "\r") {
-        // Remove any trailing carriage return
         line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
 
         std::string::size_type colonPos = line.find(':');
@@ -48,122 +80,82 @@ void Parser::decomposeHeaders(Request *request, std::string headerData) {
             headers[headerName] = headerValue;
         }
     }
+
+    //TODO check if the headers are valid
+
+
     request->setHeaders(headers);
 }
 
-void Parser::parseChunked(Request *request, std::istringstream &bodyStream) {
-    std::string line;
-    std::string joined;
-    while (std::getline(bodyStream, line)) {
-        if (line == "0\r") {
-            break;
-        }
-        if(line.find("\r") != std::string::npos){
-            line = line.substr(0, line.find("\r"));
-        }
-        int chunkSize = strToInt(line);
-        std::string chunk = readBinaryStream(bodyStream, chunkSize);
-        joined += chunk;
-    }
 
-    request->setBody(joined);
-}
-
-void Parser::decomposeBody(Request *request, std::string bodyData) {
-    std::istringstream bodyStream(bodyData);
-    //After we got the headers from the request, 
+  //After we got the headers from the request, 
     //we should check what type of request is GET, POST, DELETE 
-    //and if it has a body decompose it accordingly reference blog(https://http.dev/post)
-    std::cout << "BODY DATA: " << bodyData << std::endl;
-    if(request->getMethod() == "POST" && request->hasBody()) {
+     //and if it has a body extract it accordingly reference blog(https://http.dev/post)
+ERROR Parser::extractBody(Request *request, std::istringstream &bodyStream) {
 
-        if(request->getHeaders().find("content-length") != request->getHeaders().end()){
-            std::string contentLength = request->getHeaders()["content-length"];
-            int contLength = strToInt(contentLength);
-            request->setContentLength(contLength);
-        } else if(request->getHeaders().find("transfer-encoding") != request->getHeaders().end()){
-            this->parseChunked(request, bodyStream);
-            //TODO handle chunked encoding
-        }
-            std::string contTypeValue = request->getHeaders()["content-type"];
-            //mi prendo il value che segue l header "content type"
-            if (contTypeValue.find(";") != std::string::npos){
-                contTypeValue = contTypeValue.substr(0, contTypeValue.find(";"));
-            }
-            if (contTypeValue == "text/plain"){
-                
-                std::string bodyContent((std::istreambuf_iterator<char>(bodyStream)), std::istreambuf_iterator<char>());;
-                bodyContent = removeHexChars(bodyContent);
-                request->setBody(bodyContent);
-            } else if (contTypeValue == "multipart/form-data") {
+    if(request->getMethod() == "GET" || request->getMethod() == "DELETE") {
+        //i can ignore the body
+        std::string empty = "";
+        request->setBody(empty);        
+    } else if (request->getMethod() == "POST" && request->hasBody()) {
 
-                std::string tmp = request->getHeaders()["content-type"];
-                std::string tmpBoundary = tmp.substr(tmp.find("boundary=") + 9);
-                request->setBoundary(tmpBoundary);
-                this->parseMultipart(request, bodyStream, request->getBoundary());
-
-            } else if (contTypeValue == "application/x-www-form-urlencoded") {
-                
-                //TODO handle other content types
-                std::string bodyContent((std::istreambuf_iterator<char>(bodyStream)), std::istreambuf_iterator<char>());
-                bodyContent = removeHexChars(bodyContent);
-                request->setBody(bodyContent);
-            }
-
+        if(request->getContType() == "text/plain"){
+         
+            std::string bodyContent((std::istreambuf_iterator<char>(bodyStream)), std::istreambuf_iterator<char>());
+            bodyContent = removeHexChars(bodyContent);
+            request->setBody(bodyContent);
+        
+        } else if (request->getContType() == "multipart/form-data"){
+        
+            std::string contTypeVal = request->getHeaders()["content-type"];
+            std::string boundary = contTypeVal.substr(contTypeVal.find("boundary=") + 9);
+            request->setBoundary(boundary);
+            this->parseMultipart(request, bodyStream, request->getBoundary());
+        
+        } else if (request->getContType() == "application/x-www-form-urlencoded"){
+        
+            std::string bodyContent((std::istreambuf_iterator<char>(bodyStream)), std::istreambuf_iterator<char>());
+            bodyContent = removeHexChars(bodyContent);
+            request->setBody(bodyContent);
+        
+        } else if(request->getContType() == "application/json"){
+            std::cout << "Error: JSON not supported yet!" << std::endl;
+            return INVALID_REQUEST;
+        } else {
+            std::cout << "Error: Content type not supported!" << std::endl;
+            return INVALID_REQUEST;
+        }        
     }
+    return SUCCESS;
 }
 
 
 // Parse the multipart form data
 void Parser::parseMultipart(Request *request, std::istringstream &formDataStream, std::string boundary) {
 
-    std::string sections = joinBoundaries(formDataStream, boundary);
-
-
+    std::string sections = extractBodyFromStream(formDataStream, boundary);
     std::istringstream sectionsStream(sections);
-    
     std::vector<std::string> sezioni = splitIntoSections(sectionsStream);
-
-    // int totalLength = 0;
-    // std::string totat;
-    // for (std::vector<std::string>::const_iterator it = sezioni.begin(); it != sezioni.end(); ++it) {
-    //     totalLength += it->length();
-    //     totat += *it;
-    // }
-
     int i = 0;
     for (std::vector<std::string>::const_iterator it = sezioni.begin(); it != sezioni.end(); ++it) {
-        
-       
 
         std::map<std::string, std::string> extractedData = extractSection(*it);
-
+        //TODO handle multiple form field into Request Object
         request->setContentName(extractedData["name"]);
         request->setContentFilename(extractedData["filename"]);
         request->setContType(extractedData["contentType"]);
         request->setBody(extractedData["body"]);
         
-        i++;
-        // std::cout << "+++++++++" << request->getBody() << std::endl;   
-        // std::cout << "+++++++++" << request->getContentFilename() << std::endl;   
-        // std::cout << "+++++++++" << request->getContType() << std::endl;   
-        // std::cout << "+++++++++" << request->getContentName() << std::endl;   
-         std::cout << "+++++++++" << extractedData["body"] << std::endl;
+        
         std::vector<char> bodyDataVector(extractedData["body"].begin(), extractedData["body"].end());
         std::ofstream outFile("output.jpg", std::ios::out | std::ios::binary);
         if (outFile) {
             outFile.write(bodyDataVector.data(), bodyDataVector.size());
             outFile.close();
         }
-        }
-       
-        
-
-       
-                  
+        i++;
+    }             
 }
-
-
 
 
 int Parser::checkResource(std::string filePath, Response* response) {

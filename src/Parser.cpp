@@ -5,106 +5,43 @@
 #include "Response.hpp"
 #include "Utils.hpp"
 
-//TODO understand how to handle errors in decompose function
-Request* Parser::decompose(std::string headerData, std::string bodyData, Client *client) {
-    Request *tmpRequest = new Request();
+//TODO understand how to handle errors in extract function
+Request* Parser::extract(std::string headerData, std::string bodyData, Client *client) {
+    
+    Response *response = client->getResponse();
+    Request *request = new Request();
     
     std::string line;
-    std::string body;
-    (void)client;
+
     std::istringstream headerStream(headerData);
+    std::istringstream bodyStream(bodyData);
 
-    //check if the request has a body
-    if(!bodyData.empty()) {tmpRequest->setHasBody(true);}
-   
-    if (std::getline(headerStream, line)) {
-        this->decomposeFirstLine(tmpRequest, line );
-    }
+    std::string dataStr(headerData + bodyData);
 
-    this->decomposeHeaders(tmpRequest, headerData);
-
-    this->decomposeBody(tmpRequest, bodyData);
-    
-    //std::cout << tmpRequest->getBody().size() << std::endl;
-
-    return tmpRequest;
-}
-
-ERROR Parser::parse(Request *request, Client *client) {
-    Response *response = client->getResponse();
-    
-    //request->print();
-
-    if(!request || !response)
-        return INVALID_REQUEST;
-
-    //request->print();
-    std::string dataStr(client->getHeadersData() + client->getBodyData());
-    //CLRF not found
     if (dataStr.find("\r\n\r\n") == std::string::npos) {
         response->setStatusCode(400);
-        return INVALID_HEADER;
-    }
-    //check if the method is implemented, consult section 5.1.1 of RFC 2616
-    switch (this->_allowd_methods.count(request->getMethod())) {
-        case true:
-            if (this->_implemnted_methods.find(request->getMethod()) == this->_implemnted_methods.end()) {
-                // not permitted
-                response->setStatusCode(405);
-                response->setHeaders("Allow", "GET, POST, DELETE");
-                return INVALID_HEADER;
-            }
-            break;
-        case false:
-                // not implemented
-                response->setStatusCode(501);
-                response->setHeaders("Allow", "GET, POST, DELETE");
-                return INVALID_HEADER;
-        }
-
-    //only allowing http/1.1 at the moment
-    if (this->_allowd_versions.find(request->getVersion()) == this->_allowd_versions.end()) {
-        response->setStatusCode(505);
-        return INVALID_HEADER;
+        return NULL;
     }
 
-    //TODO check section 3.2 of RFC 2616 for the correct format of the URL
-    std::string url = removeHexChars(request->getUrl());
-
-    if (url.find_first_not_of(ALLOWED_CHARS) != std::string::npos || url.find_first_of("/") != 0) {
+    if(!bodyData.empty())
+        request->setHasBody(true);
+   
+    if (std::getline(headerStream, line) && this->extractFirstLine(request, response, line) != SUCCESS){
         response->setStatusCode(400);
-        return INVALID_HEADER; 
-    }
+        return NULL;
+    }   
+    
+    this->extractHeaders(request, headerStream);
 
-    //TODO more checks on headers
-    //for reference check 9.1.1  Safe Methods of RFC 2616
-    //and sectiion 4.4
-    if(request->getMethod() == "GET" || request->getMethod() == "DELETE") {
-        //i can set it to null and ignore the body 
-        std::string empty = "";
-        request->setBody(empty);
-    } else if (request->getMethod() == "POST") {
-        std::cout << "POST request" << std::endl;
-        std::cout << "Request body: " << request->getBody().length()<< std::endl;
-
-        if (request->getHeaders().find("content-length") != request->getHeaders().end()) {
-            std::string contentLen = request->getHeaders().find("content-length")->second;
-            if (request->getBody().size() != static_cast<size_t>(strToInt(contentLen))) {
-                response->setStatusCode(400);
-                return INVALID_HEADER;
-            }
-        } else if(request->getHeaders().find("transfer-encoding") != request->getHeaders().end()) {
-            if (request->getHeaders().find("transfer-encoding")->second == "chunked") {
-                //TODO handle it in the future
-            }
-        } else {
-            //missing content-length and transfer encoding
-            response->setStatusCode(411);
-            return INVALID_HEADER;
-        }
+    if(this->extractBody(request, bodyStream) != SUCCESS){
+        response->setStatusCode(400);
+        return NULL;
     }
-    return SUCCESS;
+    
+    return request;
 }
+
+
 
 
 
@@ -120,7 +57,7 @@ void Parser::validateResource(Client *client, Server *server)
     if(!request || !response)
         return;
 
-    //differentiate between a GET AND POST request
+    //differentiate between a GET AND POST DELETE request
 
     //TODO atm is hardcoded to the root directory
     //get the full path of the requested resource

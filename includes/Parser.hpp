@@ -37,21 +37,26 @@ typedef int ERROR;
 class Parser{
     public:
 
-    Request     *decompose  (std::string headerData, std::string bodyData, Client *client);
+    Request *extract  (std::string headerData, std::string bodyData, Client *client);
 
-    ERROR       parse   (Request *request, Client *client);
-
-    void        validateResource    (Client *client, Server *server);
+    ERROR   extractFirstLine(Request *request, Response *response, std::string firstLine);
+    
+    void    extractHeaders(Request *request, std::istringstream &headerStream);
+    
+    ERROR   extractBody(Request *request, std::istringstream &bodyStream);
+    
+    void    parseMultipart(Request *request, std::istringstream &iss, std::string boundary);
+    
+    void    validateResource    (Client *client, Server *server);
 
     std::string readFile    (std::string filePath, Response *response);
 
-    int         checkResource  (std::string filePath, Response *response);
-    void        parseMultipart(Request *request, std::istringstream &iss, std::string boundary);
+    int     checkResource  (std::string filePath, Response *response);
+    
 
-    void        decomposeFirstLine( Request *request, std::string firstLine);
-    void        decomposeHeaders(Request *request, std::string headerData);
-    void        decomposeBody(Request *tmpRequest, std::string bodyData);
-    void        parseChunked(Request *request, std::istringstream &bodyStream);
+    
+    
+    
     Parser();
     ~Parser();
 

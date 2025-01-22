@@ -46,8 +46,8 @@ class ServerManager{
 	void                            sendResponse            (SOCKET fd, Client *client);
 
 	ERROR							readHeaderData (Client *client);
-	ERROR							readBodyData 	(Client *client, int contLength);
-
+	ERROR							readBodyData (Client *client);
+	ERROR    						readChunked (Client *client);
 	Client                         *getClient               (SOCKET clientFd);
 	const char *                    getClientIP             (Client *client);
 	void                            removeClient            (SOCKET fd);

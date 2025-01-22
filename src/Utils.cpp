@@ -217,10 +217,7 @@ std::string readBinaryStream(std::istringstream &stream, int size)
     return fileContent;
 }
 
-
-
-
-std::string joinBoundaries(std::istringstream &iss, const std::string &boundary) {
+std::string extractBodyFromStream(std::istringstream &iss, const std::string &boundary) {
     std::string line;
     std::string content;
     bool withinBoundary = false;
@@ -238,8 +235,6 @@ std::string joinBoundaries(std::istringstream &iss, const std::string &boundary)
             content += line + "\n";
         }
     }
-    std::cout << "CONTETN DURING JOIN BOUNDAIRES: " << content << std::endl;
-    std::cout << "DURING JOIN BOUNDARIES content size: " << content.size() << std::endl;
     return content;
 }
 

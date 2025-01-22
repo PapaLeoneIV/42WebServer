@@ -29,9 +29,9 @@ typedef int SOCKET;
 typedef int ERROR;
 
 typedef struct Content{
-    std::string type;
     std::string name;
     std::string filename;
+    std::string type;
     std::string body;
     int         length;
 } Content;
@@ -87,7 +87,7 @@ private:
     std::string     _contentFilename;
     std::string     _boundary;
 
-    std::map<std::string, std::string> formFields;
+    struct Content  _formFields;
 
     bool    _hasBody;
 

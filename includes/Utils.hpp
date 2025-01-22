@@ -104,7 +104,7 @@ ERROR   checkPermissions                  (std::string fullPath,int mode);
 
 std::string readBinaryStream(std::istringstream &stream, int size);
 
-std::string joinBoundaries(std::istringstream &iss, const std::string &boundary);
+std::string extractBodyFromStream(std::istringstream &iss, const std::string &boundary);
 
 std::vector<std::string> splitIntoSections(std::istringstream &iss);
 

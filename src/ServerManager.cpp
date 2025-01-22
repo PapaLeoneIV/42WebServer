@@ -119,7 +119,8 @@ void ServerManager::registerNewConnections(SOCKET serverFd, Server *server)
 void ServerManager::processRequest(Client *client)
 {
     Parser parser;
-
+    Response *response = client->getResponse();
+    int idx; 
     //I decided to split the reading of the headers and the body in two different functions
     //because the headers part does not have a limit but the body part yes
     //read headers
@@ -127,41 +128,52 @@ void ServerManager::processRequest(Client *client)
         this->removeClient(client->getSocketFd());
         return;
     }
+    std::string headersStream = client->getHeadersData();
 
-    
-
-    //read_body if we find header indicating the presence of a body
-    if(client->getHeadersData().find("Content-Length") != std::string::npos ||
-        client->getHeadersData().find("Transfer-Encoding") != std::string::npos ||
-        client->getHeadersData().find("Content-Type") != std::string::npos){
-
-            if(client->getHeadersData().find("Content-Length") != std::string::npos){
-                int contLength = strToInt(client->getHeadersData().substr(client->getHeadersData().find("Content-Length") + 16));
-                if(this->readBodyData(client, contLength) != SUCCESS){
-                    this->removeClient(client->getSocketFd());
-                    return;
-                }
-            }
+    if(headersStream.find("Content-Length") != std::string::npos){
+        //read body using Cont Length
+        int contLength = strToInt(headersStream.substr(headersStream.find("Content-Length") + 16));
+        client->getRequest()->setContentLength(contLength);
+        if(this->readBodyData(client) != SUCCESS){
+            this->removeClient(client->getSocketFd());
+            return;
         }
-    std::cout << "Headers data received: client->getHeadersData() " << client->getHeadersData() << std::endl;
-    //std::cout << "Body data received: client->getBodyData()" << client->getBodyData() << std::endl;
+    } else if ((idx = (headersStream.find("Transfer-Encoding") + 19)) != std::string::npos){
+     //read body using chunked transfer
 
-    //split request into headers and body
-    Request* request = parser.decompose(client->getHeadersData(), client->getBodyData(), client);
-
-    client->set_Request(request);
-
-    //once the request is parsed, we can try to validate and in case of error we start to fill the client response
-    //parser.parse(request, client);
-    //TODO understand why if i dont responde immediatly the client closes the connection
-    if(parser.parse(request, client) != SUCCESS)
-    {
-        client->getResponse()->setBody(client->getResponse()->getErrorPage(client->getResponse()->getStatus()));
-         this->sendResponse(client->getSocketFd(), client); 
+        std::string encoding = headersStream.substr(idx, headersStream.find("\n", idx) - idx);
+        if(encoding != "chunked"){
+            std::cerr << "Error: Other Transfer encoding not supported yet!" << std::endl;
+            this->removeClient(client->getSocketFd());
+            return;
+        }
+        if(this->readChunked(client) != SUCCESS){
+            this->removeClient(client->getSocketFd());
+            return;
+        }
+    } else {
+        std::cerr << "Error: No content length or transfer encoding found!" << std::endl;
+        response->setStatusCode(411);
+        return;
+    }
+    Request* request = parser.extract(headersStream, client->getBodyData(), client);
+    if(request == NULL){ //errore during request processing
+        response->setBody(response->getErrorPage(response->getStatus()));
+        this->sendResponse(client->getSocketFd(), client); 
         return;
     }
 
-    parser.validateResource(client, client->getServer());
+    client->set_Request(request);
+
+
+    if(request->getMethod() == "GET" || request->getMethod() == "DELETE"){
+        parser.validateResource(client, client->getServer());
+    } else if (request->getMethod() == "POST"){
+        //TODO implement POST
+    } else {
+        response->setStatusCode(405);
+    }
+    
 }
 
 void ServerManager::sendResponse(SOCKET fd, Client *client)
