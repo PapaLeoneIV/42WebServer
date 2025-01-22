@@ -136,7 +136,7 @@ ERROR Parser::parse(Request *request, Client *client) {
 
     // TODO: check section 3.2 of RFC 2616 for the correct format of the URL
     std::string url = analyzeUrl(request->getUrl());
-
+    // TODO: test this
     if (url.find_first_not_of(ALLOWED_CHARS) != std::string::npos || url.find_first_of("/") != 0) {
         client->getResponse()->setStatusCode(400);
         return INVALID_HEADER; 
