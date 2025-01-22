@@ -114,7 +114,7 @@ std::string getContentType(std::string& url, int status) {
     if (urlC == ".pdf")  {return "application/pdf";}
     if (urlC == ".svg")  {return "image/svg+xml";}
     if (urlC == ".txt")  {return "text/plain";}
-    //TODO add support for error 415 unsupported media type
+    // TODO: add support for error 415 unsupported media type
     return "text/plain";
 }
 
@@ -149,7 +149,7 @@ std::string sanitizeDots(std::string string) {
     }
     return string;
 }
-//TODO add checks
+
 std::string removeHexChars(std::string& url) {
     std::string result;
     for(std::size_t i = 0; i < url.length(); ++i) {

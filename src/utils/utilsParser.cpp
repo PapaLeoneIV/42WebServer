@@ -14,7 +14,6 @@ ERROR Parser::extractFirstLine(Request *request, Response *response, std::string
     
     firstLineStream >> method >> url >> version;
     
-    //if we find % we should parse the next two char as HEX and replace it with the actual char
     switch (this->_allowd_methods.count(method)) {
         case true:
             if (this->_implemnted_methods.find(method) == this->_implemnted_methods.end()) {
@@ -80,10 +79,7 @@ void Parser::extractHeaders(Request *request, std::istringstream &headerStream) 
             headers[headerName] = headerValue;
         }
     }
-
-    //TODO check if the headers are valid
-
-
+    // TODO: check if the headers are valid
     request->setHeaders(headers);
 }
 
@@ -128,7 +124,7 @@ ERROR Parser::extractBody(Request *request, std::istringstream &bodyStream) {
     }
     return SUCCESS;
 }
-//TODO TEST sadhdasiuohdas
+
 void Parser::parseMultipart(Request *request, std::istringstream &formDataStream, std::string boundary) {
 
     std::string sections = extractBodyFromStream(formDataStream, boundary);
@@ -138,7 +134,7 @@ void Parser::parseMultipart(Request *request, std::istringstream &formDataStream
     for (std::vector<std::string>::const_iterator it = sezioni.begin(); it != sezioni.end(); ++it) {
 
         std::map<std::string, std::string> extractedData = extractSection(*it);
-        //TODO handle multiple form field into Request Object
+        //TODO: handle multiple form field into Request Object
         request->setContentName(extractedData["name"]);
         request->setContentFilename(extractedData["filename"]);
         request->setContType(extractedData["contentType"]);

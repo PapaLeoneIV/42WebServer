@@ -5,7 +5,6 @@
 #include "Response.hpp"
 #include "Utils.hpp"
 
-//TODO understand how to handle errors in extract function
 Request* Parser::extract(std::string headerData, std::string bodyData, Client *client) {
     
     Response *response = client->getResponse();
@@ -41,10 +40,6 @@ Request* Parser::extract(std::string headerData, std::string bodyData, Client *c
     return request;
 }
 
-
-
-
-
 void Parser::validateResource(Client *client, Server *server)
 {
 
@@ -57,18 +52,47 @@ void Parser::validateResource(Client *client, Server *server)
     if(!request || !response)
         return;
 
-    //differentiate between a GET AND POST DELETE request
-
-    //TODO atm is hardcoded to the root directory
-    //get the full path of the requested resource
+    // TODO: atm is hardcoded to the root directory
     std::string filePath = server->getCwd() +  server->getRoot() + request->getUrl();
     
-    //std::cout << "Requested file: " << filePath << std::endl;
+    //check if is dir or file
+    //if dir
+        // if index is provided inside location
+            //check existance
+            //serve index.html 
+        // check dir listing
+            //if is on
+                // if url does not end with / add /
+                //serve dir listing
+            //if is off
+                //serve 403
+          
+
+
+    //if file 
+        //
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     //check if the requested resource is accessible
     fileType = this->checkResource(filePath, response);
     if(fileType == FAILURE){
-        std::cout << "Error: " << response->getStatus() << std::endl;
         response->setBody(response->getErrorPage(response->getStatus()));
         return;
     }
@@ -78,8 +102,9 @@ void Parser::validateResource(Client *client, Server *server)
             std::string newUrl = request->getUrl() + "/";
             request->setUrl(newUrl);
         }
+        // TODO:  implement the directory listing
         std::string dirBody = fromDIRtoHTML(filePath, request->getUrl());
-        //TODO implement the directory listing
+        
         if(dirBody.empty()){
             response->setStatusCode(500);
             return;

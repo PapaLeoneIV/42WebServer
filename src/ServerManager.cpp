@@ -70,7 +70,7 @@ void ServerManager::initFdSets()
             this->_maxSocket = server_it->first;
         }
     }
-    //TODO client non penso ce ne possono essere in questo momento
+    // TODO: client non penso ce ne possono essere in questo momento
     for (std::map<SOCKET, Client*>::iterator clientIt = this->_clients_map.begin(); clientIt != this->_clients_map.end(); ++clientIt){
         FD_SET(clientIt->first, &this->_masterPool);
         this->_maxSocket = std::max(this->_maxSocket, clientIt->first);
@@ -169,7 +169,7 @@ void ServerManager::processRequest(Client *client)
     if(request->getMethod() == "GET" || request->getMethod() == "DELETE"){
         parser.validateResource(client, client->getServer());
     } else if (request->getMethod() == "POST"){
-        //TODO implement POST
+        // TODO: implement POST
     } else {
         response->setStatusCode(405);
     }
