@@ -134,7 +134,7 @@ ERROR Parser::parse(Request *request, Client *client) {
         return INVALID_HEADER;
     }
 
-    //TODO check section 3.2 of RFC 2616 for the correct format of the URL
+    // TODO: check section 3.2 of RFC 2616 for the correct format of the URL
     std::string url = analyzeUrl(request->getUrl());
 
     if (url.find_first_not_of(ALLOWED_CHARS) != std::string::npos || url.find_first_of("/") != 0) {
@@ -142,7 +142,7 @@ ERROR Parser::parse(Request *request, Client *client) {
         return INVALID_HEADER; 
     }
 
-    //TODO more checks on headers
+    // TODO: more checks on headers
     //for reference check 9.1.1  Safe Methods of RFC 2616
     //and sectiion 4.4
     if(request->getMethod() == "GET" || request->getMethod() == "DELETE" /* || request->getMethod() == "HEAD" */) {
