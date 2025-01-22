@@ -1,5 +1,5 @@
 name: "Run TODO to Issue"
-on: [ "push", "pull request" ]
+on: [ "push", "merge" ]
 jobs:
   build:
     runs-on: "ubuntu-latest"
