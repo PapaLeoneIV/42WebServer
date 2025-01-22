@@ -22,5 +22,3 @@ jobs:
           else
             echo "No changes to commit"
           fi
-          PROJECT: "user/PapaLeoneIV/42WebServer"
-          PROJECTS_SECRET: "${{ secrets.PROJECTS_SECRET }}"
