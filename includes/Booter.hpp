@@ -4,6 +4,8 @@
 #include "Utils.hpp"
 #include "Server.hpp"
 
+
+// TODO: clean up the Booter class
 class Booter {
     public:
 
