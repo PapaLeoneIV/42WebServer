@@ -109,6 +109,7 @@ int main(){
             if(line.find(";") != std::string::npos){
                 std::string key = trim(line.substr(0, line.find(" ")));
                 //TODO handle multiple values
+                //Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/4
                 std::string value = trim(line.substr(line.find(" ") + 1, line.find(";") - line.find(" ") - 1));
                 serverVector[serverCounter - 1]->directives[key].push_back(value);
                 continue;
@@ -135,6 +136,7 @@ int main(){
             if(line.find(";") != std::string::npos){
                 std::string key = trim(line.substr(0, line.find(" ")));
                 //TODO handle multiple values
+                //Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/3
                 std::string value = trim(line.substr(line.find(" ") + 1, line.find(";") - line.find(" ") - 1));
                 //add entry into map of location
                 serverVector[serverCounter - 1]->locations[locationPath][key].push_back(value);
