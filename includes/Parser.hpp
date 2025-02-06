@@ -2,13 +2,8 @@
 
 #ifndef PARSER_HPP
 #define PARSER_HPP
-
-
-#include <string.h>
 #include <unistd.h>
 #include <sstream>
-#include <iostream>
-#include <stdexcept>
 #include <sys/stat.h>
 #include <bits/stdc++.h>
 #include <dirent.h>
@@ -19,11 +14,7 @@
 #include <fcntl.h>
 #include <netdb.h>
 
-#include <algorithm>
 #include <string>
-#include <map>
-#include <iostream>
-#include <vector>
 #include <set>
 
 #include "Request.hpp"
@@ -52,10 +43,6 @@ class Parser{
     std::string readFile    (std::string filePath, Response *response);
 
     int     checkResource  (std::string filePath, Response *response);
-    
-
-    
-    
     
     Parser();
     ~Parser();

@@ -14,6 +14,7 @@ ERROR Parser::extractFirstLine(Request *request, Response *response, std::string
     
     firstLineStream >> method >> url >> version;
     
+    //TODO allowd methods deve essere construito basandosi sulle informazioni presenti nel config file del server
     switch (this->_allowd_methods.count(method)) {
         case true:
             if (this->_implemnted_methods.find(method) == this->_implemnted_methods.end()) {
@@ -32,6 +33,8 @@ ERROR Parser::extractFirstLine(Request *request, Response *response, std::string
 
     request->setMethod(method);
 
+
+    //se l url contiene "%" allora i caratteri che seguono sono codificati in esadecimale e vanno tradotti
     url = removeHexChars(url);
     
     if (url.find_first_not_of(ALLOWED_CHARS) != std::string::npos || url.find_first_of("/") != 0) {
@@ -41,6 +44,7 @@ ERROR Parser::extractFirstLine(Request *request, Response *response, std::string
     
     request->setUrl(url);
 
+    //Unica versione supportata da subject è HTTP/1.1
     if (this->_allowd_versions.find(request->getVersion()) == this->_allowd_versions.end()) {
         response->setStatusCode(505);
         return INVALID_HEADER;
@@ -50,13 +54,17 @@ ERROR Parser::extractFirstLine(Request *request, Response *response, std::string
 }
 
 
-
+/**
+ * Gli headers vengono estratti ed inseriti in una mappa, ci basiamo semplicemente 
+ * sulla presenza del ":" per dividere il nome del header dal valore.
+ * 
+ */
 void Parser::extractHeaders(Request *request, std::istringstream &headerStream) {
     
     std::string line;
     std::map<std::string, std::string> headers;
-
     while (std::getline(headerStream, line) && line != "\r") {
+    
         line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
 
         std::string::size_type colonPos = line.find(':');
@@ -72,6 +80,8 @@ void Parser::extractHeaders(Request *request, std::istringstream &headerStream) 
                 headerValue.erase(endPos + 1);
             }
 
+            //TODO nell RFC c'è scritto che gli headers sono case-insensitive, non so se mi piace perche in altre parte del
+            //codice ho degli string literals dove non sono in lower case
             for (std::string::iterator it = headerName.begin(); it != headerName.end(); ++it) {
                 *it = std::tolower(*it);
             }
@@ -84,20 +94,23 @@ void Parser::extractHeaders(Request *request, std::istringstream &headerStream) 
 }
 
 
-  //After we got the headers from the request, 
-    //we should check what type of request is GET, POST, DELETE 
-     //and if it has a body extract it accordingly reference blog(https://http.dev/post)
+/*  After we got the headers from the request, 
+*   we should check what type of request is GET, POST, DELETE 
+*   and if it has a body extract it accordingly reference blog(https://http.dev/post) 
+*/
 ERROR Parser::extractBody(Request *request, std::istringstream &bodyStream) {
 
     if(request->getMethod() == "GET" || request->getMethod() == "DELETE") {
-        //i can ignore the body
+        //We can ignore the body if is a GET or DELETE request, le info sono già presenti nell url
         std::string empty = "";
-        request->setBody(empty);        
+        request->setBody(empty); 
+
     } else if (request->getMethod() == "POST" && request->hasBody()) {
 
         if(request->getContType() == "text/plain"){
          
             std::string bodyContent((std::istreambuf_iterator<char>(bodyStream)), std::istreambuf_iterator<char>());
+            //La presenza di Hexadecimal chars è segnata dalla presenza di "%" 
             bodyContent = removeHexChars(bodyContent);
             request->setBody(bodyContent);
         
@@ -106,12 +119,21 @@ ERROR Parser::extractBody(Request *request, std::istringstream &bodyStream) {
             std::string contTypeVal = request->getHeaders()["content-type"];
             std::string boundary = contTypeVal.substr(contTypeVal.find("boundary=") + 9);
             request->setBoundary(boundary);
+
+            /***
+             * Body:
+             * [name(nome)][Riccardo]
+             * [name(cognome)][Leone]
+             * [name(image.jpg)][jpg]
+             */
+
             this->parseMultipart(request, bodyStream, request->getBoundary());
         
         } else if (request->getContType() == "application/x-www-form-urlencoded"){
         
             std::string bodyContent((std::istreambuf_iterator<char>(bodyStream)), std::istreambuf_iterator<char>());
             bodyContent = removeHexChars(bodyContent);
+
             request->setBody(bodyContent);
         
         } else if(request->getContType() == "application/json"){
@@ -128,7 +150,10 @@ ERROR Parser::extractBody(Request *request, std::istringstream &bodyStream) {
 void Parser::parseMultipart(Request *request, std::istringstream &formDataStream, std::string boundary) {
 
     std::string sections = extractBodyFromStream(formDataStream, boundary);
+
+
     std::istringstream sectionsStream(sections);
+    
     std::vector<std::string> sezioni = splitIntoSections(sectionsStream);
     int i = 0;
     for (std::vector<std::string>::const_iterator it = sezioni.begin(); it != sezioni.end(); ++it) {

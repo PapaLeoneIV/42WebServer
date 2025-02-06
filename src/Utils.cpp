@@ -270,6 +270,7 @@ std::map<std::string, std::string> extractSection(const std::string &section) {
             body += line + "\n";
         } else if (line.find("Content-Disposition:") != std::string::npos) {
             std::string::size_type namePos = line.find("name=\"");
+            
             if (namePos != std::string::npos) {
                 namePos += 6;
                 std::string::size_type endPos = line.find("\"", namePos);
@@ -279,6 +280,7 @@ std::map<std::string, std::string> extractSection(const std::string &section) {
             }
 
             std::string::size_type filenamePos = line.find("filename=\"");
+            
             if (filenamePos != std::string::npos) {
                 filenamePos += 10;
                 std::string::size_type endPos = line.find("\"", filenamePos);

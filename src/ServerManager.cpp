@@ -116,38 +116,34 @@ void ServerManager::registerNewConnections(SOCKET serverFd, Server *server)
 
 }
 
-void ServerManager::processRequest(Client *client)
-{
-    Parser parser;
-    Response *response = client->getResponse();
-    int idx; 
-    //I decided to split the reading of the headers and the body in two different functions
-    //because the headers part does not have a limit but the body part yes
-    //read headers
-    if(this->readHeaderData(client) != SUCCESS){
-        this->removeClient(client->getSocketFd());
-        return;
-    }
-    std::string headersStream = client->getHeadersData();
 
-    if(headersStream.find("Content-Length") != std::string::npos){
-        //read body using Cont Length
-        int contLength = strToInt(headersStream.substr(headersStream.find("Content-Length") + 16));
-        client->getRequest()->setContentLength(contLength);
-        if(this->readBodyData(client) != SUCCESS){
+ERROR ServerManager::readBodyData(Client *client){
+    Response *response = client->getResponse();
+    Request *request = client->getRequest();  
+    std::string headersStream = client->getHeadersData();
+    int valueIdx; 
+    
+    //read body using Content Length
+    if((valueIdx = headersStream.find("Content-Length") + 16) != std::string::npos){
+
+        int contLenValue = strToInt(headersStream.substr(valueIdx, headersStream.find("\r\n", valueIdx) - valueIdx));
+
+        request->setContentLength(contLenValue);
+        
+        if(this->handleTransferLength(client) != SUCCESS){
             this->removeClient(client->getSocketFd());
             return;
         }
-    } else if ((idx = (headersStream.find("Transfer-Encoding") + 19)) != std::string::npos){
-     //read body using chunked transfer
+    } else if ((valueIdx = (headersStream.find("Transfer-Encoding") + 19)) != std::string::npos){
 
-        std::string encoding = headersStream.substr(idx, headersStream.find("\n", idx) - idx);
+        std::string encoding = headersStream.substr(valueIdx, headersStream.find("\r\n", valueIdx) - valueIdx);
+        //TODO transfer encoding other than chuncked are not supported yet
         if(encoding != "chunked"){
             std::cerr << "Error: Other Transfer encoding not supported yet!" << std::endl;
             this->removeClient(client->getSocketFd());
             return;
         }
-        if(this->readChunked(client) != SUCCESS){
+        if(this->handkeChunkedTransfer(client) != SUCCESS){
             this->removeClient(client->getSocketFd());
             return;
         }
@@ -156,7 +152,36 @@ void ServerManager::processRequest(Client *client)
         response->setStatusCode(411);
         return;
     }
-    Request* request = parser.extract(headersStream, client->getBodyData(), client);
+}
+
+void ServerManager::processRequest(Client *client)
+{
+    Parser parser;
+    Response *response = client->getResponse();
+    
+    
+    //I decided to split the reading of the headers and the body in two different functions
+    //because the headers part does not have a limit but the body part yes
+    
+    
+    if(this->readHeaderData(client) != SUCCESS){
+        this->removeClient(client->getSocketFd());
+        return;
+    }
+
+    if(this->readBodyData(client) != SUCCESS)
+    {
+        this->removeClient(client->getSocketFd());
+        return;
+    }
+
+
+
+    
+    Request* request = parser.extract(client->getHeadersData(), client->getBodyData(), client);
+
+
+    
     if(request == NULL){ //errore during request processing
         response->setBody(response->getErrorPage(response->getStatus()));
         this->sendResponse(client->getSocketFd(), client); 
@@ -165,8 +190,8 @@ void ServerManager::processRequest(Client *client)
 
     client->set_Request(request);
 
-
     if(request->getMethod() == "GET" || request->getMethod() == "DELETE"){
+        
         parser.validateResource(client, client->getServer());
     } else if (request->getMethod() == "POST"){
         // TODO: implement POST

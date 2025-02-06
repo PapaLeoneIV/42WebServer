@@ -93,7 +93,10 @@ ERROR ServerManager::readHeaderData(Client *client){
     return SUCCESS;
 }
 
-ERROR ServerManager::readBodyData(Client *client) {
+
+
+
+ERROR ServerManager::handleTransferLength(Client *client) {
 
     std::vector<char> bodyBuff(MAX_REQUEST_SIZE + 1);
     std::vector<char> joined;
@@ -126,7 +129,10 @@ ERROR ServerManager::readBodyData(Client *client) {
     return SUCCESS;
 }
 
-ERROR ServerManager::readChunked(Client *client) {
+
+
+//TODO not properly implemented at the moment
+ERROR ServerManager::handkeChunkedTransfer(Client *client) {
     std::string line;
     std::string joined;
 

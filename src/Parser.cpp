@@ -5,6 +5,14 @@
 #include "Response.hpp"
 #include "Utils.hpp"
 
+
+
+/**
+ * Questa funzione serve ad estrarre tutte le informazioni dalla request, 
+ * viene scomposta la prima linea in (METHOD, URL, VERSION), successivamente 
+ * vengono insertiti gli HEADERS all interno di una mappa, ed infine il BODY
+ * viene estratto in base al tipo di trasferimento presente negl headers(TEXT/PLAIN, TRANSFER-ENCODING, MULTIPART-FORMDATA).
+ */
 Request* Parser::extract(std::string headerData, std::string bodyData, Client *client) {
     
     Response *response = client->getResponse();
@@ -17,11 +25,13 @@ Request* Parser::extract(std::string headerData, std::string bodyData, Client *c
 
     std::string dataStr(headerData + bodyData);
 
+    //controlla che la richiesta sia terminata in modo corretto con \r\n\r\n
     if (dataStr.find("\r\n\r\n") == std::string::npos) {
         response->setStatusCode(400);
         return NULL;
     }
 
+    //controlla che la richiesta abbia un body oppure no
     if(!bodyData.empty())
         request->setHasBody(true);
    

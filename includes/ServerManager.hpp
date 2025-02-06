@@ -38,22 +38,22 @@ class ServerManager{
 	~ServerManager();
 
 
-	void                            mainLoop                (void);
+	void	mainLoop	(void);
+	void	initFdSets	(void);
+	void	registerNewConnections	(SOCKET serverFd, Server *server);
+	void	processRequest	(Client *client);
+	void	sendResponse	(SOCKET fd, Client *client);
 
-	void                            initFdSets              (void);
-	void                            registerNewConnections  (SOCKET serverFd, Server *server);
-	void                            processRequest          (Client *client);
-	void                            sendResponse            (SOCKET fd, Client *client);
-
-	ERROR							readHeaderData (Client *client);
-	ERROR							readBodyData (Client *client);
-	ERROR    						readChunked (Client *client);
-	Client                         *getClient               (SOCKET clientFd);
-	const char *                    getClientIP             (Client *client);
-	void                            removeClient            (SOCKET fd);
-	void                            addServer               (Server *server);
-	void                            addToSet                (SOCKET fd, fd_set *fdSet);
-	void                            removeFromSet			(SOCKET fd, fd_set *fd_set);
+	ERROR	readHeaderData 	(Client *client);
+	ERROR	readBodyData	(Client *client);
+	ERROR	handleTransferLength (Client *client);
+	ERROR	handkeChunkedTransfer (Client *client);
+	Client	*getClient	(SOCKET clientFd);
+	const char	*getClientIP	(Client *client);
+	void	removeClient	(SOCKET fd);
+	void	addServer	(Server *server);
+	void	addToSet	(SOCKET fd, fd_set *fdSet);
+	void	removeFromSet	(SOCKET fd, fd_set *fd_set);
 	
 
 	
