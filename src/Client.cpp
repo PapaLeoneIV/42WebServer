@@ -26,7 +26,7 @@ void                    Client::setRecvData(int bytes)              {this->_rece
 void                    Client::setServer(Server *server)           {this->_server = server;}
 void                   Client::setContentLength(int content_length) {this->_content_length = content_length;}
 Client::Client() {
-  this->_Request = NULL;
+  this->_Request = new Request();
   this->_Response = new Response();
   this->_server = NULL;
   memset(&this->_address, 0, sizeof(this->_address));
@@ -39,7 +39,7 @@ Client::Client() {
 };
 
 Client::Client(SOCKET fd) {
-  this->_Request = NULL;
+  this->_Request = new Request();
   this->_Response = new Response();
   this->_server = NULL;
 

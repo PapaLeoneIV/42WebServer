@@ -1,0 +1,9 @@
+server {
+    listen 9000;
+    server_name mysite.com;
+
+    location /images {
+        invalid_directive /var/www/images;  # Undefined directive
+        index index.html;
+    }
+}

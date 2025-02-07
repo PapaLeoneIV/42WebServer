@@ -66,6 +66,8 @@ const char *ServerManager::getClientIP(Client *client){
 ERROR ServerManager::readHeaderData(Client *client){
     char headerBuff[1];
 
+
+    //TODO understand if i can do only one read operation at the time
     while (true) {
 
         if (client->getHeadersData().find("\r\n\r\n") != std::string::npos) {
@@ -88,7 +90,6 @@ ERROR ServerManager::readHeaderData(Client *client){
         client->setHeadersData(joined);
     }
 
-   
 
     return SUCCESS;
 }
@@ -141,7 +142,6 @@ ERROR ServerManager::handkeChunkedTransfer(Client *client) {
     int totReceived = 0;
 
     while (totReceived < MAX_REQUEST_SIZE) {
-        
         int bytes_received = recv(client->getSocketFd(), bodyBuff.data(), MAX_REQUEST_SIZE - joined.size(), 0);
         if(bytes_received == -1){
             this->removeClient(client->getSocketFd());
@@ -154,4 +154,5 @@ ERROR ServerManager::handkeChunkedTransfer(Client *client) {
         joined.insert(joined.end(), bodyBuff.begin(), bodyBuff.begin() + bytes_received);
     }
     client->getRequest()->setBody(joined);
+    return SUCCESS;
 }

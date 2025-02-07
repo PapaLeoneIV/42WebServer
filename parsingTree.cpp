@@ -4,10 +4,30 @@
 #include <iostream>
 #include <stack>
 #include <sstream>
+#include <map>
 
-void print() {
+#define push_back_next_token(token, i)                                                                                  \
+                    lineStream >> token;                                                                                \
+                    tokens.push_back(token);                                                                            \
+                    i++;
 
-}
+#define add_block(node, token, value, i, s)                                                                             \
+                    TreeNode *node = new TreeNode(token, trim(value));                                                  \
+                    s.top()->add(node);                                                                                 \
+                    i++;
+
+#define check_open_block(openblock, i)                                                                                  \
+                    if(openblock != "{") {                                                                              \
+                        error(argv[1], tokens, i, "is not a valid closing brace");                                      \
+                        break;                                                                                          \
+                    }
+
+#define check_directive_semicolom(value, i)                                                                             \
+                    if(value.at(value.size() - 1) != ';'){                                                              \
+                        error(argv[1], tokens, -1, "direttive needs to end with \";\" ");                               \
+                        break;                                                                                          \
+                    }
+
 std::string removeComments(std::ifstream &file) {
     std::string line, result;
     while (std::getline(file, line)) {
@@ -20,7 +40,15 @@ std::string removeComments(std::ifstream &file) {
     return result;
 }
 
-std::string trimWhiteSpaces(const std::string &input) {
+std::string trimOriginal(const std::string &str) {
+    size_t first = str.find_first_not_of(' ');
+    if (first == std::string::npos)
+        return "";
+    size_t last = str.find_last_not_of(' ');
+    return str.substr(first, last - first + 1);
+}
+
+std::string trim(const std::string &input) {
     std::istringstream inputStream(input);
     std::ostringstream resultStream;
     std::string line;
@@ -58,32 +86,45 @@ std::string removeEmptyLines(const std::string &input) {
     return resultStream.str();
 }
 
-class TreeNode{
-    public:
-        TreeNode(std::string directive, std::string value){
-            this->directive = directive;
-            this->value = value;
-        }
-        void add(TreeNode* node){
-            children.push_back(node);
-        }
+    class TreeNode{
+        public:
+            TreeNode(std::string directive, std::string value){
+                this->directive = directive;
+                this->value = value;
+            }
+            void add(TreeNode* node){
+                children.push_back(node);
+            }
 
-        void print(int level = 0) {
-        for (int i = 0; i < level; ++i)
-            std::cout << "  ";
-        std::cout << directive;
-        if (!value.empty())
-            std::cout << ": " << value;
-        std::cout << std::endl;
+            void print(int level = 0) {
+            for (int i = 0; i < level; ++i)
+                std::cout << "  ";
+            std::cout << directive;
+            if (!value.empty())
+                std::cout << ": " << value;
+            std::cout << std::endl;
 
-        for (size_t i = 0; i < children.size(); ++i)
-            children[i]->print(level + 1);
-    }
-    private:
-        std::string directive;
-        std::string value;
-        std::vector<TreeNode*> children;
-};
+            for (size_t i = 0; i < children.size(); ++i)
+                children[i]->print(level + 1);
+            }
+
+            std::string &getDirective(){
+                return directive;
+            }
+
+            std::string &getValue(){
+                return value;
+            }
+
+            std::vector<TreeNode*> &getChildren(){
+                return children;
+            }
+
+        private:
+            std::string directive;
+            std::string value;
+            std::vector<TreeNode*> children;
+    };
 
 
 int isValidDirective(std::string token){
@@ -112,117 +153,125 @@ int isValidDirective(std::string token){
     return 0;
 }
 
-int main(){
+
+void error(std::string file, std::vector<std::string> tokens, int i , std::string msg){
+    if (i > -1){
+        std::cerr << "\e[1m" << file  << ": \e[31merror: " 
+        << "\e[0m\e[1m\"" << tokens[i] << "\" \e[0m" << msg << std::endl; 
+        return;  
+    }
+    std::cerr << "\e[1m" << file << ":token id[" << i  << "]: \e[31merror: " 
+        << "\e[0m\e[1m\e[0m" << msg << std::endl; 
+        return;
+}
+
+void traverse(TreeNode *node, std::map<std::string, std::string> &serverDir, std::map<std::string, std::map<std::string, std::string> > &locationDir){
+    if(node == NULL)
+        return ;
+    std::vector<TreeNode*> children = node->getChildren();
+    std::vector<TreeNode*>::iterator it;
+    for(it = children.begin(); it != children.end(); ++it){
+        if((*it)->getChildren().size() == 0){
+            if(node->getDirective() == "server"){
+                serverDir[(*it)->getDirective()] = (*it)->getValue();
+            }
+            if(node->getDirective() == "location"){
+                locationDir[node->getValue()][(*it)->getDirective()] = (*it)->getValue();
+            }
+        }
+        traverse(*it, serverDir, locationDir);
+    }
+}
     
-    std::ifstream file("./nginxConfFiles/crazy.conf");
-    if (!file) {
-        std::cerr << "Unable to open file nginx.conf" << std::endl;
+
+
+
+
+int main(int argc, char *argv[]) {
+    
+    if(argc != 2){
+        std::cerr << "Usage: " << argv[0] << " <config_file>" << std::endl;
         return 1;
     }
-    std::string noComments, freshCut;
-    
-    std::string v = removeEmptyLines(freshCut = trimWhiteSpaces(noComments = removeComments(file)));; 
+    std::string file_name = std::string("./config/") + std::string(argv[1]);
+    std::ifstream file(file_name.c_str());
+    if (!file) {
+        std::cerr << "Unable to open file "<< argv[1] << std::endl;
+        return 1;
+    }
+    std::string noComments, trimmed;
+    std::string v = removeEmptyLines(trimmed = trim(noComments = removeComments(file)));; 
     
 
     TreeNode *head = new TreeNode("root", ""); 
     std::stack<TreeNode*> s;
     s.push(head);
     std::istringstream lineStream(v);
-    std::string token; 
     std::vector<std::string> tokens; 
+    std::string token; 
 
 
-    int firstRound = 1; 
     int i = 0; 
     while(lineStream >> token)
     {
-
         tokens.push_back(token);
         if(tokens[i] != token)
         {
-            std::cerr << "Fuori Fase : token number =>" << i << std::endl;
+            error(argv[1], tokens, i , "is not a valid token");
             break;
         }
         //direttive
         if(isValidDirective(tokens[i]))
         {
-            std::string key;
             std::string value;
 
             //TODO parse
-            std::string value1;
-            std::getline(lineStream, value1);
-            tokens.push_back(value1);
+            std::getline(lineStream, value);
+            tokens.push_back(trimOriginal(value));
             i++;
-            if(value1.at(value1.size() - 1) != ';'){
-                std::cerr << "error: " << __FILE__ << ": direttiva non valida" << __LINE__ << std::endl;  
-                break; 
-            }
-            TreeNode *directiveNode = new TreeNode(token, trimWhiteSpaces(value1));
-            s.top()->add(directiveNode);
-            i++;
+
+            check_directive_semicolom(trimOriginal(value), i);
+            
+            add_block(directive, token, trimOriginal(value), i, s);
             continue; 
         }
         //inizio blocco
-        if(token == "http" || token == "server" || token == "location")
-        {
+        if (token == "server"){ 
+            
+            std::string openblock;
+            push_back_next_token(openblock, i);
+            
+            check_open_block(openblock, i);
+        
+            add_block(configBlock, token, "", i, s);
+            
+            s.push(configBlock);
+            //Server server = new Server();
+            
+            continue;         
+        }
+        //inzio location block
+        if(token == "location"){
+            
+            std::string tokenPath;
+            push_back_next_token(tokenPath, i);
 
-            if ((token == "http" || token == "server")){ 
-                
-                printf("token => %s\n", token.c_str());
-                std::string openblock;
-
-                lineStream >> openblock;
-                
-                tokens.push_back(openblock);
-                i++;
-
-                if(openblock != "{") {
-                    std::cerr << "Error: Invalid block start on line " << i << std::endl;
-                    break;
-                }
-                TreeNode *configBlock = new TreeNode(token, "");
-                s.top()->add(configBlock);
-                s.push(configBlock);
-                i++;
-                continue;         
-            }
-            if(token == "location"){
-                
-                std::string tokenPath; 
-                
-                lineStream >> tokenPath;
-                
-                tokens.push_back(tokenPath);
-                i++;
-
-                std::string openblock;
-
-                lineStream >> openblock;
-                
-                tokens.push_back(openblock);
-                i++;
-
-                if(openblock != "{") {
-                    std::cerr << "Error: Invalid block start on line " << i << std::endl;
-                    break;
-                }
-
-                TreeNode *configBlock = new TreeNode(token, tokenPath);
-                s.top()->add(configBlock);
-                s.push(configBlock);
-                i++;
-                continue;
-            } 
+            std::string openblock;
+            push_back_next_token(openblock, i)
+            
+            check_open_block(openblock, i);
+            
+            add_block(configBlock, token, tokenPath, i, s);
+            
+            s.push(configBlock);
+            continue;
         }
 
-        //root[[server[dir1, dir2, dir3, dir4(location)[dir1,dir2....]], server[]]]]
-
-        
         //fine blocco
         if(token == "}"){
             if (s.size() <= 1) {
-                std::cerr << "Error: Unmatched closing brace on line " << __LINE__ << std::endl;
+                error(argv[1], tokens, i, "Error during the parsing");
+                break;
             } else {
                 s.pop();  // Pop the s when we encounter a closing brace
             }
@@ -230,13 +279,30 @@ int main(){
             continue;
         }
     }
-
     if(s.size() > 1){
-        std::cerr << "Non tutti i blocchi sono stati chiusi" << std::endl;
+        error(argv[1], tokens, i, "Error during the parsing");
         return(1); 
     }
-
     head->print();
 
+    std::map<std::string, std::string> serverDir;
+    std::map<std::string, std::map<std::string, std::string> > locationDir;
+
+    traverse(head, serverDir, locationDir);
+
+    
+    
+    std::cout << "Server Directives:" << std::endl;
+    for (std::map<std::string, std::string>::iterator it = serverDir.begin(); it != serverDir.end(); ++it) {
+        std::cout << it->first << ": " << it->second << std::endl;
+    }
+
+    std::cout << "Location Directives:" << std::endl;
+    for (std::map<std::string, std::map<std::string, std::string> >::iterator it = locationDir.begin(); it != locationDir.end(); ++it) {
+        std::cout << "Location: " << it->first << std::endl;
+        for (std::map<std::string, std::string>::iterator innerIt = it->second.begin(); innerIt != it->second.end(); ++innerIt) {
+            std::cout << "  " << innerIt->first << ": " << innerIt->second << std::endl;
+        }
+    }
     return 0; 
 }

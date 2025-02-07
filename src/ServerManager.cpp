@@ -7,6 +7,7 @@
 #include "Client.hpp"
 #include "ServerManager.hpp"
 #include "Utils.hpp"
+#include <algorithm>
 
 void ServerManager::mainLoop()
 {
@@ -121,83 +122,107 @@ ERROR ServerManager::readBodyData(Client *client){
     Response *response = client->getResponse();
     Request *request = client->getRequest();  
     std::string headersStream = client->getHeadersData();
-    int valueIdx; 
+    size_t valueIdx; 
     
+
+    //std::cout << "Request headers" << headersStream << std::endl;
     //read body using Content Length
-    if((valueIdx = headersStream.find("Content-Length") + 16) != std::string::npos){
-
-        int contLenValue = strToInt(headersStream.substr(valueIdx, headersStream.find("\r\n", valueIdx) - valueIdx));
-
-        request->setContentLength(contLenValue);
-        
-        if(this->handleTransferLength(client) != SUCCESS){
-            this->removeClient(client->getSocketFd());
-            return;
+    if(headersStream.find("POST") != std::string::npos){
+        if((valueIdx = headersStream.find("Content-Length")) != std::string::npos){
+            valueIdx += 16;
+            std::string str = headersStream.substr(valueIdx, headersStream.find("\r\n", valueIdx) - valueIdx);
+            std::cout << "Content-Length: " << str << std::endl;
+            int contLenValue = strToInt(str);
+    
+            request->setContentLength(contLenValue);
+            
+            if(this->handleTransferLength(client) != SUCCESS){
+                this->removeClient(client->getSocketFd());
+                return 1;
+            }
+        } else if ((valueIdx = (headersStream.find("Transfer-Encoding") + 19)) != std::string::npos){
+    
+            std::string encoding = headersStream.substr(valueIdx, headersStream.find("\r\n", valueIdx) - valueIdx);
+            //TODO transfer encoding other than chuncked are not supported yet
+            if(encoding != "chunked"){
+                std::cerr << "Error: Other Transfer encoding not supported yet!" << std::endl;
+                this->removeClient(client->getSocketFd());
+                return 1 ;
+            }
+            if(this->handkeChunkedTransfer(client) != SUCCESS){
+                this->removeClient(client->getSocketFd());
+                return 1;
+            }
+        } else {
+            std::cerr << "Error: No content length or transfer encoding found!" << std::endl;
+            response->setStatusCode(411);
+            return 1;
         }
-    } else if ((valueIdx = (headersStream.find("Transfer-Encoding") + 19)) != std::string::npos){
-
-        std::string encoding = headersStream.substr(valueIdx, headersStream.find("\r\n", valueIdx) - valueIdx);
-        //TODO transfer encoding other than chuncked are not supported yet
-        if(encoding != "chunked"){
-            std::cerr << "Error: Other Transfer encoding not supported yet!" << std::endl;
-            this->removeClient(client->getSocketFd());
-            return;
-        }
-        if(this->handkeChunkedTransfer(client) != SUCCESS){
-            this->removeClient(client->getSocketFd());
-            return;
-        }
-    } else {
-        std::cerr << "Error: No content length or transfer encoding found!" << std::endl;
-        response->setStatusCode(411);
-        return;
     }
+    
+    return 0;
 }
+
+#define BUFFER_SIZE 1024
 
 void ServerManager::processRequest(Client *client)
 {
     Parser parser;
     Response *response = client->getResponse();
-    
+    char buffer[BUFFER_SIZE];
+    int bytesRecv = recv(client->getSocketFd(), buffer, sizeof(buffer), 0);
+    if(bytesRecv == -1){
+        std::cerr << "Error: recv failed: closing connection" << std::endl;
+        this->removeClient(client->getSocketFd());
+        return;
+    }
+    if(bytesRecv == 0){
+        std::cerr << "Error: recv failed: closing connection" << std::endl;
+        this->removeClient(client->getSocketFd());
+        return;
+    }
+    if(bytesRecv > 0){
+        client->getRequest()->feed(buffer);
+    }
+
+    if(client->getRequest()->state == PARSING_COMPLETE){
+        client->getRequest()->setBody(client->getRequest()->tmpBody);
+
+    }
+
     
     //I decided to split the reading of the headers and the body in two different functions
     //because the headers part does not have a limit but the body part yes
-    
-    
-    if(this->readHeaderData(client) != SUCCESS){
-        this->removeClient(client->getSocketFd());
-        return;
-    }
+    // if(this->readHeaderData(client) != SUCCESS){
+    //     this->removeClient(client->getSocketFd());
+    //     return;
+    // }
 
-    if(this->readBodyData(client) != SUCCESS)
-    {
-        this->removeClient(client->getSocketFd());
-        return;
-    }
-
+    // if(this->readBodyData(client) != SUCCESS){
+    //     this->removeClient(client->getSocketFd());
+    //     return;
+    // }
+   
+    // Request* request = parser.extract(client->getHeadersData(), client->getBodyData(), client);
 
 
     
-    Request* request = parser.extract(client->getHeadersData(), client->getBodyData(), client);
+    // if(request == NULL){ //errore during request processing
+    //     response->setBody(response->getErrorPage(response->getStatus()));
+    //     this->sendResponse(client->getSocketFd(), client); 
+    //     return;
+    // }
 
+    // client->set_Request(request);
 
-    
-    if(request == NULL){ //errore during request processing
-        response->setBody(response->getErrorPage(response->getStatus()));
-        this->sendResponse(client->getSocketFd(), client); 
-        return;
-    }
-
-    client->set_Request(request);
-
-    if(request->getMethod() == "GET" || request->getMethod() == "DELETE"){
+    // if(request->getMethod() == "GET" || request->getMethod() == "DELETE"){
         
-        parser.validateResource(client, client->getServer());
-    } else if (request->getMethod() == "POST"){
-        // TODO: implement POST
-    } else {
-        response->setStatusCode(405);
-    }
+    //     parser.validateResource(client, client->getServer());
+    // } else if (request->getMethod() == "POST"){
+    //     // TODO: implement POST
+    // } else {
+    //     response->setStatusCode(405);
+    // }
     
 }
 
@@ -223,7 +248,7 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
 
     response->prepareResponse();
 
-    //response->print();
+    response->print();
 
     int bytes_sent = send(fd, response->getResponse().c_str(), response->getResponse().size(), 0);
 

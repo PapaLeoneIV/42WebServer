@@ -1,0 +1,8 @@
+server {
+    listen 99999;  # Port number is out of range
+    server_name example.com;
+
+    location / {
+        root /var/www/html;
+    }
+}

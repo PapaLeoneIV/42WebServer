@@ -45,12 +45,13 @@ ERROR Parser::extractFirstLine(Request *request, Response *response, std::string
     request->setUrl(url);
 
     //Unica versione supportata da subject è HTTP/1.1
-    if (this->_allowd_versions.find(request->getVersion()) == this->_allowd_versions.end()) {
+    if (this->_allowd_versions.find(version) == this->_allowd_versions.end()) {
         response->setStatusCode(505);
         return INVALID_HEADER;
     }
     
     request->setVersion(version);
+    return SUCCESS;
 }
 
 
