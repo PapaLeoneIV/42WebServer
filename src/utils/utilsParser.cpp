@@ -6,53 +6,53 @@
 #include "Utils.hpp"
 
 
-ERROR Parser::extractFirstLine(Request *request, Response *response, std::string firstLine) {
+// ERROR Parser::extractFirstLine(Request *request, Response *response, std::string firstLine) {
     
-    std::istringstream firstLineStream(firstLine);
+//     std::istringstream firstLineStream(firstLine);
     
-    std::string method, url, version;
+//     std::string method, url, version;
     
-    firstLineStream >> method >> url >> version;
+//     firstLineStream >> method >> url >> version;
     
-    //TODO allowd methods deve essere construito basandosi sulle informazioni presenti nel config file del server
-    switch (this->_allowd_methods.count(method)) {
-        case true:
-            if (this->_implemnted_methods.find(method) == this->_implemnted_methods.end()) {
-                // not permitted
-                response->setStatusCode(405);
-                response->setHeaders("Allow", "GET, POST, DELETE");
-                return INVALID_HEADER;
-            }
-            break;
-        case false:
-                // not implemented
-                response->setStatusCode(501);
-                response->setHeaders("Allow", "GET, POST, DELETE");
-                return INVALID_HEADER;
-    }
+//     //TODO allowd methods deve essere construito basandosi sulle informazioni presenti nel config file del server
+//     switch (this->_allowd_methods.count(method)) {
+//         case true:
+//             if (this->_implemnted_methods.find(method) == this->_implemnted_methods.end()) {
+//                 // not permitted
+//                 response->setStatusCode(405);
+//                 response->setHeaders("Allow", "GET, POST, DELETE");
+//                 return INVALID_HEADER;
+//             }
+//             break;
+//         case false:
+//                 // not implemented
+//                 response->setStatusCode(501);
+//                 response->setHeaders("Allow", "GET, POST, DELETE");
+//                 return INVALID_HEADER;
+//     }
 
-    request->setMethod(method);
+//     request->setMethod(method);
 
 
-    //se l url contiene "%" allora i caratteri che seguono sono codificati in esadecimale e vanno tradotti
-    url = removeHexChars(url);
+//     //se l url contiene "%" allora i caratteri che seguono sono codificati in esadecimale e vanno tradotti
+//     url = removeHexChars(url);
     
-    if (url.find_first_not_of(ALLOWED_CHARS) != std::string::npos || url.find_first_of("/") != 0) {
-        response->setStatusCode(400);
-        return INVALID_HEADER;
-    }
+//     if (url.find_first_not_of(ALLOWED_CHARS) != std::string::npos || url.find_first_of("/") != 0) {
+//         response->setStatusCode(400);
+//         return INVALID_HEADER;
+//     }
     
-    request->setUrl(url);
+//     request->setUrl(url);
 
-    //Unica versione supportata da subject è HTTP/1.1
-    if (this->_allowd_versions.find(version) == this->_allowd_versions.end()) {
-        response->setStatusCode(505);
-        return INVALID_HEADER;
-    }
+//     //Unica versione supportata da subject è HTTP/1.1
+//     if (this->_allowd_versions.find(version) == this->_allowd_versions.end()) {
+//         response->setStatusCode(505);
+//         return INVALID_HEADER;
+//     }
     
-    request->setVersion(version);
-    return SUCCESS;
-}
+//     request->setVersion(version);
+//     return SUCCESS;
+// }
 
 
 /**
@@ -60,122 +60,122 @@ ERROR Parser::extractFirstLine(Request *request, Response *response, std::string
  * sulla presenza del ":" per dividere il nome del header dal valore.
  * 
  */
-void Parser::extractHeaders(Request *request, std::istringstream &headerStream) {
+// void Parser::extractHeaders(Request *request, std::istringstream &headerStream) {
     
-    std::string line;
-    std::map<std::string, std::string> headers;
-    while (std::getline(headerStream, line) && line != "\r") {
+//     std::string line;
+//     std::map<std::string, std::string> headers;
+//     while (std::getline(headerStream, line) && line != "\r") {
     
-        line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
+//         line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
 
-        std::string::size_type colonPos = line.find(':');
-        if (colonPos != std::string::npos) {
+//         std::string::size_type colonPos = line.find(':');
+//         if (colonPos != std::string::npos) {
 
-            std::string headerName = line.substr(0, colonPos);
-            std::string headerValue = line.substr(colonPos + 1);
+//             std::string headerName = line.substr(0, colonPos);
+//             std::string headerValue = line.substr(colonPos + 1);
 
-            headerValue.erase(0, headerValue.find_first_not_of(" \t"));
+//             headerValue.erase(0, headerValue.find_first_not_of(" \t"));
 
-            std::string::size_type endPos = headerValue.find_last_not_of(" \t");
-            if (endPos != std::string::npos) {
-                headerValue.erase(endPos + 1);
-            }
+//             std::string::size_type endPos = headerValue.find_last_not_of(" \t");
+//             if (endPos != std::string::npos) {
+//                 headerValue.erase(endPos + 1);
+//             }
 
-            //TODO nell RFC c'è scritto che gli headers sono case-insensitive, non so se mi piace perche in altre parte del
-            //codice ho degli string literals dove non sono in lower case
-            for (std::string::iterator it = headerName.begin(); it != headerName.end(); ++it) {
-                *it = std::tolower(*it);
-            }
+//             //TODO nell RFC c'è scritto che gli headers sono case-insensitive, non so se mi piace perche in altre parte del
+//             //codice ho degli string literals dove non sono in lower case
+//             for (std::string::iterator it = headerName.begin(); it != headerName.end(); ++it) {
+//                 *it = std::tolower(*it);
+//             }
 
-            headers[headerName] = headerValue;
-        }
-    }
-    // TODO: check if the headers are valid
-    request->setHeaders(headers);
-}
+//             headers[headerName] = headerValue;
+//         }
+//     }
+//     // TODO: check if the headers are valid
+//     request->setHeaders(headers);
+// }
 
 
 /*  After we got the headers from the request, 
 *   we should check what type of request is GET, POST, DELETE 
 *   and if it has a body extract it accordingly reference blog(https://http.dev/post) 
 */
-ERROR Parser::extractBody(Request *request, std::istringstream &bodyStream) {
+// ERROR Parser::extractBody(Request *request, std::istringstream &bodyStream) {
 
-    if(request->getMethod() == "GET" || request->getMethod() == "DELETE") {
-        //We can ignore the body if is a GET or DELETE request, le info sono già presenti nell url
-        std::string empty = "";
-        request->setBody(empty); 
+//     if(request->getMethod() == "GET" || request->getMethod() == "DELETE") {
+//         //We can ignore the body if is a GET or DELETE request, le info sono già presenti nell url
+//         std::string empty = "";
+//         request->setBody(empty); 
 
-    } else if (request->getMethod() == "POST" && request->hasBody()) {
+//     } else if (request->getMethod() == "POST" && request->hasBody()) {
 
-        if(request->getContType() == "text/plain"){
+//         if(request->getContType() == "text/plain"){
          
-            std::string bodyContent((std::istreambuf_iterator<char>(bodyStream)), std::istreambuf_iterator<char>());
-            //La presenza di Hexadecimal chars è segnata dalla presenza di "%" 
-            bodyContent = removeHexChars(bodyContent);
-            request->setBody(bodyContent);
+//             std::string bodyContent((std::istreambuf_iterator<char>(bodyStream)), std::istreambuf_iterator<char>());
+//             //La presenza di Hexadecimal chars è segnata dalla presenza di "%" 
+//             bodyContent = removeHexChars(bodyContent);
+//             request->setBody(bodyContent);
         
-        } else if (request->getContType() == "multipart/form-data"){
+//         } else if (request->getContType() == "multipart/form-data"){
         
-            std::string contTypeVal = request->getHeaders()["content-type"];
-            std::string boundary = contTypeVal.substr(contTypeVal.find("boundary=") + 9);
-            request->setBoundary(boundary);
+//             std::string contTypeVal = request->getHeaders()["content-type"];
+//             std::string boundary = contTypeVal.substr(contTypeVal.find("boundary=") + 9);
+//             request->setBoundary(boundary);
 
-            /***
-             * Body:
-             * [name(nome)][Riccardo]
-             * [name(cognome)][Leone]
-             * [name(image.jpg)][jpg]
-             */
+//             /***
+//              * Body:
+//              * [name(nome)][Riccardo]
+//              * [name(cognome)][Leone]
+//              * [name(image.jpg)][jpg]
+//              */
 
-            this->parseMultipart(request, bodyStream, request->getBoundary());
+//             this->parseMultipart(request, bodyStream, request->getBoundary());
         
-        } else if (request->getContType() == "application/x-www-form-urlencoded"){
+//         } else if (request->getContType() == "application/x-www-form-urlencoded"){
         
-            std::string bodyContent((std::istreambuf_iterator<char>(bodyStream)), std::istreambuf_iterator<char>());
-            bodyContent = removeHexChars(bodyContent);
+//             std::string bodyContent((std::istreambuf_iterator<char>(bodyStream)), std::istreambuf_iterator<char>());
+//             bodyContent = removeHexChars(bodyContent);
 
-            request->setBody(bodyContent);
+//             request->setBody(bodyContent);
         
-        } else if(request->getContType() == "application/json"){
-            std::cout << "Error: JSON not supported yet!" << std::endl;
-            return INVALID_REQUEST;
-        } else {
-            std::cout << "Error: Content type not supported!" << std::endl;
-            return INVALID_REQUEST;
-        }        
-    }
-    return SUCCESS;
-}
+//         } else if(request->getContType() == "application/json"){
+//             std::cout << "Error: JSON not supported yet!" << std::endl;
+//             return INVALID_REQUEST;
+//         } else {
+//             std::cout << "Error: Content type not supported!" << std::endl;
+//             return INVALID_REQUEST;
+//         }        
+//     }
+//     return SUCCESS;
+// }
 
-void Parser::parseMultipart(Request *request, std::istringstream &formDataStream, std::string boundary) {
+// void Parser::parseMultipart(Request *request, std::istringstream &formDataStream, std::string boundary) {
 
-    std::string sections = extractBodyFromStream(formDataStream, boundary);
+//     std::string sections = extractBodyFromStream(formDataStream, boundary);
 
 
-    std::istringstream sectionsStream(sections);
+//     std::istringstream sectionsStream(sections);
     
-    std::vector<std::string> sezioni = splitIntoSections(sectionsStream);
-    int i = 0;
-    for (std::vector<std::string>::const_iterator it = sezioni.begin(); it != sezioni.end(); ++it) {
+//     std::vector<std::string> sezioni = splitIntoSections(sectionsStream);
+//     int i = 0;
+//     for (std::vector<std::string>::const_iterator it = sezioni.begin(); it != sezioni.end(); ++it) {
 
-        std::map<std::string, std::string> extractedData = extractSection(*it);
-        //TODO: handle multiple form field into Request Object
-        request->setContentName(extractedData["name"]);
-        request->setContentFilename(extractedData["filename"]);
-        request->setContType(extractedData["contentType"]);
-        request->setBody(extractedData["body"]);
+//         std::map<std::string, std::string> extractedData = extractSection(*it);
+//         //TODO: handle multiple form field into Request Object
+//         request->setContentName(extractedData["name"]);
+//         request->setContentFilename(extractedData["filename"]);
+//         request->setContType(extractedData["contentType"]);
+//         request->setBody(extractedData["body"]);
         
         
-        std::vector<char> bodyDataVector(extractedData["body"].begin(), extractedData["body"].end());
-        std::ofstream outFile("output.jpg", std::ios::out | std::ios::binary);
-        if (outFile) {
-            outFile.write(bodyDataVector.data(), bodyDataVector.size());
-            outFile.close();
-        }
-        i++;
-    }             
-}
+//         std::vector<char> bodyDataVector(extractedData["body"].begin(), extractedData["body"].end());
+//         std::ofstream outFile("output.jpg", std::ios::out | std::ios::binary);
+//         if (outFile) {
+//             outFile.write(bodyDataVector.data(), bodyDataVector.size());
+//             outFile.close();
+//         }
+//         i++;
+//     }             
+// }
 
 
 int Parser::checkResource(std::string filePath, Response* response) {

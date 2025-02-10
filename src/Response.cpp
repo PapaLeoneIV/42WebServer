@@ -28,7 +28,6 @@ void Response::prepareResponse(){
     }
     this->_finalResponse.append("\r\n");
 
-    
     this->_finalResponse.append(this->_body);
 }
 
@@ -47,8 +46,10 @@ void Response::fillHeader(std::string headerKey, std::string headerValue){
 }
 
 
+// TODO: fix absoloute path con path relativo preso da file di configurazione 
 std::string Response::getErrorPage(int status) {
     switch (status) {
+
         case 400: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/400.html");
         case 403: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/403.html");
         case 404: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/404.html");
@@ -61,27 +62,25 @@ std::string Response::getErrorPage(int status) {
     return "";
 }
 
-
-
-std::string &Response::getResponse()                                    {return this->_finalResponse;}
-std::string &Response::getContentType()                                 {return this->_content_type;};
-std::string &Response::getBody()                                        {return this->_body;}
-std::string &Response::getStatusMessage()                               {return this->_status_message;}
-std::map<std::string, std::string> &Response::getHeaders()              {return this->_headers;}
-
-int &Response::getStatus()                                              {return this->_status;};
-
-void Response::setResponse(char *response)                              {this->_finalResponse = response;}
-void Response::setBody(std::string body)                                {this->_body = body;}
-void Response::setContentType(std::string content_type)                 {this->_content_type = content_type;}
-void Response::setStatusMessage(std::string status_message)             {this->_status_message = status_message;}
-void Response::setStatusCode(int status)                                {this->_status = status;}
 void Response::setHeaders(std::string key, std::string value) {
     std::pair<std::string, std::string> KValHead(key, value);
     this->_headers.insert(KValHead);
 }
 
 
+std::string &Response::getResponse()    {return this->_finalResponse;}
+std::string &Response::getContentType() {return this->_content_type;};
+std::string &Response::getBody()    {return this->_body;}
+std::string &Response::getStatusMessage()   {return this->_status_message;}
+std::map<std::string, std::string> &Response::getHeaders()  {return this->_headers;}
+
+int &Response::getStatus()  {return this->_status;};
+
+void Response::setResponse(char *response)  {this->_finalResponse = response;}
+void Response::setBody(std::string body)    {this->_body = body;}
+void Response::setContentType(std::string content_type) {this->_content_type = content_type;}
+void Response::setStatusMessage(std::string status_message) {this->_status_message = status_message;}
+void Response::setStatusCode(int status)    {this->_status = status;}
 
 Response::Response()
 {
@@ -104,7 +103,7 @@ Response::Response(int status, const char *status_message)
 
 Response::Response(int status, std::string status_message)
 {
-  this->_finalResponse = "";
+    this->_finalResponse = "";
     this->_status = status;
     this->_status_message = status_message;
     this->_body = "";

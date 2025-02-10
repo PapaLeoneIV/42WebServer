@@ -63,72 +63,72 @@ const char *ServerManager::getClientIP(Client *client){
     return address_info;
 }
 
-ERROR ServerManager::readHeaderData(Client *client){
-    char headerBuff[1];
+// ERROR ServerManager::readHeaderData(Client *client){
+//     char headerBuff[1];
 
 
-    //TODO understand if i can do only one read operation at the time
-    while (true) {
+//     //TODO understand if i can do only one read operation at the time
+//     while (true) {
 
-        if (client->getHeadersData().find("\r\n\r\n") != std::string::npos) {
-            break;
-        }
-        int bytes_received = recv(client->getSocketFd(), headerBuff, sizeof(headerBuff), 0);
+//         if (client->getHeadersData().find("\r\n\r\n") != std::string::npos) {
+//             break;
+//         }
+//         int bytes_received = recv(client->getSocketFd(), headerBuff, sizeof(headerBuff), 0);
 
-        if (bytes_received == -1) {
-            std::cerr << strerror(errno) << std::endl;
-            return ERR_RECV;
-        }
-        if (bytes_received == 0) {
-            std::cerr << strerror(errno) << std::endl;
-            return ERR_RECV;
-        }
+//         if (bytes_received == -1) {
+//             std::cerr << strerror(errno) << std::endl;
+//             return ERR_RECV;
+//         }
+//         if (bytes_received == 0) {
+//             std::cerr << strerror(errno) << std::endl;
+//             return ERR_RECV;
+//         }
 
-        std::string received_data(headerBuff, bytes_received);
+//         std::string received_data(headerBuff, bytes_received);
 
-        std::string joined = client->getHeadersData() + received_data;
-        client->setHeadersData(joined);
-    }
-
-
-    return SUCCESS;
-}
+//         std::string joined = client->getHeadersData() + received_data;
+//         client->setHeadersData(joined);
+//     }
 
 
+//     return SUCCESS;
+// }
 
 
-ERROR ServerManager::handleTransferLength(Client *client) {
 
-    std::vector<char> bodyBuff(MAX_REQUEST_SIZE + 1);
-    std::vector<char> joined;
-    int totReceived = 0;
-    while(totReceived < client->getRequest()->getContentLength())
-    {   
-        int bytes_received = recv(client->getSocketFd(), bodyBuff.data(), client->getRequest()->getContentLength() - joined.size(), 0);
-        if(totReceived > MAX_REQUEST_SIZE){
-            std::cout << "Request too large" << std::endl;
-            client->getResponse()->setStatusCode(413);
-            return ERR_RECV;
-        }
-        if(bytes_received == -1){
-            this->removeClient(client->getSocketFd());
-            return ERR_RECV;
-        }
-        if(bytes_received == 0){
-            this->removeClient(client->getSocketFd());
-            return ERR_RECV;
-        }
-        joined.insert(joined.end(), bodyBuff.begin(), bodyBuff.begin() + bytes_received);
-        totReceived += bytes_received;
-    }
 
-    joined.resize(client->getRequest()->getContentLength());
-    client->setBodyData(std::string(joined.begin(), joined.end()));
+// ERROR ServerManager::handleTransferLength(Client *client) {
 
-    std::cout << "Body data received size: " << client->getBodyData().length() << std::endl;
+//     std::vector<char> bodyBuff(MAX_REQUEST_SIZE + 1);
+//     std::vector<char> joined;
+//     int totReceived = 0;
+//     while(totReceived < client->getRequest()->getContentLength())
+//     {   
+//         int bytes_received = recv(client->getSocketFd(), bodyBuff.data(), client->getRequest()->getContentLength() - joined.size(), 0);
+//         if(totReceived > MAX_REQUEST_SIZE){
+//             std::cout << "Request too large" << std::endl;
+//             client->getResponse()->setStatusCode(413);
+//             return ERR_RECV;
+//         }
+//         if(bytes_received == -1){
+//             this->removeClient(client->getSocketFd());
+//             return ERR_RECV;
+//         }
+//         if(bytes_received == 0){
+//             this->removeClient(client->getSocketFd());
+//             return ERR_RECV;
+//         }
+//         joined.insert(joined.end(), bodyBuff.begin(), bodyBuff.begin() + bytes_received);
+//         totReceived += bytes_received;
+//     }
+
+//     joined.resize(client->getRequest()->getContentLength());
+//     client->setBodyData(std::string(joined.begin(), joined.end()));
+
+//     std::cout << "Body data received size: " << client->getBodyData().length() << std::endl;
    
-    return SUCCESS;
-}
+//     return SUCCESS;
+// }
 
 
 

@@ -1,15 +1,5 @@
-#pragma once
-
 #ifndef UTILS_HPP
 #define UTILS_HPP
-
-#include "Booter.hpp"
-#include "Client.hpp"
-#include "Parser.hpp"
-#include "Request.hpp"
-#include "Response.hpp"
-#include "Server.hpp"
-#include "ServerManager.hpp"
 
 #include <string.h>
 #include <unistd.h>
@@ -45,6 +35,7 @@ typedef int ERROR;
 
 #define ALLOWED_CHARS "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~:/?#[]@!$&'()*+,;=%"
 
+#define VERSION "0.0.1"
 
 //List of possible error in the program, used to return a string error message
 //to check the actual error message, checkout functionn ErrToStr in Utlis.cpp
@@ -80,27 +71,87 @@ enum POSSIBLE_ERRORS{
 };
 
 
+enum RequestStates {
+    StateMethod,
+    StatePostOrPut,
+    
+    StateSpaceAfterMethod,
+    StateUrlBegin,
+    StateUrlString,
+    StateSpaceAfterUrl,
+
+    StateVersion,
+    StateVersion_H,
+    StateVersion_HT,
+    StateVersion_HTT,
+    StateVersion_HTTP,
+    StateVersion_HTTPSlash,
+    StateVersion_HTTPSlashOne,
+    StateVersion_HTTPSlashOneDot,
+    StateVersion_HTTPSlashOneDotOne,
+    StateFirstLine_CR,
+    StateFirstLine_LF,
+    
+    StateHeaderKey,
+    StateHeadersTrailingSpaceStart,
+    StateHeaderValue,
+    StateHeadersTrailingSpaceEnd,
+    StateHeaders_CR,
+    StateHeaders_LF,
+    StateHeadersEnd_CR,
+    
+    StateEncodedSep,
+    
+    StateBodyStart,
+    StateBodyPlainText,
+    StateBodyBodyChunkedText,
+    StateBodyChunkedNumber,
+    StateBodyEnd_CR,
+    StateBodyEnd_LF,
+    StateChunkedEnd_LF,
+    StateChunkedNumber_LF,
+    StateChunkedNumber_CR,
+    StateChunkedChunk_LF,
+    StateChunkedChunk, 
+    
+    StateParsingComplete,
+  
+  };
+  
+  enum RequestMethods{
+    GET,
+    POST,
+    DELETE,
+  };
+int handle_arguments(char **argv);
+
+std::string to_lower(const std::string& input);
+
+int strToHex(const std::string& str);
+
 std::string fromDIRtoHTML(std::string dirPath, std::string url);
+
 std::string readTextFile(std::string filePath);
+
 std::string readFileBinary(std::string filePath);
 
-std::string getMessageFromStatusCode    (int status);
+std::string getMessageFromStatusCode(int status);
 
-std::string getContentType              (std::string& url, int status);
+std::string getContentType(std::string& url, int status);
 
-std::string removeHexChars                  (std::string& url);
+std::string removeHexChars(std::string& url);
 
-std::string ErrToStr                    (int error);
+std::string ErrToStr(int error);
 
-std::string intToStr                    (int number);
+std::string intToStr(int number);
 
-int         strToInt                    (std::string str);
+int strToInt(std::string str);
 
-std::string to_lowercase                (const std::string& str);
+std::string to_lowercase(const std::string& str);
 
-std::string trim                        (const std::string& str);
+std::string trim(const std::string& str);
 
-ERROR   checkPermissions                  (std::string fullPath,int mode);
+ERROR checkPermissions(std::string fullPath,int mode);
 
 std::string readBinaryStream(std::istringstream &stream, int size);
 

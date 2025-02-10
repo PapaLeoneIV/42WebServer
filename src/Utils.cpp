@@ -1,7 +1,26 @@
 #include "Utils.hpp"
 
-std::string fromDIRtoHTML(std::string dirPath, std::string url)
-{
+
+int handle_arguments(char **argv){
+    if(std::string(argv[1]) == "--help"){
+        std::cout <<  "Usage: webserver [OPTIONS] <config-filepath>" << std::endl;
+        std::cout <<  "         --help                           Display this help and exit" << std::endl;
+        std::cout <<  "         -t <config-filepath>             Test the configuration file" << std::endl;
+        std::cout <<  "         -v                               Display the current version" << std::endl;    
+        return 0;
+    }
+    if(std::string(argv[1]) == "-v"){
+        std::cout << "webserver version: webserver/" << VERSION << std::endl; 
+        return 0;
+    }
+    if(std::string(argv[1]) == "-t"){
+        std::cout << "webserver config-file testing: missing <config-filepath>" << std::endl;
+        return 0;
+    }
+    return 1;
+}
+
+std::string fromDIRtoHTML(std::string dirPath, std::string url){
     (void)url;
     std::string html =  "<!DOCTYPE html>" \
                         "<html lang=\"en\">" \
@@ -131,8 +150,6 @@ std::string getMessageFromStatusCode(int status) {
         case 415: return "Unsupported Media Type";
         case 500: return "Internal Server Error";
         case 501: return "Not Implemented";
-        //case 502: return "Bad Gateway";
-        //case 503: return "Service Unavailable";
         case 505: return "HTTP Version Not Supported";
         default: return "Status Code not recognized";
     }
@@ -174,9 +191,19 @@ ERROR checkPermissions(std::string fullPath, int mode) {
 }
 
 
+
+
 int strToInt(std::string str) {
     std::stringstream ss(str);
     int number;
+    ss >> number;
+    return number;
+}
+
+int strToHex(const std::string& str) {
+    int number = 0;
+    std::stringstream ss;
+    ss << std::hex << str;
     ss >> number;
     return number;
 }
@@ -185,6 +212,14 @@ std::string intToStr(int number) {
     std::stringstream ss;
     ss << number;
     return ss.str();
+}
+
+std::string to_lower(const std::string& input) {
+    std::string result = input;
+    for (std::string::size_type i = 0; i < result.size(); ++i) {
+        result[i] = std::tolower(static_cast<unsigned char>(result[i]));
+    }
+    return result;
 }
 
 std::string trim(const std::string& str) {
@@ -196,13 +231,6 @@ std::string trim(const std::string& str) {
 }
 
 
-std::string to_lowercase(const std::string& str) {
-    std::string lower_str = str;
-    for (size_t i = 0; i < lower_str.size(); ++i) {
-        lower_str[i] = static_cast<char>(std::tolower(lower_str[i]));
-    }
-    return lower_str;
-}
 
 std::string readBinaryStream(std::istringstream &stream, int size)
 {
@@ -216,86 +244,87 @@ std::string readBinaryStream(std::istringstream &stream, int size)
     }
     return fileContent;
 }
+// TODO questi venivano usati nel vecchio parsing della request, non buttare via perche alcuni pezzi di codice
+// sono riutilizzabili
 
-std::string extractBodyFromStream(std::istringstream &iss, const std::string &boundary) {
-    std::string line;
-    std::string content;
-    bool withinBoundary = false;
+// std::string extractBodyFromStream(std::istringstream &iss, const std::string &boundary) {
+//     std::string line;
+//     std::string content;
+//     bool withinBoundary = false;
 
-    while (std::getline(iss, line)) {
-        if (line == "--" + boundary + "\r") {
-            withinBoundary = true;
-            continue;
-        }
-        if (withinBoundary && line == "--" + boundary + "--\r") {
-            withinBoundary = false;
-            break;
-        }
-        if (withinBoundary) {
-            content += line + "\n";
-        }
-    }
-    return content;
-}
+//     while (std::getline(iss, line)) {
+//         if (line == "--" + boundary + "\r") {
+//             withinBoundary = true;
+//             continue;
+//         }
+//         if (withinBoundary && line == "--" + boundary + "--\r") {
+//             withinBoundary = false;
+//             break;
+//         }
+//         if (withinBoundary) {
+//             content += line + "\n";
+//         }
+//     }
+//     return content;
+// }
+// std::vector<std::string> splitIntoSections(std::istringstream &iss) {
+//     std::vector<std::string> sections;
+//     std::string line;
+//     std::string currentSection;
 
-std::vector<std::string> splitIntoSections(std::istringstream &iss) {
-    std::vector<std::string> sections;
-    std::string line;
-    std::string currentSection;
+//     while (std::getline(iss, line, '\n')) {
+//         if (line.find("Content-Disposition: form-data;") != std::string::npos) {
+//             if (!currentSection.empty()) {
+//                 sections.push_back(currentSection);
+//                 currentSection = ""; 
+//             }
+//         }
+//         currentSection += line + "\n";
+//     }
+//     if (!currentSection.empty()) {
+//         sections.push_back(currentSection);
+//     }
 
-    while (std::getline(iss, line, '\n')) {
-        if (line.find("Content-Disposition: form-data;") != std::string::npos) {
-            if (!currentSection.empty()) {
-                sections.push_back(currentSection);
-                currentSection = ""; 
-            }
-        }
-        currentSection += line + "\n";
-    }
-    if (!currentSection.empty()) {
-        sections.push_back(currentSection);
-    }
+//     return sections;
+// }
+// std::map<std::string, std::string> extractSection(const std::string &section) {
+//     std::map<std::string, std::string> extractedData;
+//     std::istringstream sectionStream(section);
+//     std::string line;
+//     bool isBody = false;
+//     std::string body;
 
-    return sections;
-}
-std::map<std::string, std::string> extractSection(const std::string &section) {
-    std::map<std::string, std::string> extractedData;
-    std::istringstream sectionStream(section);
-    std::string line;
-    bool isBody = false;
-    std::string body;
-
-    while (std::getline(sectionStream, line)) {
-        if (isBody) {
-            body += line + "\n";
-        } else if (line.find("Content-Disposition:") != std::string::npos) {
-            std::string::size_type namePos = line.find("name=\"");
+//     while (std::getline(sectionStream, line)) {
+//         if (isBody) {
+//             body += line + "\n";
+//         } else if (line.find("Content-Disposition:") != std::string::npos) {
+//             std::string::size_type namePos = line.find("name=\"");
             
-            if (namePos != std::string::npos) {
-                namePos += 6;
-                std::string::size_type endPos = line.find("\"", namePos);
-                if (endPos != std::string::npos) {
-                    extractedData["name"] = line.substr(namePos, endPos - namePos);
-                }
-            }
+//             if (namePos != std::string::npos) {
+//                 namePos += 6;
+//                 std::string::size_type endPos = line.find("\"", namePos);
+//                 if (endPos != std::string::npos) {
+//                     extractedData["name"] = line.substr(namePos, endPos - namePos);
+//                 }
+//             }
 
-            std::string::size_type filenamePos = line.find("filename=\"");
+//             std::string::size_type filenamePos = line.find("filename=\"");
             
-            if (filenamePos != std::string::npos) {
-                filenamePos += 10;
-                std::string::size_type endPos = line.find("\"", filenamePos);
-                if (endPos != std::string::npos) {
-                    extractedData["filename"] = line.substr(filenamePos, endPos - filenamePos);
-                }
-            }
-        } else if (line.find("Content-Type:") != std::string::npos) {
-            extractedData["contentType"] = line.substr(14);
-        } else if (line == "\r") {
-            isBody = true;
-        }
-    }
+//             if (filenamePos != std::string::npos) {
+//                 filenamePos += 10;
+//                 std::string::size_type endPos = line.find("\"", filenamePos);
+//                 if (endPos != std::string::npos) {
+//                     extractedData["filename"] = line.substr(filenamePos, endPos - filenamePos);
+//                 }
+//             }
+//         } else if (line.find("Content-Type:") != std::string::npos) {
+//             extractedData["contentType"] = line.substr(14);
+//         } else if (line == "\r") {
+//             isBody = true;
+//         }
+//     }
 
-    extractedData["body"] = body;
+//     extractedData["body"] = body;
 
-    return extractedData;
-}
+//     return extractedData;
+// }

@@ -9,22 +9,19 @@ ERROR Booter::bootServer(Server *server, const char *host, const char *port)
 {
     ERROR error;
 
-    std::cout << "Getting address info" << std::endl;
     if((error = GetAddrInfo(server, host, port))) { return error; }
 
-    std::cout << "Creating socket" << std::endl;
     if((error = Socket(server))) { return error; }
 
-    std::cout << "Setting non-blocking" << std::endl;
     if((error = Fcntl(server))) { return error; }
 
-    std::cout << "Binding" << std::endl;
     if((error = Bind(server))) { return error; }
 
-    std::cout << "Listening on port: " << port << std::endl;
     if((error = Listen(server))) { return error; }
 
     freeaddrinfo(server->getBindAddrss());
+
+    std::cout << "[ " <<  server->getServerSocket() << " ]" << " Listening on "<< host << ":" << port <<   std::endl;
 
 
     return SUCCESS;

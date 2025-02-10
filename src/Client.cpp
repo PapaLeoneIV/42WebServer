@@ -1,6 +1,7 @@
 #include "Client.hpp"
-#include "Utils.hpp"
-
+#include "Server.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
 
 sockaddr_storage        &Client::getAddr()                          {return this->_address;};
 socklen_t               &Client::getAddrLen()                       {return this->_address_length;};
@@ -65,21 +66,27 @@ Client::Client(Client & other) {
         this->_requestData[i] = other._requestData[i];
     }
 
-    if (other._Request) {
-        this->_Request = new Request(*other._Request);  // Assuming Request has a copy constructor
-    } else {
-        this->_Request = NULL;
-    }
-    if (other._Response) {
-        this->_Response = new Response(*other._Response);  // Assuming Response has a copy constructor
-    } else {
-        this->_Response = NULL;
-    }
+    // if (other._Request) {
+    //     this->_Request = new Request(*other._Request);  // Assuming Request has a copy constructor
+    // } else {
+    //     this->_Request = NULL;
+    // }
+    // if (other._Response) {
+    //     this->_Response = new Response(*other._Response);  // Assuming Response has a copy constructor
+    // } else {
+    //     this->_Response = NULL;
+    // }
 }
 
 
 Client::~Client(){
-  std::cout << "Client destroyed" << std::endl;
+  static char address_info[INET6_ADDRSTRLEN];
+  int x = getnameinfo((sockaddr*)&this->getAddr(), this->getAddrLen(), address_info, sizeof(address_info), NULL, 0, NI_NUMERICHOST);
+  if (x != 0) {
+    std::cerr << "Error getting client address: " << gai_strerror(x) << std::endl;
+} else {
+    std::cout << "[ " << this->getSocketFd() << " ] Connection closed from " << address_info << std::endl;
+}
   if(this->_Request)
     delete this->_Request;
   if(this->_Response)

@@ -1,13 +1,3 @@
-055 32357222
-
-27 12:30 PM
-
-VIALE FRATELLI ROSSELLI N20 PIANO TERRA
-
-BUSTA PAGA 
-
-PEC DATORE DI LAVORO
-
 #!/usr/bin/env python3
 import cgi
 import cgitb

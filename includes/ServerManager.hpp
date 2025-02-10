@@ -1,29 +1,9 @@
 #ifndef SERVERMANAGER_HPP
 #define SERVERMANAGER_HPP
 
-
-#include <string.h>
-#include <unistd.h>
-#include <sstream>
-#include <iostream>
-#include <stdexcept>
-#include <sys/stat.h>
-#include <bits/stdc++.h>
-#include <dirent.h>
-#include <assert.h>
-
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <fcntl.h>
-#include <netdb.h>
-
-#include <algorithm>
 #include <string>
 #include <map>
-#include <iostream>
-#include <vector>
-#include <set>
-
+#include "Utils.hpp"
 #include "Server.hpp"
 #include "Client.hpp"
 
@@ -59,6 +39,8 @@ class ServerManager{
 	
 	private:
 
+	struct timeval timeout;
+	
 	fd_set                          _masterPool;
 	fd_set                          _readPool;
 	fd_set                          _writePool;

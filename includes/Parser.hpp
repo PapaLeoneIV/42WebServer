@@ -1,42 +1,22 @@
-#pragma once
-
 #ifndef PARSER_HPP
 #define PARSER_HPP
-#include <unistd.h>
-#include <sstream>
-#include <sys/stat.h>
-#include <bits/stdc++.h>
-#include <dirent.h>
-#include <assert.h>
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <fcntl.h>
-#include <netdb.h>
-
-#include <string>
 #include <set>
+#include <string>
 
-#include "Request.hpp"
-#include "Response.hpp"
-#include "Server.hpp"
-#include "Client.hpp"
+class Server;
+class Client;
+class Response;
 
 typedef int SOCKET;
 typedef int ERROR;
 
+class Request;
+
 class Parser{
     public:
-
-    Request *extract  (std::string headerData, std::string bodyData, Client *client);
-
-    ERROR   extractFirstLine(Request *request, Response *response, std::string firstLine);
     
-    void    extractHeaders(Request *request, std::istringstream &headerStream);
-    
-    ERROR   extractBody(Request *request, std::istringstream &bodyStream);
-    
-    void    parseMultipart(Request *request, std::istringstream &iss, std::string boundary);
+    //void    parseMultipart(Request *request, std::istringstream &iss, std::string boundary);
     
     void    validateResource    (Client *client, Server *server);
 

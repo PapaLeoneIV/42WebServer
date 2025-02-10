@@ -13,42 +13,42 @@
  * vengono insertiti gli HEADERS all interno di una mappa, ed infine il BODY
  * viene estratto in base al tipo di trasferimento presente negl headers(TEXT/PLAIN, TRANSFER-ENCODING, MULTIPART-FORMDATA).
  */
-Request* Parser::extract(std::string headerData, std::string bodyData, Client *client) {
+// Request* Parser::extract(std::string headerData, std::string bodyData, Client *client) {
     
-    Response *response = client->getResponse();
-    Request *request = new Request();
+//     Response *response = client->getResponse();
+//     Request *request = new Request();
     
-    std::string line;
+//     std::string line;
 
-    std::istringstream headerStream(headerData);
-    std::istringstream bodyStream(bodyData);
+//     std::istringstream headerStream(headerData);
+//     std::istringstream bodyStream(bodyData);
 
-    std::string dataStr(headerData + bodyData);
+//     std::string dataStr(headerData + bodyData);
 
-    //controlla che la richiesta sia terminata in modo corretto con \r\n\r\n
-    if (dataStr.find("\r\n\r\n") == std::string::npos) {
-        response->setStatusCode(400);
-        return NULL;
-    }
+//     //controlla che la richiesta sia terminata in modo corretto con \r\n\r\n
+//     if (dataStr.find("\r\n\r\n") == std::string::npos) {
+//         response->setStatusCode(400);
+//         return NULL;
+//     }
 
-    //controlla che la richiesta abbia un body oppure no
-    if(!bodyData.empty())
-        request->setHasBody(true);
+//     //controlla che la richiesta abbia un body oppure no
+//     if(!bodyData.empty())
+//         request->setHasBody(true);
    
-    if (std::getline(headerStream, line) && this->extractFirstLine(request, response, line) != SUCCESS){
-        response->setStatusCode(400);
-        return NULL;
-    }   
+//     if (std::getline(headerStream, line) && this->extractFirstLine(request, response, line) != SUCCESS){
+//         response->setStatusCode(400);
+//         return NULL;
+//     }   
     
-    this->extractHeaders(request, headerStream);
+//     this->extractHeaders(request, headerStream);
 
-    if(this->extractBody(request, bodyStream) != SUCCESS){
-        response->setStatusCode(400);
-        return NULL;
-    }
+//     if(this->extractBody(request, bodyStream) != SUCCESS){
+//         response->setStatusCode(400);
+//         return NULL;
+//     }
     
-    return request;
-}
+//     return request;
+// }
 
 void Parser::validateResource(Client *client, Server *server)
 {
