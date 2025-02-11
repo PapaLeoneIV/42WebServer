@@ -48,6 +48,7 @@ void Response::fillHeader(std::string headerKey, std::string headerValue){
 
 
 // TODO: fix absoloute path con path relativo preso da file di configurazione 
+// Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/11
 std::string Response::getErrorPage(int status) {
     switch (status) {
 

@@ -63,6 +63,7 @@ void Parser::validateResource(Client *client, Server *server)
         return;
 
     // TODO: atm is hardcoded to the root directory
+    // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/6
     std::string filePath = server->getCwd() +  server->getRoot() + request->getUrl();
     
     //check if the requested resource is accessible
@@ -78,6 +79,7 @@ void Parser::validateResource(Client *client, Server *server)
             request->setUrl(newUrl);
         }
         // TODO:  implement the directory listing feature based on the config file
+        // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/5
         std::string dirBody = fromDIRtoHTML(filePath, request->getUrl());
         
         if(dirBody.empty()){

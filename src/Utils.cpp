@@ -249,6 +249,7 @@ std::string readBinaryStream(std::istringstream &stream, int size)
     return fileContent;
 }
 // TODO questi venivano usati nel vecchio parsing della request, non buttare via perche alcuni pezzi di codice
+// Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/17
 // sono riutilizzabili
 
 // std::string extractBodyFromStream(std::istringstream &iss, const std::string &boundary) {

@@ -224,6 +224,7 @@ int main(int argc, char *argv[]) {
             std::string value;
 
             //TODO check if value can be used for the token(directive) we are parsing atm-----> decide if we should do it after parsing
+            //Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/22
             std::getline(lineStream, value);
             tokens.push_back(trimOriginal(value));
             i++;

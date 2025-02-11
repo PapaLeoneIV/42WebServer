@@ -91,6 +91,7 @@
 //         }
 //     }
 //     // TODO: check if the headers are valid
+//     Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/20
 //     request->setHeaders(headers);
 // }
 

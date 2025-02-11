@@ -110,10 +110,12 @@ void ServerManager::processRequest(Client *client)
     if(client->getRequest()->state == StateParsingComplete /*TODO: prepare error response if there is an error in consume() */){
         
         // TODO: based on the value from the config file, we need to decide if it is a valid request
+        // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/16
         // eg: if the method is in the allowed methods(direttiva del config-file)
         // eg: if proxy_pass is set, i think, not sure, we need to make a send() with the request to the proxy_pass server
 
         // TODO: based on the URL (credo), we need to decide if we need to pass the request to CGI
+        // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/15
         
         parser.validateResource(client, client->getServer());
         this->addToSet(client->getSocketFd(), &this->_masterPool);
@@ -131,6 +133,7 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     }
 
     // TODO: maybe, it will be better to move the response generation into a separate component 
+    // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/14
     response->setHeaders("Host", "localhost");
     if(!response->getBody().empty()){
         response->setHeaders("Content-Type", getContentType(request->getUrl(), response->getStatus()));
@@ -151,6 +154,7 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     }
 
     // TODO: check if we need to close the connection or if we can keep the client fd open for next request 
+    // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/13
     if(request->getHeaders()["connection"] == "close")
         this->removeClient(fd);
     
@@ -166,6 +170,7 @@ void ServerManager::initFdSets()
         }
     }
     //TODO: client non penso ce ne possono essere in questo momento
+    //Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/12
     for (std::map<SOCKET, Client*>::iterator clientIt = this->_clients_map.begin(); clientIt != this->_clients_map.end(); ++clientIt){
         FD_SET(clientIt->first, &this->_masterPool);
         this->_maxSocket = std::max(this->_maxSocket, clientIt->first);

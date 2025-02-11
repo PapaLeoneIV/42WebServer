@@ -133,6 +133,7 @@ const char *ServerManager::getClientIP(Client *client){
 
 
 //TODO not properly implemented at the moment
+//Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/21
 // ERROR ServerManager::handkeChunkedTransfer(Client *client) {
 //     std::string line;
 //     std::string joined;
