@@ -5,7 +5,7 @@
         "type": "cppdbg",
         "request": "launch",
         "program": "${workspaceFolder}/webserver",
-        "args": [],
+        "args": ["a"],
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",
         "environment": [],

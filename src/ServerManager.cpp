@@ -10,37 +10,31 @@
 
 void ServerManager::mainLoop()
 {
-    
-
     this->initFdSets();
-   
+
     while(420){
-        
         int fds_changed = 0;
         
-
         FD_ZERO(&this->_readPool);
         FD_ZERO(&this->_writePool);
 
         this->_readPool = this->_masterPool;
         this->_writePool = this->_masterPool;
-        
-        if ((fds_changed = select(this->_maxSocket + 1, &this->_readPool, &this->_writePool, 0, &timeout)) < 0){
+
+        if ((fds_changed = select(this->_maxSocket + 1, &this->_readPool, &this->_writePool, 0, &timeout)) < 0)
             throw std::runtime_error(ErrToStr(ERR_SELECT));
-        }
-        if(fds_changed == 0)
-            continue;
+        if(fds_changed == 0) continue;
+
         for (SOCKET fd = 0; fd < this->_maxSocket + 1; ++fd){
 
-            if(FD_ISSET(fd, &this->_readPool) && this->_servers_map.count(fd) > 0){
+            if(FD_ISSET(fd, &this->_readPool) && this->_servers_map.count(fd) > 0)
                 this->registerNewConnections(fd, this->_servers_map[fd]);
-            }
-            else if(FD_ISSET(fd, &this->_readPool) && this->_clients_map.count(fd) > 0){
+
+            else if(FD_ISSET(fd, &this->_readPool) && this->_clients_map.count(fd) > 0)
                 this->processRequest(this->_clients_map[fd]);
-            }
-            else if(FD_ISSET(fd, &this->_writePool) && this->_clients_map.count(fd) > 0){
+            
+            else if(FD_ISSET(fd, &this->_writePool) && this->_clients_map.count(fd) > 0)
                 this->sendResponse(fd, this->_clients_map[fd]);
-            }
         }
     }
 }
@@ -78,7 +72,6 @@ void ServerManager::registerNewConnections(SOCKET serverFd, Server *server)
     client->setServer(server);
     
     this->_clients_map[new_socket] = client;
-
 }
 
 #define BUFFER_SIZE 4*1024 //4KB
@@ -91,6 +84,10 @@ void ServerManager::processRequest(Client *client)
     std::cout << "client socket : " << client->getSocketFd() << std::endl; 
     int bytesRecv = recv(client->getSocketFd(), buffer, sizeof(buffer), 0);
 
+    if(errno == EWOULDBLOCK || errno == EAGAIN){
+        std::cerr << "Error: failed with EWOULDBLOCK || EAGAIN" << std::endl;
+        return;
+    }
     if(bytesRecv == -1){
         std::cout << errno << std::endl;
         std::cerr << "Error: recv failed with error: closing connection" << std::endl;
@@ -127,7 +124,7 @@ void ServerManager::processRequest(Client *client)
     // }
 
 
-    //parser.validateResource(client, client->getServer());
+    parser.validateResource(client, client->getServer());
 }
 
 void ServerManager::sendResponse(SOCKET fd, Client *client)

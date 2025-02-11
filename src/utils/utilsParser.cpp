@@ -179,8 +179,8 @@
 
 
 int Parser::checkResource(std::string filePath, Response* response) {
+    
     struct stat sb;
-
     if (access(filePath.c_str(), F_OK) == FAILURE) {
         response->setStatusCode(404);
         return FAILURE;
@@ -200,7 +200,9 @@ int Parser::checkResource(std::string filePath, Response* response) {
         response->setStatusCode(403);
         return FAILURE;
     }
+
     return sb.st_mode;
+
 }
 
 

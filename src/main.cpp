@@ -7,7 +7,7 @@ int main(int argc, char **argv, char**envp)
     ServerManager serverManager;
 
     if(argc == 2){
-        if(!handle_arguments(argv)) return 0;
+        if(!handle_arguments(argv)) return (1);
         
         // TODO: validate if config file is exist, not dir, is readable
         // TODO: finish parsing of config file 
@@ -32,7 +32,7 @@ int main(int argc, char **argv, char**envp)
             std::cout << "webserver [OPTIONS]: wrong number of arguments" << std::endl;
             return 1;
         }
-        //if(validateConfigPath() && parseConfigFile()) return 1;
+        // if(validateConfigPath() && parseConfigFile()) return 1;
         
         return 0;
     }

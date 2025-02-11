@@ -4,7 +4,6 @@
 #include "Server.hpp"
 
 typedef int SOCKET;
-typedef int ERROR;
 
 class Booter {
     public:
@@ -12,13 +11,7 @@ class Booter {
     Booter();
     ~Booter();
 
-    ERROR                       bootServer    (Server *server, const char *host, const char *port);
-    
-    ERROR                       GetAddrInfo   (Server *server, const char *host, const char *port);
-    ERROR                       Socket        (Server *server);
-    ERROR                       Bind          (Server *server);
-    ERROR                       Fcntl         (Server *server);
-    ERROR                       Listen        (Server *server);
+    void                       bootServer    (Server *server, const char *host, const char *port);
 };
 
 

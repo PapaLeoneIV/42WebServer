@@ -3,20 +3,24 @@
 
 int handle_arguments(char **argv){
     if(std::string(argv[1]) == "--help"){
+        std::cout << std::endl;
         std::cout <<  "Usage: webserver [OPTIONS] <config-filepath>" << std::endl;
         std::cout <<  "         --help                           Display this help and exit" << std::endl;
         std::cout <<  "         -t <config-filepath>             Test the configuration file" << std::endl;
         std::cout <<  "         -v                               Display the current version" << std::endl;    
-        return 0;
+        std::cout << std::endl;
+        
+        exit(1);
     }
     if(std::string(argv[1]) == "-v"){
         std::cout << "webserver version: webserver/" << VERSION << std::endl; 
-        return 0;
+        exit(1);
     }
     if(std::string(argv[1]) == "-t"){
         std::cout << "webserver config-file testing: missing <config-filepath>" << std::endl;
-        return 0;
+        exit(1);
     }
+
     return 1;
 }
 

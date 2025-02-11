@@ -65,41 +65,6 @@ void Parser::validateResource(Client *client, Server *server)
     // TODO: atm is hardcoded to the root directory
     std::string filePath = server->getCwd() +  server->getRoot() + request->getUrl();
     
-    //check if is dir or file
-    //if dir
-        // if index is provided inside location
-            //check existance
-            //serve index.html 
-        // check dir listing
-            //if is on
-                // if url does not end with / add /
-                //serve dir listing
-            //if is off
-                //serve 403
-          
-
-
-    //if file 
-        //
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     //check if the requested resource is accessible
     fileType = this->checkResource(filePath, response);
     if(fileType == FAILURE){
@@ -112,7 +77,7 @@ void Parser::validateResource(Client *client, Server *server)
             std::string newUrl = request->getUrl() + "/";
             request->setUrl(newUrl);
         }
-        // TODO:  implement the directory listing
+        // TODO:  implement the directory listing feature
         std::string dirBody = fromDIRtoHTML(filePath, request->getUrl());
         
         if(dirBody.empty()){

@@ -27,6 +27,8 @@ void Response::prepareResponse(){
         this->fillHeader(headerMapIt->first, headerMapIt->second);
     }
     this->_finalResponse.append("\r\n");
+    
+    std::cout << "BODY: " << this->_body << std::endl;
 
     this->_finalResponse.append(this->_body);
 }
