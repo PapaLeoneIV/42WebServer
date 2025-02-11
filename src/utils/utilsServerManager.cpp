@@ -133,26 +133,26 @@ const char *ServerManager::getClientIP(Client *client){
 
 
 //TODO not properly implemented at the moment
-ERROR ServerManager::handkeChunkedTransfer(Client *client) {
-    std::string line;
-    std::string joined;
+// ERROR ServerManager::handkeChunkedTransfer(Client *client) {
+//     std::string line;
+//     std::string joined;
 
-    std::vector<char> bodyBuff(MAX_REQUEST_SIZE + 1);
+//     std::vector<char> bodyBuff(MAX_REQUEST_SIZE + 1);
     
-    int totReceived = 0;
+//     int totReceived = 0;
 
-    while (totReceived < MAX_REQUEST_SIZE) {
-        int bytes_received = recv(client->getSocketFd(), bodyBuff.data(), MAX_REQUEST_SIZE - joined.size(), 0);
-        if(bytes_received == -1){
-            this->removeClient(client->getSocketFd());
-            return  ERR_RECV;
-        }
-        if(bytes_received == 0){
-            this->removeClient(client->getSocketFd());
-            return ERR_RECV;
-        }
-        joined.insert(joined.end(), bodyBuff.begin(), bodyBuff.begin() + bytes_received);
-    }
-    client->getRequest()->setBody(joined);
-    return SUCCESS;
-}
+//     while (totReceived < MAX_REQUEST_SIZE) {
+//         int bytes_received = recv(client->getSocketFd(), bodyBuff.data(), MAX_REQUEST_SIZE - joined.size(), 0);
+//         if(bytes_received == -1){
+//             this->removeClient(client->getSocketFd());
+//             return  ERR_RECV;
+//         }
+//         if(bytes_received == 0){
+//             this->removeClient(client->getSocketFd());
+//             return ERR_RECV;
+//         }
+//         joined.insert(joined.end(), bodyBuff.begin(), bodyBuff.begin() + bytes_received);
+//     }
+//     client->getRequest()->setBody(joined);
+//     return SUCCESS;
+// }

@@ -38,7 +38,6 @@ void ServerManager::mainLoop()
             }
             if(FD_ISSET(fd, &this->_readPool) && this->_clients_map.count(fd) > 0){
                 this->processRequest(this->_clients_map[fd]);
-
             }
             if(FD_ISSET(fd, &this->_writePool) && this->_clients_map.count(fd) > 0){
                 this->sendResponse(fd, this->_clients_map[fd]);
@@ -106,11 +105,18 @@ void ServerManager::processRequest(Client *client)
         client->getRequest()->consume(buffer);
     }
 
-    //client->getRequest()->print_Request();
-    if(client->getRequest()->state == StateParsingComplete ){
+
+
+    if(client->getRequest()->state == StateParsingComplete /*TODO: prepare error response if there is an error in consume() */){
+        
+        // TODO: based on the value from the config file, we need to decide if it is a valid request
+        // eg: if the method is in the allowed methods(direttiva del config-file)
+        // eg: if proxy_pass is set, i think, not sure, we need to make a send() with the request to the proxy_pass server
+
+        // TODO: based on the URL (credo), we need to decide if we need to pass the request to CGI
+        
         parser.validateResource(client, client->getServer());
         this->addToSet(client->getSocketFd(), &this->_masterPool);
-        
     }
 }
 
@@ -119,26 +125,22 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     Request *request = client->getRequest();
     Response *response = client->getResponse();
 
+    //safety checks perche in realta sono scarso e senza questi e' tutto buggoso
     if(!request || !response || client->getRequest()->state != StateParsingComplete){
         return;
     }
 
+    // TODO: maybe, it will be better to move the response generation into a separate component 
     response->setHeaders("Host", "localhost");
-    //std::cout << "Response body:" << response->getBody() << std::endl; 
     if(!response->getBody().empty()){
         response->setHeaders("Content-Type", getContentType(request->getUrl(), response->getStatus()));
         response->setHeaders("Content-Length", intToStr(response->getBody().size()));
     }
-    // } else {
-    //     response->setHeaders("Content-Length", "0");
-    // }
     
     if(request->getHeaders()["connection"] == "close")
         response->setHeaders("Connection", "close");
 
     response->prepareResponse();
-
-    //response->print();
 
     int bytes_sent = send(fd, response->getResponse().c_str(), response->getResponse().size(), 0);
 
@@ -148,8 +150,9 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
         return;
     }
 
-    //if(request->getHeaders()["connection"] == "close")
-    this->removeClient(fd);
+    // TODO: check if we need to close the connection or if we can keep the client fd open for next request 
+    if(request->getHeaders()["connection"] == "close")
+        this->removeClient(fd);
     
     return; 
 }

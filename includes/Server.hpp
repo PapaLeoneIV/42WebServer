@@ -27,33 +27,40 @@ class Server{
     ~Server();
 
     // GETTERS
-    SOCKET       getServerSocket        (void);
-    fd_set       getFdsSet              (void);
-    addrinfo        &getHints               (void);
-    addrinfo        *getBindAddrss          (void);
-    std::string     &getHost                (void);
-    std::string     &getServerName          (void);
-    std::string     &getPort                (void);
-    std::string     &getRoot                (void);
-    std::string     &getIndex               (void);
-    size_t       &getMaxRequestSize      (void);
-    std::string     &getCwd                 (void);
+    SOCKET  getServerSocket    (void);
+    fd_set  getFdsSet  (void);
+    addrinfo    &getHints   (void);
+    addrinfo    *getBindAddrss  (void);
+    std::string &getHost    (void);
+    std::string &getServerName  (void);
+    std::string &getPort    (void);
+    std::string &getRoot    (void);
+    std::string &getIndex   (void);
+    size_t      &getMaxRequestSize (void);
+    std::string &getCwd (void);
 
 
     //SETTERS
-    void    setServerSocket   (SOCKET server_socket);
-    void    setFds            (fd_set fds);
-    void    setHints          (addrinfo hints);
-    void    setBindAddress    (addrinfo *bind_address);
-    void    setHost           (std::string host);
-    void    setServerName     (std::string server_name);
-    void    setPort           (std::string port);
-    void    setRoot           (std::string root);
-    void    setIndex          (std::string index);
-    void    setMaxRequestSize (size_t max_request_size);
-    void    setCwd            (std::string cwd);
+    void    setServerDir(std::string key, std::string value);
+    void    setLocationDir(std::string locationPath, std::string key, std::string value);
+
+    void    setServerSocket (SOCKET server_socket);
+    void    setFds  (fd_set fds);
+    void    setHints    (addrinfo hints);
+    void    setBindAddress  (addrinfo *bind_address);
+    void    setHost (std::string host);
+    void    setServerName   (std::string server_name);
+    void    setPort (std::string port);
+    void    setRoot (std::string root);
+    void    setIndex    (std::string index);
+    void    setMaxRequestSize   (size_t max_request_size);
+    void    setCwd  (std::string cwd);
     private:
 
+
+    std::map<std::string, std::string> serverDir;
+    std::map<std::string, std::map<std::string, std::string> > locationDir;
+    
     //Server configuration taken from config file
     std::string                     _cwd;
     std::string                     _host;

@@ -9,10 +9,10 @@ int main(int argc, char **argv, char**envp)
     if(argc == 2){
         if(!handle_arguments(argv)) return (1);
         
-        // TODO: validate if config file is exist, not dir, is readable
-        // TODO: finish parsing of config file 
-        
+        // TODO: validate if config file is exist, if not dir, if is readable
+        // TODO: finish parsing of config file
         //if(validateConfigPath() && parseConfigFile()) return 1;
+        
         
         //----TMP------
         //al momento sto bootando un server in localhost, 

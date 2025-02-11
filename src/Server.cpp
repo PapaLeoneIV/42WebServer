@@ -28,6 +28,15 @@ void    Server::setIndex(std::string index) {this->_index = index;};
 void    Server::setMaxRequestSize(size_t max_request_size) {this->_max_request_size = max_request_size;};
 void    Server::setCwd(std::string cwd) {this->_cwd = cwd;};
 
+void	Server::setServerDir(std::string key, std::string value) {
+	this->serverDir[key] = value;
+}
+
+void	Server::setLocationDir(std::string locationPath, std::string key, std::string value) {
+	this->locationDir[locationPath][key] = value;
+}
+
+
 Server::Server(): _hints(), _server_socket(-1), _bind_address(NULL) {
 
 	this->_cwd = getcwd(NULL, 0);

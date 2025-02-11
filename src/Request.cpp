@@ -1,6 +1,15 @@
 #include "Request.hpp"
 #include "Utils.hpp"
 
+/**
+* After we user recv(), we pass the request to consume().
+* It will analyze the request character by character, trying to 
+* respect the HTTP protocol standard for request firstline, headers and body.
+* While doing so, it keeps track of the various states of the request and where it 
+* did stop parsing. So that, it the request is chunked, or
+* if the Client sended just a portion of the request, and will send the next one later, 
+* consume() will be able to resume parsing where it previously stopped.
+*/
 int Request::consume(std::string buffer){
     for(size_t i = 0; i < buffer.size(); i++){
         char character = buffer[i];
@@ -38,7 +47,6 @@ int Request::consume(std::string buffer){
                         this->state = StateSpaceAfterMethod;
                         continue;
                     }
-                    
                     continue;
                 }
                 if(character == this->methods[DELETE][this->raw.size()]){
@@ -90,9 +98,8 @@ int Request::consume(std::string buffer){
                 || (character == '/')){
                     break;
                 }
-                //TODO '?' 
+                //TODO '?' handle query params if we want to do it
                 if(character == '?'){
-                    //TODO :
                     //switch to state "extract query params"
                     break;
                 }
@@ -356,7 +363,7 @@ int Request::consume(std::string buffer){
                 }
                 if(this->body_counter == strToInt(this->headers["content-length"]))
                 {
-                    //TODO check if this raw is needed
+                    //TODO check if the last character should be added to this->raw
                     this->state = StateParsingComplete;
                     continue;
                 }

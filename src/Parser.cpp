@@ -77,7 +77,7 @@ void Parser::validateResource(Client *client, Server *server)
             std::string newUrl = request->getUrl() + "/";
             request->setUrl(newUrl);
         }
-        // TODO:  implement the directory listing feature
+        // TODO:  implement the directory listing feature based on the config file
         std::string dirBody = fromDIRtoHTML(filePath, request->getUrl());
         
         if(dirBody.empty()){
