@@ -39,5 +39,5 @@ void Booter::bootServer(Server *server, const char *host, const char *port){
 
     freeaddrinfo(server->getBindAddrss());
 
-    std::cout << "[ " <<  server->getServerSocket() << " ]" << " Webserver listening on "<< host << ":" << port <<   std::endl;
+    std::cout << "[" <<  server->getServerSocket() << "] INFO:" << " webserver listening on "<< host << ":" << port <<   std::endl;
 }
