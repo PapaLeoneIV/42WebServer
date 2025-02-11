@@ -1,0 +1,21 @@
+server {
+    listen 443 ssl;
+    server_name secure.example.com;
+
+    ssl_certificate /etc/nginx/ssl/example.crt;
+    ssl_certificate_key /etc/nginx/ssl/example.key;
+
+    location /secure {
+        root /var/www/secure;
+        index index.html;
+    }
+}
+
+server {
+    listen 80;
+    server_name www.example.com;
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+    }
+}

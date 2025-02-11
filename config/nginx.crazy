@@ -1,0 +1,11 @@
+
+server {
+    listen 8001;                        
+    host 127.0.0.1;
+    
+    location /tours {
+      root docs/fusion_web;            
+      index index.html;               
+      return abc/index1.html;
+    }
+}

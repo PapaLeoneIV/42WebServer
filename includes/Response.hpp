@@ -1,8 +1,11 @@
 #ifndef RESPONSE_HPP
 #define RESPONSE_HPP
 
-#include "Utils.hpp"
+#include <string>
+#include <map>
 
+typedef int SOCKET;
+typedef int ERROR;
 
 class Response{
     

@@ -1,0 +1,19 @@
+server {
+    listen 443 ssl;
+    server_name secure.example.com;
+
+    location /secure {
+        root /var/www/secure;
+        index index.html;
+        sda
+        sdasd
+        asd
+        asdda
+        sdaas
+        docsas
+        docsass
+        docsasda
+        sdaassd
+        asdda
+    }
+}

@@ -1,93 +1,55 @@
-#include "ServerManager.hpp"
+
 #include "Booter.hpp"
-
-ServerManager::ServerManager()
-{
-    this->_maxSocket = 0;
-    
-    FD_ZERO(&this->_readPool);
-    FD_ZERO(&this->_writePool);
-    FD_ZERO(&this->_masterPool);
-}
-
-ServerManager::~ServerManager(){}
-
+#include "Parser.hpp"
+#include "Request.hpp"
+#include "Response.hpp"
+#include "Server.hpp"
+#include "Client.hpp"
+#include "ServerManager.hpp"
+#include "Utils.hpp"
 
 void ServerManager::mainLoop()
 {
-    Server *server = new Server();
-    Booter booter;
-
-    //PARSE CONFIG FILE HERE
-    
-    //std::vector<Server*> = parser.parseConfigFile(argv[2]);
-
-    //creo i/il server
-    booter.bootServer(server, "10.11.2.2", "8080");
-
-    //aggiungo il server alla lista dei server
-    
-    this->addServer(server);
-    
-    FD_ZERO(&this->_readPool);
-    FD_ZERO(&this->_writePool);
-    FD_ZERO(&this->_masterPool);
-
-    for (std::map<SOCKET, Server*>::iterator server_it = this->_servers_map.begin(); server_it != this->_servers_map.end(); ++server_it){
-        FD_SET(server_it->first, &this->_masterPool);
-        if(server_it->first > this->_maxSocket){
-            this->_maxSocket = server_it->first;
-        }
-    }
-    //TODO client non penso ce ne possono essere in questo momento
-    for (std::map<SOCKET, Client*>::iterator clientIt = this->_clients_map.begin(); clientIt != this->_clients_map.end(); ++clientIt){
-        FD_SET(clientIt->first, &this->_masterPool);
-        this->_maxSocket = std::max(this->_maxSocket, clientIt->first);
-    }
-   
     while(420){
+        int fds_changed = 0;
         
-    
-    struct timeval timeout;
-    timeout.tv_sec = TIMEOUT_SEC;
-    timeout.tv_usec = 0;
-
         FD_ZERO(&this->_readPool);
         FD_ZERO(&this->_writePool);
+        
+        this->initFdSets();
+
+        memset(&timeout, 0, sizeof(timeout));
+        timeout.tv_sec = 5;
+        timeout.tv_usec = 0;
 
         this->_readPool = this->_masterPool;
         this->_writePool = this->_masterPool;
-        
-        if (select(this->_maxSocket + 1, &this->_readPool, &this->_writePool, 0, &timeout) < 0){
-            throw std::runtime_error(ErrToStr(ERR_SELECT));
-        }
 
-        for (SOCKET fd = 0; fd <= this->_maxSocket; ++fd){
+        if ((fds_changed = select(this->_maxSocket + 1, &this->_readPool, &this->_writePool, 0, &timeout)) < 0)
+            throw std::runtime_error(ErrToStr(ERR_SELECT));
+        
+        
+        if(fds_changed == 0) continue;
+        
+        for (SOCKET fd = 0; fd <= this->_maxSocket + 1; ++fd){
 
             if(FD_ISSET(fd, &this->_readPool) && this->_servers_map.count(fd) > 0){
                 this->registerNewConnections(fd, this->_servers_map[fd]);
             }
-            else if(FD_ISSET(fd, &this->_readPool) && this->_clients_map.count(fd) > 0){
+            if(FD_ISSET(fd, &this->_readPool) && this->_clients_map.count(fd) > 0){
                 this->processRequest(this->_clients_map[fd]);
             }
-            else if(FD_ISSET(fd, &this->_writePool) && this->_clients_map.count(fd) > 0){
+            if(FD_ISSET(fd, &this->_writePool) && this->_clients_map.count(fd) > 0){
                 this->sendResponse(fd, this->_clients_map[fd]);
             }
         }
     }
 }
 
-void ServerManager::initFdSets()
-{
-   
-
-}
-
 
 void ServerManager::registerNewConnections(SOCKET serverFd, Server *server)
 {
-    // if(FD_ISSET(serverFd, &this->_readPool)){
-    //creo un nuovo client
+    //creo un nuovo client se non esiste gia
     Client* client = this->getClient(-1);
     if (client == NULL) { //allocazione andata male
         return;
@@ -100,63 +62,62 @@ void ServerManager::registerNewConnections(SOCKET serverFd, Server *server)
         return;
     }
 
-    std::cout << "New connection from " << this->getClientIP(*client) << std::endl;
-    
-    //setto il socket come non bloccante
+     //setto il socket come non bloccante
     if(fcntl(new_socket, F_SETFL, O_NONBLOCK) < 0){
+        std::cout << "Error: fcntl failed" << std::endl;
         delete client;
         close(new_socket);
         return;
-    }
-    //aggiungo il socket al pool di socket da monitorare
-    this->addToSet(new_socket, &this->_masterPool);
+    } 
+
+    std::cout << "["<< new_socket <<  "] INFO: New connection from " << this->getClientIP(client) << std::endl;
     //setto il nuovo socket al client
     client->setSocketFd(new_socket);
+    //aggiungo il socket al pool di socket da monitorare
+    this->addToSet(new_socket, &this->_masterPool);
     //aggiungo un riferimento al server all interno del client
     client->setServer(server);
     
     this->_clients_map[new_socket] = client;
+
 }
 
+#define BUFFER_SIZE 4*1024 //4KB
 
 void ServerManager::processRequest(Client *client)
 {
     Parser parser;
 
-    //read from client socket
-    int bytes_received = recv(client->getSocketFd(),
-                              client->getRequestData() + client->getRecvBytes(),
-                              MAX_REQUEST_SIZE - client->getRecvBytes(), 0);
+    char buffer[BUFFER_SIZE];
+    int bytesRecv = recv(client->getSocketFd(), buffer, sizeof(buffer), 0); //O_NONBLOCK
 
-    if(bytes_received == -1){
+    if(bytesRecv == -1){
         this->removeClient(client->getSocketFd());
         return;
     }
-
-    if(bytes_received == 0){
-        this->removeClient(client->getSocketFd());
-        return;
-    }
-    //request size is too large for what the server is willing to accept
-    //TODO get the MAX_REQUEST_SIZE from the server configuration
-    if(bytes_received > MAX_REQUEST_SIZE - client->getRecvBytes()){
-        client->getResponse()->setStatusCode(413);
-        return;
-    }
-
-    client->setRecvData(bytes_received + client->getRecvBytes());
-
-    //split request into headers and body
-    Request* request = parser.decompose(client->getRequestData());
-        
-    client->set_Request(request);
     
-    //once the request is parsed, we can try to validate and in case of error we start to fill the client response
-    if(parser.parse(request, client) != SUCCESS)
+    if(bytesRecv == 0){
+        this->removeClient(client->getSocketFd());
         return;
+    }
+    
+    if(bytesRecv > 0){
+        client->getRequest()->consume(buffer);
+    }
 
-    parser.validateResource(client, client->getServer());
 
+
+    if(client->getRequest()->state == StateParsingComplete /*TODO: prepare error response if there is an error in consume() */){
+        
+        // TODO: based on the value from the config file, we need to decide if it is a valid request
+        // eg: if the method is in the allowed methods(direttiva del config-file)
+        // eg: if proxy_pass is set, i think, not sure, we need to make a send() with the request to the proxy_pass server
+
+        // TODO: based on the URL (credo), we need to decide if we need to pass the request to CGI
+        
+        parser.validateResource(client, client->getServer());
+        this->addToSet(client->getSocketFd(), &this->_masterPool);
+    }
 }
 
 void ServerManager::sendResponse(SOCKET fd, Client *client)
@@ -164,24 +125,23 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     Request *request = client->getRequest();
     Response *response = client->getResponse();
 
-    if(!request || !response){
+    //safety checks perche in realta sono scarso e senza questi e' tutto buggoso
+    if(!request || !response || client->getRequest()->state != StateParsingComplete){
         return;
     }
 
+    // TODO: maybe, it will be better to move the response generation into a separate component 
+    response->setHeaders("Host", "localhost");
     if(!response->getBody().empty()){
         response->setHeaders("Content-Type", getContentType(request->getUrl(), response->getStatus()));
         response->setHeaders("Content-Length", intToStr(response->getBody().size()));
-    } else{
-        response->setHeaders("Content-Length", "0");
     }
-
-    response->setHeaders("Host", "localhost");
-
-    response->setHeaders("Connection", "close");
+    
+    if(request->getHeaders()["connection"] == "close")
+        response->setHeaders("Connection", "close");
 
     response->prepareResponse();
 
-    response->print();
     int bytes_sent = send(fd, response->getResponse().c_str(), response->getResponse().size(), 0);
 
     if (bytes_sent == -1){
@@ -190,74 +150,42 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
         return;
     }
 
-    this->removeClient(fd);
+    // TODO: check if we need to close the connection or if we can keep the client fd open for next request 
+    if(request->getHeaders()["connection"] == "close")
+        this->removeClient(fd);
     
     return; 
 }
 
-
-Client *ServerManager::getClient(SOCKET clientFd)
+void ServerManager::initFdSets()
 {
-    
-    //se il clientFd passato esiste tra i clienti registrati lo ritorno
-    if (this->_clients_map.count(clientFd) > 0){
-        return this->_clients_map[clientFd];
-    }
-    //altrimenti ne creo uno nuovo
-    return new Client(clientFd);
-}
-
-void ServerManager::removeClient(SOCKET fd)
-{
-    if (this->_clients_map.count(fd) > 0){
-        delete this->_clients_map[fd];
-        this->_clients_map.erase(fd);
-    }
-    if(FD_ISSET(fd, &this->_masterPool)){
-        removeFromSet(fd, &this->_masterPool);
-    }
-    /* if(FD_ISSET(fd, &this->_readPool)){
-        removeFromSet(fd, &this->_readPool);
-    }
-    if(FD_ISSET(fd, &this->_writePool)){
-    } */
-    removeFromSet(fd, &this->_writePool);
-    shutdown(fd, SHUT_RDWR);
-    close(fd);
-}
-
-void ServerManager::addServer(Server *server)
-{
-    SOCKET serverSocket = server->getServerSocket();
-    this->_servers_map[serverSocket] = server;
-}
-
-void ServerManager::addToSet(SOCKET fd, fd_set *fdSet)
-{
-    //aggiungo il socket al set
-    FD_SET(fd, fdSet);
-    //aggiorno il max socket
-    this->_maxSocket = std::max(this->_maxSocket, fd);
-}
-
-void ServerManager::removeFromSet(SOCKET fd, fd_set *fd_set)
-{
-    //rimuovo il socket dal set
-    FD_CLR(fd, fd_set);
-    if (fd == this->_maxSocket){
-        for (SOCKET i = this->_maxSocket - 1; i >= 0; i--){
-            //dopo aver rimosso il socket dal set aggiorno il max socket
-            if (FD_ISSET(i, fd_set)){
-                this->_maxSocket = i;
-                break;
-            }
+    for (std::map<SOCKET, Server*>::iterator server_it = this->_servers_map.begin(); server_it != this->_servers_map.end(); ++server_it){
+        FD_SET(server_it->first, &this->_masterPool);
+        if(server_it->first > this->_maxSocket){
+            this->_maxSocket = server_it->first;
         }
     }
+    //TODO: client non penso ce ne possono essere in questo momento
+    for (std::map<SOCKET, Client*>::iterator clientIt = this->_clients_map.begin(); clientIt != this->_clients_map.end(); ++clientIt){
+        FD_SET(clientIt->first, &this->_masterPool);
+        this->_maxSocket = std::max(this->_maxSocket, clientIt->first);
+    }
+
 }
 
-const char *ServerManager::getClientIP(Client client)
+
+ServerManager::ServerManager()
 {
-    static char address_info[INET6_ADDRSTRLEN];
-    getnameinfo((sockaddr*)&client.getAddr(), client.getAddrLen(), address_info, sizeof(address_info), 0, 0, NI_NUMERICHOST);
-    return address_info;
+    this->_maxSocket = 0;
+    
+    FD_ZERO(&this->_readPool);
+    FD_ZERO(&this->_writePool);
+    FD_ZERO(&this->_masterPool);
+
+    timeout.tv_sec = 5;
+    timeout.tv_usec = 0;
+
 }
+
+ServerManager::~ServerManager(){}
+

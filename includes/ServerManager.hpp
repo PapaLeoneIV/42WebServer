@@ -1,9 +1,14 @@
 #ifndef SERVERMANAGER_HPP
 #define SERVERMANAGER_HPP
 
+#include <string>
+#include <map>
 #include "Utils.hpp"
 #include "Server.hpp"
 #include "Client.hpp"
+
+typedef int SOCKET;
+typedef int ERROR;
 
 class ServerManager{
 
@@ -13,24 +18,29 @@ class ServerManager{
 	~ServerManager();
 
 
-	void                            mainLoop                (void);
+	void	mainLoop	(void);
+	void	initFdSets	(void);
+	void	registerNewConnections	(SOCKET serverFd, Server *server);
+	void	processRequest	(Client *client);
+	void	sendResponse	(SOCKET fd, Client *client);
 
-	void                            initFdSets              (void);
-	void                            registerNewConnections  (SOCKET serverFd, Server *server);
-	void                            processRequest          (Client *client);
-	void                            sendResponse            (SOCKET fd, Client *client);
-
-	Client                         *getClient               (SOCKET clientFd);
-	const char *                    getClientIP             (Client client);
-	void                            removeClient            (SOCKET fd);
-	void                            addServer               (Server *server);
-	void                            addToSet                (SOCKET fd, fd_set *fdSet);
-	void                            removeFromSet			(SOCKET fd, fd_set *fd_set);
+	ERROR	readHeaderData 	(Client *client);
+	ERROR	readBodyData	(Client *client);
+	ERROR	handleTransferLength (Client *client);
+	ERROR	handkeChunkedTransfer (Client *client);
+	Client	*getClient	(SOCKET clientFd);
+	const char	*getClientIP	(Client *client);
+	void	removeClient	(SOCKET fd);
+	void	addServer	(Server *server);
+	void	addToSet	(SOCKET fd, fd_set *fdSet);
+	void	removeFromSet	(SOCKET fd, fd_set *fd_set);
 	
 
 	
 	private:
 
+	struct timeval timeout;
+	
 	fd_set                          _masterPool;
 	fd_set                          _readPool;
 	fd_set                          _writePool;

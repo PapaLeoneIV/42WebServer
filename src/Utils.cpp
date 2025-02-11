@@ -1,5 +1,57 @@
 #include "Utils.hpp"
 
+
+int handle_arguments(char **argv){
+    if(std::string(argv[1]) == "--help"){
+        std::cout << std::endl;
+        std::cout <<  "Usage: webserver [OPTIONS] <config-filepath>" << std::endl;
+        std::cout <<  "         --help                           Display this help and exit" << std::endl;
+        std::cout <<  "         -t <config-filepath>             Test the configuration file" << std::endl;
+        std::cout <<  "         -v                               Display the current version" << std::endl;    
+        std::cout << std::endl;
+        
+        exit(1);
+    }
+    if(std::string(argv[1]) == "-v"){
+        std::cout << "webserver version: webserver/" << VERSION << std::endl; 
+        exit(1);
+    }
+    if(std::string(argv[1]) == "-t"){
+        std::cout << "webserver config-file testing: missing <config-filepath>" << std::endl;
+        exit(1);
+    }
+
+    return 1;
+}
+
+std::string fromDIRtoHTML(std::string dirPath, std::string url){
+    (void)url;
+    std::string html =  "<!DOCTYPE html>" \
+                        "<html lang=\"en\">" \
+                        "<head>" \
+                            "<meta charset=\"UTF-8\">" \
+                            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" \
+                            "<title>WebServer</title>" \
+                        "</head>" \
+                        "<body>";
+    DIR *dir;
+    struct dirent *ent;
+    if ((dir = opendir(dirPath.c_str())) != NULL) {
+        while ((ent = readdir(dir)) != NULL) {
+            if(url != "/") {
+                html += "<li><a href=\"" + url + std::string(ent->d_name) + "\">" + std::string(ent->d_name) + "</a></li>";
+            } else{
+            html += "<li><a href=\"" + std::string(ent->d_name) + "\">" + std::string(ent->d_name) + "</a></li>";
+            }
+        }
+        closedir(dir);
+    } else {
+        return "Error: could not open directory";
+    }
+    html += "</ul></body></html>";
+    return html;
+}
+
 std::string readTextFile(std::string filePath)
 {
     std::string fileContent;
@@ -64,10 +116,10 @@ static char hexToAsciiChar(const std::string& hex) {
 
 std::string getContentType(std::string& url, int status) {
     if(status != 200) return "text/html";
-    if (url ==  "/") return "text/html"; 
+    if (url ==  "/") return "text/html";
+    if(*(url.rbegin()) == '/') return "text/html";
     size_t idx = url.find_last_of(".");
     if(idx == std::string::npos) return "text/plain";
-
     std::string extension = url.substr(idx);
     if(extension.empty()) return "text/plain";
     std::string urlC = &extension[0];
@@ -85,7 +137,7 @@ std::string getContentType(std::string& url, int status) {
     if (urlC == ".pdf")  {return "application/pdf";}
     if (urlC == ".svg")  {return "image/svg+xml";}
     if (urlC == ".txt")  {return "text/plain";}
-    //TODO add support for error 415 unsupported media type
+    // TODO: add support for error 415 unsupported media type
     return "text/plain";
 }
 
@@ -102,15 +154,24 @@ std::string getMessageFromStatusCode(int status) {
         case 415: return "Unsupported Media Type";
         case 500: return "Internal Server Error";
         case 501: return "Not Implemented";
-        //case 502: return "Bad Gateway";
-        //case 503: return "Service Unavailable";
         case 505: return "HTTP Version Not Supported";
         default: return "Status Code not recognized";
     }
     return "Status Code not recognized";
 }
-//TODO add checks
-std::string analyzeUrl(std::string& url) {
+
+std::string sanitizeDots(std::string string) {
+    size_t pos;
+    while ((pos = string.find("..")) != std::string::npos) {
+        string.erase(pos, 2);
+    }
+    while ((pos = string.find("../")) != std::string::npos) {
+        string.erase(pos, 3);
+    }
+    return string;
+}
+
+std::string removeHexChars(std::string& url) {
     std::string result;
     for(std::size_t i = 0; i < url.length(); ++i) {
         if (url[i] == '%' && i + 2 < url.length()) {
@@ -121,13 +182,7 @@ std::string analyzeUrl(std::string& url) {
             result += url[i];
         }
     }
-    size_t pos;
-    while ((pos = result.find("..")) != std::string::npos) {
-        result.erase(pos, 2);
-    }
-    while ((pos = result.find("../")) != std::string::npos) {
-        result.erase(pos, 3);
-    }
+    result = sanitizeDots(result);
     return result;
 }
 
@@ -140,9 +195,19 @@ ERROR checkPermissions(std::string fullPath, int mode) {
 }
 
 
+
+
 int strToInt(std::string str) {
     std::stringstream ss(str);
     int number;
+    ss >> number;
+    return number;
+}
+
+int strToHex(const std::string& str) {
+    int number = 0;
+    std::stringstream ss;
+    ss << std::hex << str;
     ss >> number;
     return number;
 }
@@ -151,6 +216,14 @@ std::string intToStr(int number) {
     std::stringstream ss;
     ss << number;
     return ss.str();
+}
+
+std::string to_lower(const std::string& input) {
+    std::string result = input;
+    for (std::string::size_type i = 0; i < result.size(); ++i) {
+        result[i] = std::tolower(static_cast<unsigned char>(result[i]));
+    }
+    return result;
 }
 
 std::string trim(const std::string& str) {
@@ -162,10 +235,100 @@ std::string trim(const std::string& str) {
 }
 
 
-std::string to_lowercase(const std::string& str) {
-    std::string lower_str = str;
-    for (size_t i = 0; i < lower_str.size(); ++i) {
-        lower_str[i] = static_cast<char>(std::tolower(lower_str[i]));
+
+std::string readBinaryStream(std::istringstream &stream, int size)
+{
+    int i = 0;
+    std::string fileContent;
+    while(i < size){
+        char ch;
+        stream.get(ch);
+        fileContent += ch;
+        i++;
     }
-    return lower_str;
+    return fileContent;
 }
+// TODO questi venivano usati nel vecchio parsing della request, non buttare via perche alcuni pezzi di codice
+// sono riutilizzabili
+
+// std::string extractBodyFromStream(std::istringstream &iss, const std::string &boundary) {
+//     std::string line;
+//     std::string content;
+//     bool withinBoundary = false;
+
+//     while (std::getline(iss, line)) {
+//         if (line == "--" + boundary + "\r") {
+//             withinBoundary = true;
+//             continue;
+//         }
+//         if (withinBoundary && line == "--" + boundary + "--\r") {
+//             withinBoundary = false;
+//             break;
+//         }
+//         if (withinBoundary) {
+//             content += line + "\n";
+//         }
+//     }
+//     return content;
+// }
+// std::vector<std::string> splitIntoSections(std::istringstream &iss) {
+//     std::vector<std::string> sections;
+//     std::string line;
+//     std::string currentSection;
+
+//     while (std::getline(iss, line, '\n')) {
+//         if (line.find("Content-Disposition: form-data;") != std::string::npos) {
+//             if (!currentSection.empty()) {
+//                 sections.push_back(currentSection);
+//                 currentSection = ""; 
+//             }
+//         }
+//         currentSection += line + "\n";
+//     }
+//     if (!currentSection.empty()) {
+//         sections.push_back(currentSection);
+//     }
+
+//     return sections;
+// }
+// std::map<std::string, std::string> extractSection(const std::string &section) {
+//     std::map<std::string, std::string> extractedData;
+//     std::istringstream sectionStream(section);
+//     std::string line;
+//     bool isBody = false;
+//     std::string body;
+
+//     while (std::getline(sectionStream, line)) {
+//         if (isBody) {
+//             body += line + "\n";
+//         } else if (line.find("Content-Disposition:") != std::string::npos) {
+//             std::string::size_type namePos = line.find("name=\"");
+            
+//             if (namePos != std::string::npos) {
+//                 namePos += 6;
+//                 std::string::size_type endPos = line.find("\"", namePos);
+//                 if (endPos != std::string::npos) {
+//                     extractedData["name"] = line.substr(namePos, endPos - namePos);
+//                 }
+//             }
+
+//             std::string::size_type filenamePos = line.find("filename=\"");
+            
+//             if (filenamePos != std::string::npos) {
+//                 filenamePos += 10;
+//                 std::string::size_type endPos = line.find("\"", filenamePos);
+//                 if (endPos != std::string::npos) {
+//                     extractedData["filename"] = line.substr(filenamePos, endPos - filenamePos);
+//                 }
+//             }
+//         } else if (line.find("Content-Type:") != std::string::npos) {
+//             extractedData["contentType"] = line.substr(14);
+//         } else if (line == "\r") {
+//             isBody = true;
+//         }
+//     }
+
+//     extractedData["body"] = body;
+
+//     return extractedData;
+// }

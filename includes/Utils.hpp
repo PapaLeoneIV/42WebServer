@@ -8,6 +8,8 @@
 #include <stdexcept>
 #include <sys/stat.h>
 #include <bits/stdc++.h>
+#include <dirent.h>
+#include <assert.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -25,7 +27,7 @@
 typedef int SOCKET;
 typedef int ERROR;
 
-#define MAX_REQUEST_SIZE 4096
+#define MAX_REQUEST_SIZE 10*1024*1024 //2MB
 
 #define TIMEOUT_SEC 5
 
@@ -33,10 +35,12 @@ typedef int ERROR;
 
 #define ALLOWED_CHARS "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~:/?#[]@!$&'()*+,;=%"
 
+#define VERSION "0.0.1"
 
 //List of possible error in the program, used to return a string error message
 //to check the actual error message, checkout functionn ErrToStr in Utlis.cpp
 enum POSSIBLE_ERRORS{
+    FAILURE = -1,
     SUCCESS,
     //BOOTING ERRORS
     ERR_RESOLVE_ADDR,
@@ -66,27 +70,95 @@ enum POSSIBLE_ERRORS{
     INVALID_HEADER,
 };
 
+
+enum RequestStates {
+    StateMethod,
+    StatePostOrPut,
+    
+    StateSpaceAfterMethod,
+    StateUrlBegin,
+    StateUrlString,
+    StateSpaceAfterUrl,
+
+    StateVersion,
+    StateVersion_H,
+    StateVersion_HT,
+    StateVersion_HTT,
+    StateVersion_HTTP,
+    StateVersion_HTTPSlash,
+    StateVersion_HTTPSlashOne,
+    StateVersion_HTTPSlashOneDot,
+    StateVersion_HTTPSlashOneDotOne,
+    StateFirstLine_CR,
+    StateFirstLine_LF,
+    
+    StateHeaderKey,
+    StateHeadersTrailingSpaceStart,
+    StateHeaderValue,
+    StateHeadersTrailingSpaceEnd,
+    StateHeaders_CR,
+    StateHeaders_LF,
+    StateHeadersEnd_CR,
+    
+    StateEncodedSep,
+    
+    StateBodyStart,
+    StateBodyPlainText,
+    StateBodyBodyChunkedText,
+    StateBodyChunkedNumber,
+    StateBodyEnd_CR,
+    StateBodyEnd_LF,
+    StateChunkedEnd_LF,
+    StateChunkedNumber_LF,
+    StateChunkedNumber_CR,
+    StateChunkedChunk_LF,
+    StateChunkedChunk, 
+    
+    StateParsingComplete,
+  
+  };
+  
+  enum RequestMethods{
+    GET,
+    POST,
+    DELETE,
+  };
+int handle_arguments(char **argv);
+
+std::string to_lower(const std::string& input);
+
+int strToHex(const std::string& str);
+
+std::string fromDIRtoHTML(std::string dirPath, std::string url);
+
 std::string readTextFile(std::string filePath);
+
 std::string readFileBinary(std::string filePath);
 
-std::string getMessageFromStatusCode    (int status);
-std::string getContentType              (std::string& url, int status);
+std::string getMessageFromStatusCode(int status);
 
-std::string analyzeUrl                  (std::string& url);
+std::string getContentType(std::string& url, int status);
 
-std::string ErrToStr                    (int error);
+std::string removeHexChars(std::string& url);
 
-std::string intToStr                    (int number);
+std::string ErrToStr(int error);
 
-int         strToInt                    (std::string str);
+std::string intToStr(int number);
 
-std::string to_lowercase                (const std::string& str);
+int strToInt(std::string str);
 
-std::string trim                        (const std::string& str);
+std::string to_lowercase(const std::string& str);
 
-ERROR   checkPermissions                  (std::string fullPath,int mode);
+std::string trim(const std::string& str);
 
-ERROR   parseResource                   ();
+ERROR checkPermissions(std::string fullPath,int mode);
 
+std::string readBinaryStream(std::istringstream &stream, int size);
+
+std::string extractBodyFromStream(std::istringstream &iss, const std::string &boundary);
+
+std::vector<std::string> splitIntoSections(std::istringstream &iss);
+
+std::map<std::string, std::string> extractSection(const std::string &section);
 
 #endif

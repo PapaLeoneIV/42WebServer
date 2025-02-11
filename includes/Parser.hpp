@@ -1,24 +1,29 @@
 #ifndef PARSER_HPP
 #define PARSER_HPP
 
-#include "Request.hpp"
-#include "Client.hpp"
-#include "Utils.hpp"
-#include "Server.hpp"
+#include <set>
+#include <string>
+
+class Server;
+class Client;
+class Response;
+
+typedef int SOCKET;
+typedef int ERROR;
+
+class Request;
 
 class Parser{
     public:
-
-    Request *decompose  (char *data);
-
-    ERROR    parse   (Request *request, Client *client);
-
+    
+    //void    parseMultipart(Request *request, std::istringstream &iss, std::string boundary);
+    
     void    validateResource    (Client *client, Server *server);
 
     std::string readFile    (std::string filePath, Response *response);
 
-    void   checkAccessability  (std::string filePath, Response *response);
-
+    int     checkResource  (std::string filePath, Response *response);
+    
     Parser();
     ~Parser();
 
