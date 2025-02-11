@@ -2,7 +2,7 @@
 #include "Server.hpp"
 #include "Request.hpp"
 #include "Response.hpp"
-
+#include "Utils.hpp"
 sockaddr_storage        &Client::getAddr()                          {return this->_address;};
 socklen_t               &Client::getAddrLen()                       {return this->_address_length;};
 SOCKET                  &Client::getSocketFd()                      {return this->_socket;};

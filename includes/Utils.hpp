@@ -27,7 +27,7 @@
 typedef int SOCKET;
 typedef int ERROR;
 
-#define MAX_REQUEST_SIZE 3*1024*1024 //2MB
+#define MAX_REQUEST_SIZE 10*1024*1024 //2MB
 
 #define TIMEOUT_SEC 5
 

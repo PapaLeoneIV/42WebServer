@@ -11,30 +11,37 @@
 void ServerManager::mainLoop()
 {
     this->initFdSets();
-
     while(420){
         int fds_changed = 0;
         
         FD_ZERO(&this->_readPool);
         FD_ZERO(&this->_writePool);
-
+        
         this->_readPool = this->_masterPool;
         this->_writePool = this->_masterPool;
 
-        if ((fds_changed = select(this->_maxSocket + 1, &this->_readPool, &this->_writePool, 0, &timeout)) < 0)
+        if ((fds_changed = select(this->_maxSocket + 1, &this->_readPool, &this->_writePool, 0, NULL)) < 0)
             throw std::runtime_error(ErrToStr(ERR_SELECT));
+        
+        
         if(fds_changed == 0) continue;
+        
+        std::cout << "Select switched n fds [ " << fds_changed << " ]" << std::endl;
+        for (SOCKET fd = 0; fd <= this->_maxSocket + 1; ++fd){
 
-        for (SOCKET fd = 0; fd < this->_maxSocket + 1; ++fd){
-
-            if(FD_ISSET(fd, &this->_readPool) && this->_servers_map.count(fd) > 0)
+            if(FD_ISSET(fd, &this->_readPool) && this->_servers_map.count(fd) > 0){
+                std::cout << "Handling new connection" << std::endl;
                 this->registerNewConnections(fd, this->_servers_map[fd]);
-
-            else if(FD_ISSET(fd, &this->_readPool) && this->_clients_map.count(fd) > 0)
+            }
+            if(FD_ISSET(fd, &this->_readPool) && this->_clients_map.count(fd) > 0){
+                std::cout << "Handling Request process" << std::endl;
                 this->processRequest(this->_clients_map[fd]);
-            
-            else if(FD_ISSET(fd, &this->_writePool) && this->_clients_map.count(fd) > 0)
+
+            }
+            if(FD_ISSET(fd, &this->_writePool) && this->_clients_map.count(fd) > 0){
+                std::cout << "Sending Response" << std::endl;
                 this->sendResponse(fd, this->_clients_map[fd]);
+            }
         }
     }
 }
@@ -72,6 +79,7 @@ void ServerManager::registerNewConnections(SOCKET serverFd, Server *server)
     client->setServer(server);
     
     this->_clients_map[new_socket] = client;
+
 }
 
 #define BUFFER_SIZE 4*1024 //4KB
@@ -84,6 +92,8 @@ void ServerManager::processRequest(Client *client)
     std::cout << "client socket : " << client->getSocketFd() << std::endl; 
     int bytesRecv = recv(client->getSocketFd(), buffer, sizeof(buffer), 0);
 
+    std::cout << "Buffer of request: " << buffer << std::endl;
+    // TODO: not here to stay
     if(errno == EWOULDBLOCK || errno == EAGAIN){
         std::cerr << "Error: failed with EWOULDBLOCK || EAGAIN" << std::endl;
         return;
@@ -100,17 +110,19 @@ void ServerManager::processRequest(Client *client)
         this->removeClient(client->getSocketFd());
         return;
     }
-
+    
     if(bytesRecv > 0){
+        std::cout << "bytes received" << bytesRecv << std::endl;
         client->getRequest()->consume(buffer);
     }
 
 
     //TODO handle better what i have refactored
 
-
-    // if(client->getRequest()->state == ParsingComplete ){
-        
+    //client->getRequest()->print_Request();
+    if(client->getRequest()->state == StateParsingComplete ){
+        parser.validateResource(client, client->getServer());
+    }
     //     if(client->getRequest()->has_body)
     //         client->getRequest()->setBody(client->getRequest()->body);
         
@@ -124,7 +136,6 @@ void ServerManager::processRequest(Client *client)
     // }
 
 
-    parser.validateResource(client, client->getServer());
 }
 
 void ServerManager::sendResponse(SOCKET fd, Client *client)
@@ -137,13 +148,14 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     }
     
     response->setHeaders("Host", "localhost");
-    
+    //std::cout << "Response body:" << response->getBody() << std::endl; 
     if(!response->getBody().empty()){
         response->setHeaders("Content-Type", getContentType(request->getUrl(), response->getStatus()));
         response->setHeaders("Content-Length", intToStr(response->getBody().size()));
-    } else {
-        response->setHeaders("Content-Length", "0");
     }
+    // } else {
+    //     response->setHeaders("Content-Length", "0");
+    // }
     
     if(request->getHeaders()["connection"] == "close")
         response->setHeaders("Connection", "close");
@@ -160,8 +172,8 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
         return;
     }
 
-    if(request->getHeaders()["connection"] == "close")
-        this->removeClient(fd);
+    //if(request->getHeaders()["connection"] == "close")
+    this->removeClient(fd);
     
     return; 
 }

@@ -1,6 +1,5 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
-#define MAX_REQUEST_SIZE 3*1024*1024 //2MB
 
 
 #include <string.h>

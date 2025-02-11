@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include "Utils.hpp"
 
 //GETTERS
 SOCKET      Server::getServerSocket()	{return this->_server_socket;}

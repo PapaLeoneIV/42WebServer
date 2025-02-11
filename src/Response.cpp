@@ -28,7 +28,6 @@ void Response::prepareResponse(){
     }
     this->_finalResponse.append("\r\n");
     
-    std::cout << "BODY: " << this->_body << std::endl;
 
     this->_finalResponse.append(this->_body);
 }
