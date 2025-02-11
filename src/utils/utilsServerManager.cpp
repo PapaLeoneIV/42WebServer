@@ -23,8 +23,12 @@ void ServerManager::removeClient(SOCKET fd){
         delete this->_clients_map[fd];
         this->_clients_map.erase(fd);
     }
-    if(FD_ISSET(fd, &this->_masterPool)){
-        removeFromSet(fd, &this->_masterPool);
+    if(FD_ISSET(fd, &this->_writePool)){
+        removeFromSet(fd, &this->_writePool);
+    }
+
+    if(FD_ISSET(fd, &this->_readPool)){
+        removeFromSet(fd, &this->_readPool);
     }
     shutdown(fd, SHUT_RDWR);
     close(fd);
