@@ -10,17 +10,21 @@
 
 void ServerManager::mainLoop()
 {
-    this->initFdSets();
     while(420){
         int fds_changed = 0;
         
         FD_ZERO(&this->_readPool);
         FD_ZERO(&this->_writePool);
         
-        this->_readPool = this->_masterPool;
-        this->_writePool = this->_masterPool;
+        this->initFdSets();
 
-        if ((fds_changed = select(this->_maxSocket + 1, &this->_readPool, &this->_writePool, 0, NULL)) < 0)
+         memset(&timeout, 0, sizeof(timeout));
+         timeout.tv_sec = 5;
+         timeout.tv_usec = 0;
+        /* this->_readPool = this->_masterPool;
+        this->_writePool = this->_masterPool; */
+
+        if ((fds_changed = select(this->_maxSocket + 1, &this->_readPool, &this->_writePool, 0, &timeout)) < 0)
             throw std::runtime_error(ErrToStr(ERR_SELECT));
         
         
@@ -62,19 +66,19 @@ void ServerManager::registerNewConnections(SOCKET serverFd, Server *server)
         return;
     }
 
-    //setto il socket come non bloccante
+     //setto il socket come non bloccante
     if(fcntl(new_socket, F_SETFL, O_NONBLOCK) < 0){
         std::cout << "Error: fcntl failed" << std::endl;
         delete client;
         close(new_socket);
         return;
-    }
+    } 
 
     std::cout << "[ "<< new_socket <<  " ] New connection from " << this->getClientIP(client) << std::endl;
     //setto il nuovo socket al client
     client->setSocketFd(new_socket);
     //aggiungo il socket al pool di socket da monitorare
-    this->addToSet(new_socket, &this->_masterPool);
+    this->addToSet(new_socket, &this->_readPool);
     //aggiungo un riferimento al server all interno del client
     client->setServer(server);
     
@@ -90,14 +94,19 @@ void ServerManager::processRequest(Client *client)
 
     char buffer[BUFFER_SIZE];
     std::cout << "client socket : " << client->getSocketFd() << std::endl; 
-    int bytesRecv = recv(client->getSocketFd(), buffer, sizeof(buffer), 0);
+    int bytesRecv = recv(client->getSocketFd(), buffer, sizeof(buffer), 0); //O_NONBLOCK
 
     std::cout << "Buffer of request: " << buffer << std::endl;
     // TODO: not here to stay
-    if(errno == EWOULDBLOCK || errno == EAGAIN){
-        std::cerr << "Error: failed with EWOULDBLOCK || EAGAIN" << std::endl;
-        return;
-    }
+    //  if(errno == EWOULDBLOCK){
+    //      std::cerr << "Error: failed with EWOULDBLOCK" << std::endl;
+        
+    //      return;
+    //  }
+    //  if(errno == EAGAIN){
+    //      std::cerr << "Error: failed with EAGAIN" << std::endl;
+    //      return;
+    //  }
     if(bytesRecv == -1){
         std::cout << errno << std::endl;
         std::cerr << "Error: recv failed with error: closing connection" << std::endl;
@@ -122,6 +131,8 @@ void ServerManager::processRequest(Client *client)
     //client->getRequest()->print_Request();
     if(client->getRequest()->state == StateParsingComplete ){
         parser.validateResource(client, client->getServer());
+        this->addToSet(client->getSocketFd(), &this->_writePool);
+        this->removeFromSet(client->getSocketFd(), &this->_readPool);
     }
     //     if(client->getRequest()->has_body)
     //         client->getRequest()->setBody(client->getRequest()->body);
@@ -181,14 +192,14 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
 void ServerManager::initFdSets()
 {
     for (std::map<SOCKET, Server*>::iterator server_it = this->_servers_map.begin(); server_it != this->_servers_map.end(); ++server_it){
-        FD_SET(server_it->first, &this->_masterPool);
+        FD_SET(server_it->first, &this->_readPool);
         if(server_it->first > this->_maxSocket){
             this->_maxSocket = server_it->first;
         }
     }
     //TODO: client non penso ce ne possono essere in questo momento
     for (std::map<SOCKET, Client*>::iterator clientIt = this->_clients_map.begin(); clientIt != this->_clients_map.end(); ++clientIt){
-        FD_SET(clientIt->first, &this->_masterPool);
+        FD_SET(clientIt->first, &this->_readPool);
         this->_maxSocket = std::max(this->_maxSocket, clientIt->first);
     }
 
@@ -203,7 +214,7 @@ ServerManager::ServerManager()
     FD_ZERO(&this->_writePool);
     FD_ZERO(&this->_masterPool);
 
-    timeout.tv_sec = TIMEOUT_SEC;
+    timeout.tv_sec = 5;
     timeout.tv_usec = 0;
 
 }
