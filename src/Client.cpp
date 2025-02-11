@@ -85,7 +85,7 @@ Client::~Client(){
   if (x != 0) {
     std::cerr << "Error getting client address: " << gai_strerror(x) << std::endl;
 } else {
-    std::cout << "[ " << this->getSocketFd() << " ] Connection closed from " << address_info << std::endl;
+    std::cout << "[" << this->getSocketFd() << "] INFO: Connection closed from " << address_info << std::endl;
 }
   if(this->_Request)
     delete this->_Request;
