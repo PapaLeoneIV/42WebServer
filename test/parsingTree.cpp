@@ -165,32 +165,30 @@ void error(std::string file, std::vector<std::string> tokens, int i , std::strin
         return;
 }
 
-void traverse(TreeNode *node, std::map<std::string, std::string> &serverDir, std::map<std::string, std::map<std::string, std::string> > &locationDir){
+void traverseTree(Server *server, TreeNode *node){
     if(node == NULL)
         return ;
     std::vector<TreeNode*> children = node->getChildren();
-    std::vector<TreeNode*>::iterator it;
-    for(it = children.begin(); it != children.end(); ++it){
-        if((*it)->getChildren().size() == 0){
+    std::vector<TreeNode*>::iterator currentNode;
+    
+    for(currentNode = children.begin(); currentNode != children.end(); ++currentNode){
+        if((*currentNode)->getChildren().size() == 0){
             if(node->getDirective() == "server"){
-                serverDir[(*it)->getDirective()] = (*it)->getValue();
+                server->setServerDir((*currentNode)->getDirective(), (*currentNode)->getValue());
             }
             if(node->getDirective() == "location"){
-                locationDir[node->getValue()][(*it)->getDirective()] = (*it)->getValue();
+                server->setLocationDir(node->getValue(), (*currentNode)->getDirective(), (*currentNode)->getValue());
             }
         }
-        traverse(*it, serverDir, locationDir);
+        traverseTree(*it, serverDir, locationDir);
     }
 }
-    
-
-
 
 
 int main(int argc, char *argv[]) {
     
     if(argc != 2){
-        std::cerr << "Usage: " << argv[0] << " <config_file>" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <config-file>" << std::endl;
         return 1;
     }
     std::string file_name = std::string("./config/") + std::string(argv[1]);
@@ -225,7 +223,7 @@ int main(int argc, char *argv[]) {
         {
             std::string value;
 
-            //TODO parse
+            //TODO check if value can be used for the token(directive) we are parsing atm-----> decide if we should do it after parsing
             std::getline(lineStream, value);
             tokens.push_back(trimOriginal(value));
             i++;
@@ -273,7 +271,7 @@ int main(int argc, char *argv[]) {
                 error(argv[1], tokens, i, "Error during the parsing");
                 break;
             } else {
-                s.pop();  // Pop the s when we encounter a closing brace
+                s.pop();  // Pop the stack when we encounter a closing brace
             }
             i++;
             continue;
@@ -283,26 +281,24 @@ int main(int argc, char *argv[]) {
         error(argv[1], tokens, i, "Error during the parsing");
         return(1); 
     }
-    head->print();
-
-    std::map<std::string, std::string> serverDir;
-    std::map<std::string, std::map<std::string, std::string> > locationDir;
-
-    traverse(head, serverDir, locationDir);
-
     
-    
-    std::cout << "Server Directives:" << std::endl;
-    for (std::map<std::string, std::string>::iterator it = serverDir.begin(); it != serverDir.end(); ++it) {
-        std::cout << it->first << ": " << it->second << std::endl;
+  //head->print();
+
+  // std::map<std::string, std::string> serverDir;
+  // std::map<std::string, std::map<std::string, std::string> > locationDir;
+
+    std::vector<TreeNode*> children = head->getChildren();
+    std::vector<TreeNode*>::iterator currentNode;
+    ServerManager serverManager = new ServerManager();
+    for(currentNode = children.begin(); currentNode != children.end(); ++currentNode){
+      if(currentNode->getDirective() == "server"){
+          Server server = new Server();
+          traverseTree(server, currentNode);
+          serverManager->addServer(server);
+      }
     }
 
-    std::cout << "Location Directives:" << std::endl;
-    for (std::map<std::string, std::map<std::string, std::string> >::iterator it = locationDir.begin(); it != locationDir.end(); ++it) {
-        std::cout << "Location: " << it->first << std::endl;
-        for (std::map<std::string, std::string>::iterator innerIt = it->second.begin(); innerIt != it->second.end(); ++innerIt) {
-            std::cout << "  " << innerIt->first << ": " << innerIt->second << std::endl;
-        }
-    }
+
+
     return 0; 
 }
