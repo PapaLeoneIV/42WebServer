@@ -10,6 +10,10 @@
 * if the Client sended just a portion of the request, and will send the next one later, 
 * consume() will be able to resume parsing where it previously stopped.
 */
+
+// TODO: per il momento ho temporaneamente settato error a -1
+// bisogna settarlo ai vari error codes, 400 bad request e cosi via
+// PS: se guardi in 'Utils.hpp', nella funzione getMessageFromStatusCode(int status) trovi alcuni degl errori da gestire
 int Request::consume(std::string buffer){
     for(size_t i = 0; i < buffer.size(); i++){
         char character = buffer[i];

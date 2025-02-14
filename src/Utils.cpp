@@ -2,6 +2,7 @@
 
 
 int handle_arguments(char **argv){
+    //help command
     if(std::string(argv[1]) == "--help"){
         std::cout << std::endl;
         std::cout <<  "Usage: webserver [OPTIONS] <config-filepath>" << std::endl;
@@ -9,19 +10,21 @@ int handle_arguments(char **argv){
         std::cout <<  "         -t <config-filepath>             Test the configuration file" << std::endl;
         std::cout <<  "         -v                               Display the current version" << std::endl;    
         std::cout << std::endl;
-        
-        exit(1);
+        exit(0);
     }
+    //version command
     if(std::string(argv[1]) == "-v"){
         std::cout << "webserver version: webserver/" << VERSION << std::endl; 
-        exit(1);
+        exit(0);
+    
     }
+    //testing config file command
     if(std::string(argv[1]) == "-t"){
         std::cout << "webserver config-file testing: missing <config-filepath>" << std::endl;
-        exit(1);
+        exit(0);
     }
 
-    return 1;
+    return 0;
 }
 
 std::string fromDIRtoHTML(std::string dirPath, std::string url){

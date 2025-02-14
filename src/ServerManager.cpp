@@ -8,29 +8,38 @@
 #include "ServerManager.hpp"
 #include "Utils.hpp"
 
-void ServerManager::mainLoop()
+
+/**
+ * Event loop, il programma tramite la funzione bloccante select(), monitora
+ * i sockets nelle varie pool (read/write). Se uno degl fd switcha stato(I/O) select()
+ * esce e la Request viene gestita nel loop interno.
+*/
+void ServerManager::eventLoop()
 {
     while(420){
         int fds_changed = 0;
         
+        //bisogna resettare gli fd ad ogni nuovo ciclo
         FD_ZERO(&this->_readPool);
         FD_ZERO(&this->_writePool);
         
         this->initFdSets();
 
+        //select() resetta 'timeout' ad ogni ciclo, necessati dunque di essere re inizializata
         memset(&timeout, 0, sizeof(timeout));
         timeout.tv_sec = 5;
         timeout.tv_usec = 0;
 
+        //la gestione degl fd e' semplificata tramite l utilizzo di una pool generica. I nuovi fd
+        //vengono aggiunti in masterpool e copiati nei rispetti bit array
         this->_readPool = this->_masterPool;
         this->_writePool = this->_masterPool;
 
         if ((fds_changed = select(this->_maxSocket + 1, &this->_readPool, &this->_writePool, 0, &timeout)) < 0)
             throw std::runtime_error(ErrToStr(ERR_SELECT));
         
-        
         if(fds_changed == 0) continue;
-        
+
         for (SOCKET fd = 0; fd <= this->_maxSocket + 1; ++fd){
 
             if(FD_ISSET(fd, &this->_readPool) && this->_servers_map.count(fd) > 0){

@@ -18,7 +18,7 @@ class ServerManager{
 	~ServerManager();
 
 
-	void	mainLoop	(void);
+	void	eventLoop	(void);
 	void	initFdSets	(void);
 	void	registerNewConnections	(SOCKET serverFd, Server *server);
 	void	processRequest	(Client *client);

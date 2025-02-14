@@ -11,6 +11,7 @@ int main(int argc, char **argv, char**envp)
         
         // TODO: validate if config file is exist, if not dir, if is readable
         // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/19
+        
         // TODO: finish parsing of config file
         // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/18
         //if(validateConfigPath() && parseConfigFile()) return 1;
@@ -26,7 +27,7 @@ int main(int argc, char **argv, char**envp)
         serverManager.addServer(server);
         //-------------
         
-        serverManager.mainLoop();
+        serverManager.eventLoop();
         return 0;
     }
     if(argc == 3){
