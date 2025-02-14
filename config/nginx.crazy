@@ -1,11 +1,10 @@
 
-server {
-    listen 8001;                        
+ssadsderver {
+    asdaslisten 8001;                        
     host 127.0.0.1;
-    
-    location /tours {
-      root docs/fusion_web;            
-      index index.html;               
+    asddaa
+    locadasdt docs/fusion_web;            
+      index daindex.html;               
       return abc/index1.html;
     }
-}
+}sdas

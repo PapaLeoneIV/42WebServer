@@ -2,7 +2,7 @@ server {
     listen 9000;
     server_name mysite.com;
 
-    location /images {
+    location /images #missing open brace '{'
         invalid_directive /var/www/images;  # Undefined directive
         index index.html;
     }

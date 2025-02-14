@@ -15,5 +15,5 @@ server {
         docsasda
         sdaassd
         asdda
-    }
+    #here there suppose to be a closing brace '{'
 }

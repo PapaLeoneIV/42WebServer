@@ -11,6 +11,8 @@ server {
     }
 }
 
+#to test the ability to parse multiple server blocks
+
 server {
     listen 80;
     server_name www.example.com;
