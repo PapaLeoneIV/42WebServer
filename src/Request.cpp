@@ -12,6 +12,7 @@
 */
 
 // TODO: per il momento ho temporaneamente settato error a -1
+// Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/23
 // bisogna settarlo ai vari error codes, 400 bad request e cosi via
 // PS: se guardi in 'Utils.hpp', nella funzione getMessageFromStatusCode(int status) trovi alcuni degl errori da gestire
 int Request::consume(std::string buffer){
