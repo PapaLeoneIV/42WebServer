@@ -301,6 +301,7 @@ int parseHostValues(std::vector<std::string> v){
 }
 
 // TODO: implement some more robust checks
+// Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/25
 int parseServerNameValues(std::vector<std::string> v){
     int i = 0;
     while(i < v.size()){
@@ -365,6 +366,7 @@ int parseIndexValues(std::vector<std::string> v){
         if(dotIdx != std::string::npos){
             std::string extension = value.substr(dotIdx, value.size());
             if(extension != ".html") return 1; // TODO: atm i m only accepting .html as index file, check if we can allow other extension
+                                               // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/24
             i++;
         }
     }
