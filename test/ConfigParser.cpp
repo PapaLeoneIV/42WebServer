@@ -223,26 +223,69 @@ int ConfigParser::parseConfigFile(std::string path){
     return 0;
 }
 
+/**
+ * [address]?:[port]
+ * 
+ * 'address' might not be specified
+ */
 
 int parseListenValues(std::vector<std::string> v){
-    
-}
+    if(v.size() > 1) return 1;
+    std::string value = v[0]; 
+    int columnIdx = value.find(":");
+    //if ':' is present
+    if(columnIdx == 0 || columnIdx == value.size()) return 1; 
+    if(columnIdx != std::string::npos){
+        std::string host = value.substr(0, columnIdx);
+        
+        std::string octect; 
+        std::stringstream ss(value);
+        while(getline(ss, octect, ':')){
+            if(octect.empty() || octect.size() > 3) return 1; 
+            
+            int i = 0; 
+            while(i < octect.size()){
+                if(!isdigit(octect[i])) return 1;
+                i++;
+            }
+            std::stringstream num(octect);
+            int octectNum;
+            num >> octectNum;
+            if(octectNum < 0 ||octectNum > 255) return 1;
+        }
+        //if not
+        std::string port = value.substr(columnIdx + 1, value.size());
+        if(port.empty() || port.size() > 4) return 1;
+         
+        for(int i = 0; i < port.size(); ++i){
+            if(!isdigit(port[i])) return 1; 
+        }
+        std::stringstream num(port);
+        int portNum;
+        num >> portNum;
 
+        if(portNum < 0 || portNum > 65535) return 1; 
+        return 0; 
+    }
+}
+int parseHostValues(std::vector<std::string> v){
+
+}
 ConfigParser::ConfigParser(){
     fnToParseDirectives["listen"] = parseListenValues;
     fnToParseDirectives["host"] = parseHostValues;
-    fnToParseDirectives["server_name"] = parseServerNameValues;
-    fnToParseDirectives["error_page"] = parseErrorPageValues;
-    fnToParseDirectives["client_max_body_size"] = parseCMAXBODYValues;
-    fnToParseDirectives["root"] = parseRootValues;
-    fnToParseDirectives["index"] = parseIndexValues;
-    fnToParseDirectives["autoindex"] = parseAutoIndexValues;
-    fnToParseDirectives["allow_methods"] = parseAllowMethodsValues;
-    fnToParseDirectives["return"] = parseReturnValues;
-    fnToParseDirectives["alias"] = parseAlisValues;
-    fnToParseDirectives["cgi_ext"] = parseCgiExtValues;
-    fnToParseDirectives["cgi_path"] = parseCGIPathValues;
-    fnToParseDirectives["proxy_pass"] = parseProxyPassValues;
+    // fnToParseDirectives["server_name"] = parseServerNameValues;
+    // fnToParseDirectives["error_page"] = parseErrorPageValues;
+    // fnToParseDirectives["client_max_body_size"] = parseCMAXBODYValues;
+    // fnToParseDirectives["root"] = parseRootValues;
+    // fnToParseDirectives["index"] = parseIndexValues;
+    // fnToParseDirectives["autoindex"] = parseAutoIndexValues;
+    // fnToParseDirectives["allow_methods"] = parseAllowMethodsValues;
+    // fnToParseDirectives["return"] = parseReturnValues;
+    // fnToParseDirectives["alias"] = parseAlisValues;
+    // fnToParseDirectives["cgi_ext"] = parseCgiExtValues;
+    // fnToParseDirectives["cgi_path"] = parseCGIPathValues;
+    // fnToParseDirectives["proxy_pass"] = parseProxyPassValues;
 
 
 

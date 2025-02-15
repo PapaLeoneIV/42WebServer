@@ -70,6 +70,5 @@ std::string removeComments(std::ifstream &file);
 std::string trimLeftRight(const std::string &str); 
 std::string removeEmptyLines(const std::string &input); 
 std::string trim(const std::string &input);
-int         isValidDirective(std::string token);
 
 #endif //CONFIGPARSER
