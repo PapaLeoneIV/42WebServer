@@ -1,11 +1,12 @@
 #include "ConfigParser.hpp"
+
 #define push_back_next_token(token, tokenIdx)                                                                                  \
                     lineStream >> token;                                                                                \
                     tokens.push_back(token);                                                                            \
                     tokenIdx++;
 
-#define add_block(node, token, value, tokenIdx, s)                                                                             \
-                    TreeNode *node = new TreeNode(token, trim(value));                                                  \
+#define add_block_to_Tree(node, token, value, tokenIdx, s)                                                                             \
+                    TreeNode *node = new TreeNode(token, value);                                                  \
                     s.top()->add(node);                                                                                 \
                     tokenIdx++;
 
@@ -133,13 +134,13 @@ int ConfigParser::validateConfigPath(std::string path) {
     return 0;
 }
 
-int ConfigParser::parseConfigFile(std::string path){
+TreeNode * ConfigParser::parseConfigFile(std::string path){
     
     std::string file_name = std::string(path);
     std::ifstream file(file_name.c_str());
     if (!file) {
         std::cerr << "Unable to open file "<< path << std::endl;
-        return 1;
+        return NULL;
     }
 
     std::string noComments, trimmed;
@@ -147,7 +148,7 @@ int ConfigParser::parseConfigFile(std::string path){
     std::istringstream lineStream(v);
 
 
-    TreeNode *root = new TreeNode("root", ""); 
+    TreeNode *root = new TreeNode("root", (std::vector<std::string>)0); 
     std::stack<TreeNode*> s;
     s.push(root);
     
@@ -173,12 +174,18 @@ int ConfigParser::parseConfigFile(std::string path){
             //TODO check if value can be used for the token(directive) we are parsing atm-----> decide if we should do it after parsing
             //Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/22
             std::getline(lineStream, value);
-            tokens.push_back(trimLeftRight(value));
-            tokenIdx++;
-
+            std::istringstream valueStream(value);
+            std::vector<std::string> valueTokens;
+            std::string valueToken;
+            while (valueStream >> valueToken) {
+                valueTokens.push_back(trimLeftRight(valueToken));
+                tokens.push_back(trimLeftRight(valueToken));
+                tokenIdx++;
+            }
+            
             check_directive_semicolom(trimLeftRight(value), tokenIdx);
 
-            add_block(directive, token, trimLeftRight(value), tokenIdx, s);
+            add_block_to_Tree(directive, token, valueTokens, tokenIdx, s);
             continue; 
         }
         //inizio blocco
@@ -187,20 +194,24 @@ int ConfigParser::parseConfigFile(std::string path){
             std::string openblock;
             push_back_next_token(openblock, tokenIdx);
             check_open_block(openblock, tokenIdx);
-            if(s.top()->getDirective() != "root") break;
-            add_block(configBlock, token, "", tokenIdx, s);
+
+            if(s.top()->getDirective() != "root") break; //server allowed only inside root node
+            
+            add_block_to_Tree(configBlock, token, (std::vector<std::string>)0 , tokenIdx, s);
             s.push(configBlock);
             continue;         
         }
         //inzio location block
         if(token == "location"){
+            std::vector<std::string> locationPathV;
             std::string locationPath;
             push_back_next_token(locationPath, tokenIdx);
             std::string openblock;
             push_back_next_token(openblock, tokenIdx)
             check_open_block(openblock, tokenIdx);
             if(s.top()->getDirective() != "server") break;
-            add_block(configBlock, token, locationPath, tokenIdx, s);
+            locationPathV.push_back(locationPath);
+            add_block_to_Tree(configBlock, token, locationPathV, tokenIdx, s);
             s.push(configBlock);
             continue;
         }
@@ -218,9 +229,9 @@ int ConfigParser::parseConfigFile(std::string path){
 
     if(s.size() > 1){
         error(path, tokens, tokenIdx, "Error during the parsing");
-        return(1); 
+        return(NULL); 
     }
-    return 0;
+    return root;
 }
 
 /**
@@ -232,7 +243,7 @@ int ConfigParser::parseConfigFile(std::string path){
 int parseListenValues(std::vector<std::string> v){
     if(v.size() > 1) return 1;
     std::string value = v[0]; 
-    int columnIdx = value.find(":");
+    size_t columnIdx = value.find(":");
     //if ':' is present
     if(columnIdx == 0 || columnIdx == value.size()) return 1; 
     if(columnIdx != std::string::npos){
@@ -240,10 +251,10 @@ int parseListenValues(std::vector<std::string> v){
         
         std::string octect; 
         std::stringstream ss(value);
-        while(getline(ss, octect, ':')){
+        while(getline(ss, octect, '.')){
             if(octect.empty() || octect.size() > 3) return 1; 
             
-            int i = 0; 
+            size_t i = 0; 
             while(i < octect.size()){
                 if(!isdigit(octect[i])) return 1;
                 i++;
@@ -257,7 +268,7 @@ int parseListenValues(std::vector<std::string> v){
         std::string port = value.substr(columnIdx + 1, value.size());
         if(port.empty() || port.size() > 4) return 1;
          
-        for(int i = 0; i < port.size(); ++i){
+        for(size_t i = 0; i < port.size(); ++i){
             if(!isdigit(port[i])) return 1; 
         }
         std::stringstream num(port);
@@ -265,25 +276,182 @@ int parseListenValues(std::vector<std::string> v){
         num >> portNum;
 
         if(portNum < 0 || portNum > 65535) return 1; 
-        return 0; 
     }
+    return 0; 
 }
 int parseHostValues(std::vector<std::string> v){
-
+    if(v.size() > 1) return 1;
+    std::string value = v[0];
+    std::string octect; 
+    std::stringstream ss(value);
+    while(getline(ss, octect, '.')){
+        if(octect.empty() || octect.size() > 3) return 1; 
+        
+        size_t i = 0; 
+        while(i < octect.size()){
+            if(!isdigit(octect[i])) return 1;
+            i++;
+        }
+        std::stringstream num(octect);
+        int octectNum;
+        num >> octectNum;
+        if(octectNum < 0 ||octectNum > 255) return 1;
+    }
+    return 0;
 }
+
+// TODO: implement some more robust checks
+int parseServerNameValues(std::vector<std::string> v){
+    int i = 0;
+    while(i < v.size()){
+        if(v[i].empty()) return 1;
+        i++;
+    }
+}
+
+int parseErrorPageValues(std::vector<std::string> v){
+    if(v.size() != 2) return 1;
+    std::string code = v[0];
+    std::string path = v[1];
+    if(code.size() != 3) return 1;
+    for(size_t i = 0; i < code.size(); ++i){
+        if(!isdigit(code[i])) return 1;
+    }
+    std::stringstream num(code);
+    int codeNum;
+    num >> codeNum;
+    if(codeNum < 100 || codeNum > 599) return 1;
+
+    if(path.empty()) return 1;
+    if(path[0] != '/') return 1;
+    if(access(path.c_str(), R_OK) != 0) return 1;
+
+    return 0;
+}
+
+int parseClientMaxBodyValues(std::vector<std::string> v){
+    if(v.size() != 1) return 1;
+    std::string value = v[0];
+    if(value.empty()) return 1;
+    for(size_t i = 0; i < value.size(); ++i){
+        if(!isdigit(value[i])) return 1;
+    }
+    std::stringstream num(value);
+    int valueNum;
+    num >> valueNum;
+    if(valueNum <= 0 || valueNum >= INT_MAX) return 1;
+    return 0;
+}
+//Syntax:	root path;
+int parseRootValues(std::vector<std::string> v){
+    if(v.size() != 1) return 1;
+    std::string path = v[0];
+    if(path.empty()) return 1;
+    if(path[0] != '/') return 1;
+    if(access(path.c_str(), R_OK) != 0) return 1;
+    return 0;
+}
+
+//Syntax:	index file [file ...];
+int parseIndexValues(std::vector<std::string> v){
+    int i = 0;
+    while(i < v.size()){
+        std::string value = v[i];
+        if(value.empty()) return 1;
+        
+        int dotIdx = value.find_last_of(".");
+        if(dotIdx == 0 || dotIdx == value.size()) return 1;
+
+        if(dotIdx != std::string::npos){
+            std::string extension = value.substr(dotIdx, value.size());
+            if(extension != ".html") return 1; // TODO: atm i m only accepting .html as index file, check if we can allow other extension
+            i++;
+        }
+    }
+}
+
+//Syntax:	autoindex on | off;
+int parseAutoIndexValues(std::vector<std::string> v){
+    if(v.size() != 1) return 1;
+    std::string value = v[0];
+    if(value.empty()) return 1;
+    
+    if(value != "on" | value != "off") return 1;
+
+    return 0;
+}
+
+int parseAllowMethodsValues(std::vector<std::string> v){
+    if(v.empty() || v.size() > 5) return 1;
+    int i = 0;
+    while(i < v.size()){
+        std::string value = v[0];
+        if(value != "GET" && value != "POST" 
+            && value != "PUT" && value != "DELETE" && value != "HEAD")
+                return 1;
+    }
+    return 0;
+}
+
+
+//'return' code [text];
+int parseReturnValues(std::vector<std::string> v){
+    if(v.empty() || v.size() > 2) return 1;
+    
+    //error code mandatory if return is present
+    std::string errorCode = v[0];
+
+    for(size_t i = 0; i < errorCode.size(); ++i){
+        if(!isdigit(errorCode[i])) return 1;
+    }   
+    std::stringstream num(code);
+    int codeNum;
+    num >> codeNum; 
+    if(codeNum < 100 || codeNum > 599) return 1;
+    
+    //parse text/url if present
+    if(v.size() == 2){
+        std::string text = v[1];
+        if(text.empty()) return 1;
+        //it needs to be a string enclose by double quotes(I DECIDED LIKE THIS OK?) lil bitch sit down
+        if(text[0] != '\"' || text[text.size()] != '\"') return 1;
+    }
+    return 0;
+}
+
+
+//Syntax:	alias path;
+int parseAliasValues(std::vector<std::string> v){
+    if (v.size() != 1) return 1;
+    std::string path = v[0];
+    if(path.empty()) return 1;
+    if(path[0] != '/') return 1;
+    if(access(path.c_str(), R_OK) != 0) return 1;
+    return 0;
+}
+
+int parseCgiExtValues(std::vector<std::string> v){
+    if(v.size() < 1) return 1;
+    int i = 0;
+    while(i < v.size()){
+        std::string extension = v[i];
+        if(extension[0] != '.') return 1;
+    }
+}
+
 ConfigParser::ConfigParser(){
     fnToParseDirectives["listen"] = parseListenValues;
     fnToParseDirectives["host"] = parseHostValues;
-    // fnToParseDirectives["server_name"] = parseServerNameValues;
-    // fnToParseDirectives["error_page"] = parseErrorPageValues;
-    // fnToParseDirectives["client_max_body_size"] = parseCMAXBODYValues;
-    // fnToParseDirectives["root"] = parseRootValues;
-    // fnToParseDirectives["index"] = parseIndexValues;
-    // fnToParseDirectives["autoindex"] = parseAutoIndexValues;
-    // fnToParseDirectives["allow_methods"] = parseAllowMethodsValues;
-    // fnToParseDirectives["return"] = parseReturnValues;
-    // fnToParseDirectives["alias"] = parseAlisValues;
-    // fnToParseDirectives["cgi_ext"] = parseCgiExtValues;
+    fnToParseDirectives["server_name"] = parseServerNameValues;
+    fnToParseDirectives["error_page"] = parseErrorPageValues;
+    fnToParseDirectives["client_max_body_size"] = parseClientMaxBodyValues;
+    fnToParseDirectives["root"] = parseRootValues;
+    fnToParseDirectives["index"] = parseIndexValues;
+    fnToParseDirectives["autoindex"] = parseAutoIndexValues;
+    fnToParseDirectives["allow_methods"] = parseAllowMethodsValues;
+    fnToParseDirectives["return"] = parseReturnValues;
+    fnToParseDirectives["alias"] = parseAliasValues;
+    fnToParseDirectives["cgi_ext"] = parseCgiExtValues;
     // fnToParseDirectives["cgi_path"] = parseCGIPathValues;
     // fnToParseDirectives["proxy_pass"] = parseProxyPassValues;
 

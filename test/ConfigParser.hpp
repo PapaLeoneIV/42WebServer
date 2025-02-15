@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <sstream>
 
+#include <limits.h>
+
 #include <string>
 #include <vector>
 #include <stack>
@@ -16,10 +18,48 @@
 
 typedef int (*FunctionPtr)(std::vector<std::string>);
 
+class TreeNode{
+    public:
+        TreeNode(std::string directive, std::vector<std::string> value){
+            this->directive = directive;
+            this->value = value;
+        }
+        void add(TreeNode* node){
+            children.push_back(node);
+        }
+        void print(int level = 0) {
+        for (int i = 0; i < level; ++i)
+            std::cout << "  ";
+        std::cout << directive;
+        if (!value.empty()){
+            size_t i = 0;
+            while(i < value.size()){
+                std::cout << " " << value[i];
+                i++;
+            }
+        }
+        std::cout << std::endl;
+        for (size_t i = 0; i < children.size(); ++i)
+            children[i]->print(level + 1);
+        }
+        std::string &getDirective(){
+            return directive;
+        }
+        std::vector<std::string> &getValue(){
+            return value;
+        }
+        std::vector<TreeNode*> &getChildren(){
+            return children;
+        }
+    private:
+        std::string directive;
+        std::vector<std::string> value;
+        std::vector<TreeNode*> children;
+};
 class ConfigParser{
     public:
     int validateConfigPath(std::string path);
-    int parseConfigFile(std::string path);
+    TreeNode * parseConfigFile(std::string path);
 
     int isValidDirective(std::string token);
 
@@ -31,39 +71,6 @@ class ConfigParser{
 
 };
 
-class TreeNode{
-    public:
-        TreeNode(std::string directive, std::string value){
-            this->directive = directive;
-            this->value = value;
-        }
-        void add(TreeNode* node){
-            children.push_back(node);
-        }
-        void print(int level = 0) {
-        for (int i = 0; i < level; ++i)
-            std::cout << "  ";
-        std::cout << directive;
-        if (!value.empty())
-            std::cout << ": " << value;
-        std::cout << std::endl;
-        for (size_t i = 0; i < children.size(); ++i)
-            children[i]->print(level + 1);
-        }
-        std::string &getDirective(){
-            return directive;
-        }
-        std::string &getValue(){
-            return value;
-        }
-        std::vector<TreeNode*> &getChildren(){
-            return children;
-        }
-    private:
-        std::string directive;
-        std::string value;
-        std::vector<TreeNode*> children;
-};
 
 
 std::string removeComments(std::ifstream &file);

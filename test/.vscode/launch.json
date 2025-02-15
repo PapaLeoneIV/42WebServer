@@ -4,10 +4,10 @@
         "name": "C/C++ Debug (gdb Launch)",
         "type": "cppdbg",
         "request": "launch",
-        "program": "${workspaceFolder}/a.out",
+        "program": "/nfs/sgoinfre/goinfre/Perso/rileone/Desktop/42WebServer/test/a.out",
         "args": ["../config/nginx.conf"],
         "stopAtEntry": true,
-        "cwd": "${workspaceFolder}",
+        "cwd": "/nfs/sgoinfre/goinfre/Perso/rileone/Desktop/42WebServer/test/a.out",
         "environment": [],
         "MIMode": "gdb",
         "setupCommands": [
