@@ -61,6 +61,9 @@ class ConfigParser{
     int validateConfigPath(std::string path);
     TreeNode * parseConfigFile(std::string path);
 
+
+    
+    
     int isValidDirective(std::string token);
 
     ConfigParser();
@@ -68,6 +71,7 @@ class ConfigParser{
 
     std::map<std::string, FunctionPtr> fnToParseDirectives;
     std::vector<std::string> directives;
+    std::vector<std::string> extensionsAllowd;
 
 };
 
@@ -76,6 +80,6 @@ class ConfigParser{
 std::string removeComments(std::ifstream &file);
 std::string trimLeftRight(const std::string &str); 
 std::string removeEmptyLines(const std::string &input); 
-std::string trim(const std::string &input);
+std::string trimm(const std::string &input);
 
 #endif //CONFIGPARSER

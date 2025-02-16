@@ -186,7 +186,7 @@ void ServerManager::initFdSets()
     }
 
 }
-
+std::map<SOCKET, Server*>	ServerManager::getServerMap(void){return this->_servers_map;}
 
 ServerManager::ServerManager()
 {

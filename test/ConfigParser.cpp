@@ -1,4 +1,5 @@
 #include "ConfigParser.hpp"
+#include "../includes/Server.hpp"
 
 #define push_back_next_token(token, tokenIdx)                                                                                  \
                     lineStream >> token;                                                                                \
@@ -21,6 +22,9 @@
                         error(path, tokens, -1, "direttive needs to end with \";\" ");                                  \
                         break;                                                                                          \
                     }
+
+
+
 std::string removeComments(std::ifstream &file) {
     std::string line, result;
     while (std::getline(file, line)) {
@@ -41,7 +45,7 @@ std::string trimLeftRight(const std::string &str) {
     return str.substr(first, last - first + 1);
 }
 
-std::string trim(const std::string &input) {
+std::string trimm(const std::string &input) {
     std::istringstream inputStream(input);
     std::ostringstream resultStream;
     std::string line;
@@ -144,7 +148,7 @@ TreeNode * ConfigParser::parseConfigFile(std::string path){
     }
 
     std::string noComments, trimmed;
-    std::string v = removeEmptyLines(trimmed = trim(noComments = removeComments(file)));; 
+    std::string v = removeEmptyLines(trimmed = trimm(noComments = removeComments(file)));; 
     std::istringstream lineStream(v);
 
 
@@ -308,6 +312,7 @@ int parseServerNameValues(std::vector<std::string> v){
         if(v[i].empty()) return 1;
         i++;
     }
+    return 0;
 }
 
 int parseErrorPageValues(std::vector<std::string> v){
@@ -370,6 +375,7 @@ int parseIndexValues(std::vector<std::string> v){
             i++;
         }
     }
+    return 0;
 }
 
 //Syntax:	autoindex on | off;
@@ -406,7 +412,7 @@ int parseReturnValues(std::vector<std::string> v){
     for(size_t i = 0; i < errorCode.size(); ++i){
         if(!isdigit(errorCode[i])) return 1;
     }   
-    std::stringstream num(code);
+    std::stringstream num(errorCode);
     int codeNum;
     num >> codeNum; 
     if(codeNum < 100 || codeNum > 599) return 1;
@@ -422,7 +428,7 @@ int parseReturnValues(std::vector<std::string> v){
 }
 
 
-//Syntax:	alias path;
+//Syntax: alias path;
 int parseAliasValues(std::vector<std::string> v){
     if (v.size() != 1) return 1;
     std::string path = v[0];
@@ -433,11 +439,27 @@ int parseAliasValues(std::vector<std::string> v){
 }
 
 int parseCgiExtValues(std::vector<std::string> v){
+    std::vector<std::string> extensionsAllowd;
+    extensionsAllowd.push_back(".py");
+    extensionsAllowd.push_back(".sh");
+    extensionsAllowd.push_back(".cpp");
+    extensionsAllowd.push_back(".c");
+    extensionsAllowd.push_back(".js");
+    extensionsAllowd.push_back(".ts");
+    extensionsAllowd.push_back(".pl");
+    extensionsAllowd.push_back(".java");
+    extensionsAllowd.push_back(".php");
+    extensionsAllowd.push_back(".go");
+    extensionsAllowd.push_back(".rs");
+    extensionsAllowd.push_back(".hs");
+
     if(v.size() < 1) return 1;
     int i = 0;
     while(i < v.size()){
         std::string extension = v[i];
         if(extension[0] != '.') return 1;
+        int j = 0;
+        while(j < extensionsAllowd.size()) return 1;
     }
 }
 
@@ -457,9 +479,6 @@ ConfigParser::ConfigParser(){
     // fnToParseDirectives["cgi_path"] = parseCGIPathValues;
     // fnToParseDirectives["proxy_pass"] = parseProxyPassValues;
 
-
-
-
     directives.push_back("listen");
     directives.push_back("host");
     directives.push_back("server_name");
@@ -474,5 +493,6 @@ ConfigParser::ConfigParser(){
     directives.push_back("cgi_ext");
     directives.push_back("cgi_path");
     directives.push_back("proxy_pass");
+
 };
 ConfigParser::~ConfigParser(){};

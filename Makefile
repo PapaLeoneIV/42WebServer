@@ -4,7 +4,7 @@ CFLAGS = -Wall -Wextra -Werror -g  -std=c++98 -I./includes -I./includes/utils
 
 TARGET = webserver
 
-SRCS = 	src/main.cpp \
+SRCS = 	main.cpp \
 		src/Server.cpp \
 		src/Client.cpp \
 		src/Response.cpp \
@@ -17,6 +17,9 @@ SRCS = 	src/main.cpp \
 		src/utils/utilsParser.cpp
 
 all: $(TARGET)
+
+configParser:
+	c++ test/ConfigParser.cpp test/main.cpp ./src/*.cpp ./src/utils/*.cpp -I. -I./includes -Wall -Wextra -Wextra --std=c++98 -o  testConfigParser 
 
 $(TARGET): $(SRCS)
 	$(CC) $(CFLAGS) -o $(TARGET) $(SRCS)

@@ -14,6 +14,10 @@ std::string &Server::getIndex()	{return this->_index;};
 size_t      &Server::getMaxRequestSize(){return this->_max_request_size;};
 std::string &Server::getCwd()	{return this->_cwd;};
 
+std::map<std::string, std::vector<std::string> > Server::getServerDir(void) {return this->serverDir;}
+std::map<std::string, std::map<std::string, std::vector<std::string> > > Server::getLocationDir(void) {return this->locationDir;} 
+
+
 
 //SETTERS
 void    Server::setServerSocket(SOCKET server_socket)   {this->_server_socket = server_socket;};
@@ -28,11 +32,11 @@ void    Server::setIndex(std::string index) {this->_index = index;};
 void    Server::setMaxRequestSize(size_t max_request_size) {this->_max_request_size = max_request_size;};
 void    Server::setCwd(std::string cwd) {this->_cwd = cwd;};
 
-void	Server::setServerDir(std::string key, std::string value) {
+void	Server::setServerDir(std::string key, std::vector<std::string> value) {
 	this->serverDir[key] = value;
 }
 
-void	Server::setLocationDir(std::string locationPath, std::string key, std::string value) {
+void	Server::setLocationDir(std::string locationPath, std::string key,  std::vector<std::string> value) {
 	this->locationDir[locationPath][key] = value;
 }
 

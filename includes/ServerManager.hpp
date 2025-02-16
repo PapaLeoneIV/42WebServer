@@ -34,6 +34,8 @@ class ServerManager{
 	void	addServer	(Server *server);
 	void	addToSet	(SOCKET fd, fd_set *fdSet);
 	void	removeFromSet	(SOCKET fd, fd_set *fd_set);
+
+	std::map<SOCKET, Server*>	getServerMap(void);
 	
 
 	
