@@ -1,26 +1,27 @@
 #include "ConfigParser.hpp"
-#include "../includes/Server.hpp"
+#include <sstream>
 
-#define push_back_next_token(token, tokenIdx)                                                                                  \
-                    lineStream >> token;                                                                                \
-                    tokens.push_back(token);                                                                            \
+
+#define push_back_next_token(token, tokenIdx)   \
+                    lineStream >> token;    \
+                    tokens.push_back(token);    \
                     tokenIdx++;
 
-#define add_block_to_Tree(node, token, value, tokenIdx, s)                                                                             \
-                    TreeNode *node = new TreeNode(token, value);                                                  \
-                    s.top()->add(node);                                                                                 \
+#define add_block_to_Tree(node, token, value, tokenIdx, s)  \
+                    TreeNode *node = new TreeNode(token, value);    \
+                    s.top()->add(node); \
                     tokenIdx++;
 
-#define check_open_block(openblock, i)                                                                                  \
-                    if(openblock != "{") {                                                                              \
-                        error(path, tokens, tokenIdx, "is not a valid closing brace");                                      \
-                        break;                                                                                          \
+#define check_open_block(openblock, i)  \
+                    if(openblock != "{") {  \
+                        Logger::error(path, "is not a valid closing brace");  \
+                        break;  \
                     }
 
-#define check_directive_semicolom(value, tokenIdx)                                                                             \
-                    if(value.at(value.size() - 1) != ';'){                                                              \
-                        error(path, tokens, -1, "direttive needs to end with \";\" ");                                  \
-                        break;                                                                                          \
+#define check_directive_semicolom(value, tokenIdx)  \
+                    if(value.at(value.size() - 1) != ';'){  \
+                        Logger::error(path, "direttive needs to end with \";\" ");  \
+                        break;  \
                     }
 
 
@@ -94,16 +95,6 @@ int ConfigParser::isValidDirective(std::string token){
 }
 
 
-void error(std::string file, std::vector<std::string> tokens, int tokenIdx , std::string msg){
-    if (tokenIdx > -1){
-        std::cerr << "\e[1m" << file  << ": \e[31merror: " 
-        << "\e[0m\e[1m\"" << tokens[tokenIdx] << "\" \e[0m" << msg << std::endl; 
-        return;  
-    }
-    std::cerr << "\e[1m" << file << ":token id[" << tokenIdx  << "]: \e[31merror: " 
-        << "\e[0m\e[1m\e[0m" << msg << std::endl; 
-        return;
-}
 
 int ConfigParser::validateConfigPath(std::string path) {
 
@@ -167,7 +158,7 @@ TreeNode * ConfigParser::parseConfigFile(std::string path){
         tokens.push_back(token);
     
         if(tokens[tokenIdx] != token){
-            error(path, tokens, tokenIdx , "is not a valid token");
+            Logger::error(path, "non valid token found");
             break;
         }
     
@@ -223,7 +214,7 @@ TreeNode * ConfigParser::parseConfigFile(std::string path){
         //fine blocco
         if(token == "}"){
             if (s.size() <= 1) {
-                error(path, tokens, tokenIdx, "Error during the parsing");
+                Logger::error(path,  "Error during the parsing");
                 break;
             } else { s.pop(); }
             tokenIdx++;
@@ -232,8 +223,8 @@ TreeNode * ConfigParser::parseConfigFile(std::string path){
     }
 
     if(s.size() > 1){
-        error(path, tokens, tokenIdx, "Error during the parsing");
-        return(NULL); 
+        // Logger::error(path,  "Error during the parsing");
+        exit(1); 
     }
     return root;
 }
@@ -307,7 +298,7 @@ int parseHostValues(std::vector<std::string> v){
 // TODO: implement some more robust checks
 // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/25
 int parseServerNameValues(std::vector<std::string> v){
-    int i = 0;
+    size_t i = 0;
     while(i < v.size()){
         if(v[i].empty()) return 1;
         i++;
@@ -360,12 +351,12 @@ int parseRootValues(std::vector<std::string> v){
 
 //Syntax:	index file [file ...];
 int parseIndexValues(std::vector<std::string> v){
-    int i = 0;
+    size_t i = 0;
     while(i < v.size()){
         std::string value = v[i];
         if(value.empty()) return 1;
         
-        int dotIdx = value.find_last_of(".");
+        size_t dotIdx = value.find_last_of(".");
         if(dotIdx == 0 || dotIdx == value.size()) return 1;
 
         if(dotIdx != std::string::npos){
@@ -384,14 +375,14 @@ int parseAutoIndexValues(std::vector<std::string> v){
     std::string value = v[0];
     if(value.empty()) return 1;
     
-    if(value != "on" | value != "off") return 1;
+    if(value != "on" || value != "off") return 1;
 
     return 0;
 }
 
 int parseAllowMethodsValues(std::vector<std::string> v){
     if(v.empty() || v.size() > 5) return 1;
-    int i = 0;
+    size_t i = 0;
     while(i < v.size()){
         std::string value = v[0];
         if(value != "GET" && value != "POST" 
@@ -430,7 +421,7 @@ int parseReturnValues(std::vector<std::string> v){
 
 //Syntax: alias path;
 int parseAliasValues(std::vector<std::string> v){
-    if (v.size() != 1) return 1;
+    if(v.size() != 1) return 1;
     std::string path = v[0];
     if(path.empty()) return 1;
     if(path[0] != '/') return 1;
@@ -440,29 +431,140 @@ int parseAliasValues(std::vector<std::string> v){
 
 int parseCgiExtValues(std::vector<std::string> v){
     std::vector<std::string> extensionsAllowd;
-    extensionsAllowd.push_back(".py");
-    extensionsAllowd.push_back(".sh");
-    extensionsAllowd.push_back(".cpp");
-    extensionsAllowd.push_back(".c");
-    extensionsAllowd.push_back(".js");
-    extensionsAllowd.push_back(".ts");
-    extensionsAllowd.push_back(".pl");
-    extensionsAllowd.push_back(".java");
-    extensionsAllowd.push_back(".php");
-    extensionsAllowd.push_back(".go");
-    extensionsAllowd.push_back(".rs");
-    extensionsAllowd.push_back(".hs");
+    extensionsAllowd.push_back(".py");      // pyhton
+    extensionsAllowd.push_back(".sh");      // bash
+    extensionsAllowd.push_back(".cpp");     // c++
+    extensionsAllowd.push_back(".c");       // c
+    extensionsAllowd.push_back(".js");      // javascript
+    extensionsAllowd.push_back(".ts");      // typescript
+    extensionsAllowd.push_back(".pl");      // perl
+    extensionsAllowd.push_back(".java");    // java
+    extensionsAllowd.push_back(".php");     // php
+    extensionsAllowd.push_back(".go");      // golang
+    extensionsAllowd.push_back(".rs");      // rust
+    extensionsAllowd.push_back(".hs");      // haskell
 
     if(v.size() < 1) return 1;
-    int i = 0;
+    size_t i = 0;
     while(i < v.size()){
         std::string extension = v[i];
         if(extension[0] != '.') return 1;
-        int j = 0;
+        size_t j = 0;
         while(j < extensionsAllowd.size()) return 1;
     }
+    return 0;
 }
 
+int parseCGIPathValues(std::vector<std::string> v){
+    if(v.size() != 1) return 1;
+    std::string path = v[0];
+    if(path.empty()) return 1;
+    if(path[0] != '/') return 1;
+    if(access(path.c_str(), R_OK) != 0) return 1;
+    return 0;
+}
+
+
+//Syntax: proxy_pass URL;
+int parseProxyPassValues(std::vector<std::string> v){
+    if(v.size() != 1) return 1;
+    std::string url = v[0];
+    if(url.empty()) return 1;
+    if(url[0] != '/') return 1;
+    return 0;
+}
+
+int setUpDefaultValues(Server *server){
+    //port 80 by default
+    if(server->getServerDir()["listen"].empty()){
+        server->setServerDir("listen", "80");
+    }
+    //host or 127.0.0.1 by default
+    if(server->getServerDir()["host"].empty()){
+        server->setServerDir("host", "127.0.0.1");
+    }
+    //default page when requesting a directory, index.html by default
+    if(server->getServerDir()["index"].empty()){
+        server->setServerDir("index", "index.html");
+    }
+    //allowed methods in location, GET only by default
+    std::map<std::string, std::map<std::string, std::vector<std::string> > > locationDirectives = server->getLocationDir();
+    for(std::map<std::string, std::map<std::string, std::vector<std::string> > >::iterator it = locationDirectives.begin(); it != locationDirectives.end(); ++it){
+        if(it->second["allow_methods"].empty()){
+            it->second["allow_methods"].push_back("GET");
+        }
+    }
+    //root folder of the location, if not specified, taken from the server. 
+    for(std::map<std::string, std::map<std::string, std::vector<std::string> > >::iterator it = locationDirectives.begin(); it != locationDirectives.end(); ++it){{
+        if(it->second["root"].empty()){
+            it->second["root"].push_back(server->getServerDir()["root"]);
+        }
+    }
+    //default page when requesting a directory, copies root index by default
+    for(std::map<std::string, std::map<std::string, std::vector<std::string> > >::iterator it = locationDirectives.begin(); it != locationDirectives.end(); ++it){
+        if(it->second["index"].empty()){
+            it->second["index"].push_back(server->getServerDir()["index"]);
+            }
+        }
+    }   
+}
+
+int checkMandatoryDirectives(Server *server){
+    std::vector<std::string> mandatoryServerDirectives;
+    std::vector<std::string> mandatoryCGIDirectives;
+
+    mandatoryServerDirectives.push_back("listen");
+    mandatoryServerDirectives.push_back("root");
+
+    mandatoryCGIDirectives.push_back("cgi_ext");
+    mandatoryCGIDirectives.push_back("cgi_path");
+    mandatoryCGIDirectives.push_back("root");
+
+    std::map<std::string, std::vector<std::string> > serverDirectives = server->getServerDir();
+    std::map<std::string, std::map<std::string, std::vector<std::string> > > locationDirectives = server->getLocationDir();
+
+    std::vector<std::string>::iterator Mandatoryit;
+    std::map<std::string, std::vector<std::string> >::iterator Serverit;
+    std::map<std::string, std::map<std::string, std::vector<std::string> > >::iterator Locationit;
+    
+
+
+    bool found = false;
+    for(Mandatoryit = mandatoryServerDirectives.begin(); Mandatoryit != mandatoryServerDirectives.end(); ++Mandatoryit){
+        found = false;
+        for(Serverit = serverDirectives.begin(); Serverit != serverDirectives.end(); ++Serverit){
+            if(Serverit->first == *Mandatoryit){
+                found = true;
+            }
+            
+        }
+        if(found == false){
+            Logger::error("", "Error: missing mandatory directive: " + *Mandatoryit);
+            return 1;
+        }
+    }
+    found = false;
+    for(Mandatoryit = mandatoryCGIDirectives.begin(); Mandatoryit != mandatoryCGIDirectives.end(); ++Mandatoryit){
+        for(Locationit = locationDirectives.begin(); Locationit != locationDirectives.end(); ++Locationit){
+            
+            
+            if(Locationit->first == "/cgi-bin"){
+                found = false;    
+                for(Serverit = Locationit->second.begin(); Serverit != Locationit->second.end(); ++Serverit){
+                        if(Serverit->first == *Mandatoryit){
+                            found = true;
+                        }
+                }
+                if(found == false){
+                    Logger::error("", "Error: missing mandatory directive: " + *Mandatoryit);
+                    return 1;
+                }
+            }
+        }
+       
+    }
+    return 0;
+}
 ConfigParser::ConfigParser(){
     fnToParseDirectives["listen"] = parseListenValues;
     fnToParseDirectives["host"] = parseHostValues;
@@ -476,8 +578,8 @@ ConfigParser::ConfigParser(){
     fnToParseDirectives["return"] = parseReturnValues;
     fnToParseDirectives["alias"] = parseAliasValues;
     fnToParseDirectives["cgi_ext"] = parseCgiExtValues;
-    // fnToParseDirectives["cgi_path"] = parseCGIPathValues;
-    // fnToParseDirectives["proxy_pass"] = parseProxyPassValues;
+    fnToParseDirectives["cgi_path"] = parseCGIPathValues;
+    fnToParseDirectives["proxy_pass"] = parseProxyPassValues;
 
     directives.push_back("listen");
     directives.push_back("host");

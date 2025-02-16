@@ -5,19 +5,23 @@
 #include <fstream>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <sstream>
+#include <cstddef>
+#include <stdlib.h>
 
 #include <limits.h>
 
 #include <string>
 #include <vector>
-#include <stack>
 #include <map>
 
+#include "../includes/Server.hpp"
 
 
 typedef int (*FunctionPtr)(std::vector<std::string>);
 
+
+
+    
 class TreeNode{
     public:
         TreeNode(std::string directive, std::vector<std::string> value){
@@ -81,5 +85,8 @@ std::string removeComments(std::ifstream &file);
 std::string trimLeftRight(const std::string &str); 
 std::string removeEmptyLines(const std::string &input); 
 std::string trimm(const std::string &input);
+int checkMandatoryDirectives(Server *server);
+int setUpDefaultValues(Server *server);
+
 
 #endif //CONFIGPARSER

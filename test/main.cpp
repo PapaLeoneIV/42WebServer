@@ -26,8 +26,7 @@ void traverseTree(Server *server, TreeNode *node) {
 int main(int argc, char **argv){
     if(argc != 2) return 1;
     ConfigParser configParser;
-    int res = configParser.validateConfigPath(std::string(argv[1]));
-    if (res)
+    if (configParser.validateConfigPath(std::string(argv[1])))
         std::cout << "Path o file sbagliato" << std::endl; 
     else std::cout << "Path corretto" << std::endl;
     TreeNode * root = configParser.parseConfigFile(std::string(argv[1]));
@@ -36,9 +35,6 @@ int main(int argc, char **argv){
         return 1;
     }
     else std::cout << "Parsing completato" << std::endl;
-
-    root->print();
-
 
     std::vector<TreeNode*> children = root->getChildren();
     std::vector<TreeNode*>::iterator currentNode;
@@ -50,7 +46,10 @@ int main(int argc, char **argv){
             
             traverseTree(server, *currentNode);
             
-            //checkMandatoryDirectives(server);
+            if(checkMandatoryDirectives(server))
+                return 1;
+            setUpDefaultValues(server);
+            
             //parseDirectives(server);
             
             serverManager->addServer(server);
@@ -62,10 +61,10 @@ int main(int argc, char **argv){
     // for(serverIt = serverManager->getServerMap().begin(); serverIt != serverManager->getServerMap().end(); ++serverIt){
     //     std::map<std::string, std::vector<std::string>> serverDir = (*serverIt).second->getServerDir();
     //     for (std::map<std::string, std::vector<std::string>>::iterator serverDirIt = serverDir.begin(); serverDirIt != serverDir.end(); ++serverDirIt) {
-            //std::string nginxDir = (*serverDirIt).first;
-            //std::vector<std::string> nginxDirValue = (*serverDirIt).second;
-            // this->fnToParseDirectives[nginxDir](nginxDirValue);
-    //         }
+            // std::string nginxDir = (*serverDirIt).first;
+            // std::vector<std::string> nginxDirValue = (*serverDirIt).second;
+            //  this->fnToParseDirectives[nginxDir](nginxDirValue);
+            //  }
     //     std::map<std::string, std::map<std::string, std::vector<std::string>>> locationDir = (*serverIt).second->getLocationDir();
     //     for (locationDirIt = locationDir.begin(); locationDirIt != locationDir.end(); ++locationDirIt) {
     //         std::map<std::string, std::vector<std::string>> locationDirMap = (*locationDirIt).second;
