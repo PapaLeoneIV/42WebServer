@@ -1,6 +1,7 @@
 #ifndef  CONFIGPARSER_HPP 
 #define CONFIGPARSER_HPP
 
+#include <exception>
 #include <iostream>
 #include <fstream>
 #include <sys/stat.h>
@@ -13,6 +14,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <stack>
 
 #include "../includes/Server.hpp"
 
@@ -60,15 +62,15 @@ class TreeNode{
         std::vector<std::string> value;
         std::vector<TreeNode*> children;
 };
-class ConfigParser{
+
+
+class ConfigParser {
     public:
     int validateConfigPath(std::string path);
     TreeNode * parseConfigFile(std::string path);
-
-
-    
-    
     int isValidDirective(std::string token);
+
+    
 
     ConfigParser();
     ~ConfigParser();

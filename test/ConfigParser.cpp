@@ -1,4 +1,5 @@
 #include "ConfigParser.hpp"
+#include "Logger.hpp"
 #include <sstream>
 
 
@@ -477,15 +478,21 @@ int parseProxyPassValues(std::vector<std::string> v){
 int setUpDefaultValues(Server *server){
     //port 80 by default
     if(server->getServerDir()["listen"].empty()){
-        server->setServerDir("listen", "80");
+        std::vector<std::string> tmp;
+        tmp.push_back("80");
+        server->setServerDir("listen", tmp);
     }
     //host or 127.0.0.1 by default
     if(server->getServerDir()["host"].empty()){
-        server->setServerDir("host", "127.0.0.1");
+        std::vector<std::string> tmp;
+        tmp.push_back("127.0.0.1");
+        server->setServerDir("host", tmp);
     }
     //default page when requesting a directory, index.html by default
     if(server->getServerDir()["index"].empty()){
-        server->setServerDir("index", "index.html");
+        std::vector<std::string> tmp;
+        tmp.push_back("index.html");
+        server->setServerDir("index", tmp);
     }
     //allowed methods in location, GET only by default
     std::map<std::string, std::map<std::string, std::vector<std::string> > > locationDirectives = server->getLocationDir();
@@ -497,16 +504,17 @@ int setUpDefaultValues(Server *server){
     //root folder of the location, if not specified, taken from the server. 
     for(std::map<std::string, std::map<std::string, std::vector<std::string> > >::iterator it = locationDirectives.begin(); it != locationDirectives.end(); ++it){{
         if(it->second["root"].empty()){
-            it->second["root"].push_back(server->getServerDir()["root"]);
+            it->second["root"].push_back(server->getServerDir()["root"][0]);
         }
     }
     //default page when requesting a directory, copies root index by default
     for(std::map<std::string, std::map<std::string, std::vector<std::string> > >::iterator it = locationDirectives.begin(); it != locationDirectives.end(); ++it){
         if(it->second["index"].empty()){
-            it->second["index"].push_back(server->getServerDir()["index"]);
+            it->second["index"].push_back(server->getServerDir()["index"][0]);
             }
         }
     }   
+    return 0;
 }
 
 int checkMandatoryDirectives(Server *server){

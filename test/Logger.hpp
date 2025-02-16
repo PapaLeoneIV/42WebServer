@@ -13,4 +13,8 @@ class Logger {
     
         static void error(const std::string& file, const std::string& message);
     };
+
+
+
+        
 #endif //LOGGER

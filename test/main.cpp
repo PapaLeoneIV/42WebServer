@@ -1,5 +1,6 @@
 #include "ConfigParser.hpp"
 #include "../includes/ServerManager.hpp"
+#include "Exception.hpp"
 void traverseTree(Server *server, TreeNode *node) {
     if(node == NULL)
         return ;
@@ -26,36 +27,42 @@ void traverseTree(Server *server, TreeNode *node) {
 int main(int argc, char **argv){
     if(argc != 2) return 1;
     ConfigParser configParser;
-    if (configParser.validateConfigPath(std::string(argv[1])))
-        std::cout << "Path o file sbagliato" << std::endl; 
-    else std::cout << "Path corretto" << std::endl;
-    TreeNode * root = configParser.parseConfigFile(std::string(argv[1]));
-    if (root == NULL){
-        std::cout << "Parsing andato male" << std::endl; 
-        return 1;
-    }
-    else std::cout << "Parsing completato" << std::endl;
+    try{
+        
+        if (configParser.validateConfigPath(std::string(argv[1])))
+            throw Exception("Errore nel path del file di configurazione");
+        else
+            std::cout << "Path corretto" << std::endl;
+        
+        TreeNode * root = configParser.parseConfigFile(std::string(argv[1]));
+        if (root == NULL)
+            throw Exception("Errore nel parsing del file di configurazione");
+        else 
+            std::cout << "Parsing completato" << std::endl;
 
-    std::vector<TreeNode*> children = root->getChildren();
-    std::vector<TreeNode*>::iterator currentNode;
-    ServerManager *serverManager = new ServerManager();
-    for(currentNode = children.begin(); currentNode != children.end(); ++currentNode){
-        if((*currentNode)->getDirective() == "server"){
-            
-            Server *server = new Server();
-            
-            traverseTree(server, *currentNode);
-            
-            if(checkMandatoryDirectives(server))
-                return 1;
-            setUpDefaultValues(server);
-            
-            //parseDirectives(server);
-            
-            serverManager->addServer(server);
+        std::vector<TreeNode*> children = root->getChildren();
+        std::vector<TreeNode*>::iterator currentNode;
+        ServerManager *serverManager = new ServerManager();
+        for(currentNode = children.begin(); currentNode != children.end(); ++currentNode){
+            if((*currentNode)->getDirective() == "server"){
+
+                Server *server = new Server();
+
+                traverseTree(server, *currentNode);
+
+                if(checkMandatoryDirectives(server))
+                    throw Exception("Error: missing mandatory directives");
+                setUpDefaultValues(server);
+
+                //parseDirectives(server);
+
+                serverManager->addServer(server);
+            }
         }
+    }catch(Exception &e){
+        std::cout << e.what() << std::endl;
     }
-
+    
     // std::map<std::string, std::map<std::string, std::vector<std::string> > >::iterator locationDirIt;
     // std::map<int, Server*>::iterator serverIt;
     // for(serverIt = serverManager->getServerMap().begin(); serverIt != serverManager->getServerMap().end(); ++serverIt){
