@@ -1,54 +1,77 @@
 #include "Utils.hpp"
 
+int handle_arguments(int argc, char **argv)
+{
+    // help command
+        if (argc == 2)
+        {
+            if (std::string(argv[1]) == "--help"){
+                std::cout << std::endl;
+                std::cout << "Usage: webserver [OPTIONS] <config-filepath>" << std::endl;
+                std::cout << "         --help                           Display this help and exit" << std::endl;
+                std::cout << "         -t <config-filepath>             Test the configuration file" << std::endl;
+                std::cout << "         -v                               Display the current version" << std::endl;
+                std::cout << std::endl;
+                exit(0);
+            }
+            // version command
+            if (std::string(argv[1]) == "-v"){
+                std::cout << "webserver version: webserver/" << VERSION << std::endl;
+                exit(0);
+            }
+            // testing config file command
+            if (std::string(argv[1]) == "-t")
+            {
+                std::cout << "webserver config-file testing: missing <config-filepath>" << std::endl;
+                exit(0);
+            }
 
-int handle_arguments(char **argv){
-    //help command
-    if(std::string(argv[1]) == "--help"){
-        std::cout << std::endl;
-        std::cout <<  "Usage: webserver [OPTIONS] <config-filepath>" << std::endl;
-        std::cout <<  "         --help                           Display this help and exit" << std::endl;
-        std::cout <<  "         -t <config-filepath>             Test the configuration file" << std::endl;
-        std::cout <<  "         -v                               Display the current version" << std::endl;    
-        std::cout << std::endl;
-        exit(0);
-    }
-    //version command
-    if(std::string(argv[1]) == "-v"){
-        std::cout << "webserver version: webserver/" << VERSION << std::endl; 
-        exit(0);
-    
-    }
-    //testing config file command
-    if(std::string(argv[1]) == "-t"){
-        std::cout << "webserver config-file testing: missing <config-filepath>" << std::endl;
-        exit(0);
-    }
+            std::cout << "webserver: try 'webserver --help' for more information" << std::endl;
+            exit(0);
+            
+        } else if(argc == 3) {
+            if (std::string(argv[1]) != "-t"){
+                std::cout << "webserver: try 'webserver --help' for more information" << std::endl;
+                exit(0);
+            }
+            //parse config and print if ok or not
+        } else {
+            std::cout << "webserver: try 'webserver --help' for more information" << std::endl;
+            exit(0);
+        }
+        return 0;
+} 
 
-    return 0;
-}
-
-std::string fromDIRtoHTML(std::string dirPath, std::string url){
+std::string fromDIRtoHTML(std::string dirPath, std::string url)
+{
     (void)url;
-    std::string html =  "<!DOCTYPE html>" \
-                        "<html lang=\"en\">" \
-                        "<head>" \
-                            "<meta charset=\"UTF-8\">" \
-                            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">" \
-                            "<title>WebServer</title>" \
-                        "</head>" \
-                        "<body>";
+    std::string html = "<!DOCTYPE html>"
+                       "<html lang=\"en\">"
+                       "<head>"
+                       "<meta charset=\"UTF-8\">"
+                       "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
+                       "<title>WebServer</title>"
+                       "</head>"
+                       "<body>";
     DIR *dir;
     struct dirent *ent;
-    if ((dir = opendir(dirPath.c_str())) != NULL) {
-        while ((ent = readdir(dir)) != NULL) {
-            if(url != "/") {
+    if ((dir = opendir(dirPath.c_str())) != NULL)
+    {
+        while ((ent = readdir(dir)) != NULL)
+        {
+            if (url != "/")
+            {
                 html += "<li><a href=\"" + url + std::string(ent->d_name) + "\">" + std::string(ent->d_name) + "</a></li>";
-            } else{
-            html += "<li><a href=\"" + std::string(ent->d_name) + "\">" + std::string(ent->d_name) + "</a></li>";
+            }
+            else
+            {
+                html += "<li><a href=\"" + std::string(ent->d_name) + "\">" + std::string(ent->d_name) + "</a></li>";
             }
         }
         closedir(dir);
-    } else {
+    }
+    else
+    {
         return "Error: could not open directory";
     }
     html += "</ul></body></html>";
@@ -60,7 +83,8 @@ std::string readTextFile(std::string filePath)
     std::string fileContent;
     std::ifstream file(filePath.c_str(), std::ios::in);
     std::string line;
-    while (std::getline(file, line)) {
+    while (std::getline(file, line))
+    {
         fileContent += line + "\n";
     }
     file.close();
@@ -73,42 +97,70 @@ std::string readFileBinary(std::string filePath)
     std::ifstream file(filePath.c_str(), std::ios::in | std::ios::binary);
     std::vector<char> buffer((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     file.close();
-    for (std::vector<char>::iterator it = buffer.begin(); it != buffer.end(); ++it) {
+    for (std::vector<char>::iterator it = buffer.begin(); it != buffer.end(); ++it)
+    {
         fileContent.push_back(*it);
     }
 
     return fileContent;
 }
 
-std::string ErrToStr(int error) {
-    switch (error) {
-        case SUCCESS: return "Success";
-        case ERR_RESOLVE_ADDR: return "Could not resolve address";
-        case ERR_SOCK_CREATION: return "Error: socket creation failed";
-        case ERR_SOCKET_NBLOCK: return "Error: setting socket to non-blocking failed";
-        case ERR_BIND: return "Error: bind failed";
-        case ERR_LISTEN: return "Error: listen failed";
-        case ERR_SELECT: return "Error: select failed";
-        case ERR_SEND: return "Error: send failed";
-        case ERR_RECV: return "Error: recv failed: closing connection";
-        case INVALID_METHOD: return "Error: the method is not supported (yet)";
-        case INVALID_URL: return "Error: Invalid URL";
-        case INVALID_VERSION: return "Error: HTTP version not supported";
-        case INVALID_MANDATORY_HEADER: return "Error: Missing mandatory header";
-        case INVALID_BODY: return "Error: Invalid body";
-        case INVALID_BODY_LENGTH: return "Error: Invalid body length";
-        case INVALID_MAX_REQUEST_SIZE: return "Error: Request too long";
-        case INVALID_CONNECTION_CLOSE_BY_CLIENT: return "Error: Connection closed by client";
-        case INVALID_REQUEST: return "Error: Invalid request";
-        case INVALID_CONTENT_LENGTH: return "Error: Invalid content length";
-        case ERR_FCNTL: return "Error: fcntl failed";
-        case FILE_NOT_FOUND: return "Error: File not found";
-        case FILE_READ_DENIED: return "Error: Read access denied";
-        default: return "Unknown Error";
+std::string ErrToStr(int error)
+{
+    switch (error)
+    {
+    case SUCCESS:
+        return "Success";
+    case ERR_RESOLVE_ADDR:
+        return "Could not resolve address";
+    case ERR_SOCK_CREATION:
+        return "Error: socket creation failed";
+    case ERR_SOCKET_NBLOCK:
+        return "Error: setting socket to non-blocking failed";
+    case ERR_BIND:
+        return "Error: bind failed";
+    case ERR_LISTEN:
+        return "Error: listen failed";
+    case ERR_SELECT:
+        return "Error: select failed";
+    case ERR_SEND:
+        return "Error: send failed";
+    case ERR_RECV:
+        return "Error: recv failed: closing connection";
+    case INVALID_METHOD:
+        return "Error: the method is not supported (yet)";
+    case INVALID_URL:
+        return "Error: Invalid URL";
+    case INVALID_VERSION:
+        return "Error: HTTP version not supported";
+    case INVALID_MANDATORY_HEADER:
+        return "Error: Missing mandatory header";
+    case INVALID_BODY:
+        return "Error: Invalid body";
+    case INVALID_BODY_LENGTH:
+        return "Error: Invalid body length";
+    case INVALID_MAX_REQUEST_SIZE:
+        return "Error: Request too long";
+    case INVALID_CONNECTION_CLOSE_BY_CLIENT:
+        return "Error: Connection closed by client";
+    case INVALID_REQUEST:
+        return "Error: Invalid request";
+    case INVALID_CONTENT_LENGTH:
+        return "Error: Invalid content length";
+    case ERR_FCNTL:
+        return "Error: fcntl failed";
+    case FILE_NOT_FOUND:
+        return "Error: File not found";
+    case FILE_READ_DENIED:
+        return "Error: Read access denied";
+    default:
+        return "Unknown Error";
     }
 }
-static char hexToAsciiChar(const std::string& hex) {
-    if (hex.length() != 2) {
+static char hexToAsciiChar(const std::string &hex)
+{
+    if (hex.length() != 2)
+    {
         throw std::invalid_argument("Hex string must be exactly 2 characters long.");
     }
 
@@ -117,71 +169,142 @@ static char hexToAsciiChar(const std::string& hex) {
     return static_cast<char>(decimalValue);
 }
 
-std::string getContentType(std::string& url, int status) {
-    if(status != 200) return "text/html";
-    if (url ==  "/") return "text/html";
-    if(*(url.rbegin()) == '/') return "text/html";
+std::string getContentType(std::string &url, int status)
+{
+    if (status != 200)
+        return "text/html";
+    if (url == "/")
+        return "text/html";
+    if (*(url.rbegin()) == '/')
+        return "text/html";
     size_t idx = url.find_last_of(".");
-    if(idx == std::string::npos) return "text/plain";
+    if (idx == std::string::npos)
+        return "text/plain";
     std::string extension = url.substr(idx);
-    if(extension.empty()) return "text/plain";
+    if (extension.empty())
+        return "text/plain";
     std::string urlC = &extension[0];
-    if (urlC == ".css")  {return "text/css";}
-    if (urlC == ".csv")  {return "text/csv";}
-    if (urlC == ".gif")  {return "image/gif";}
-    if (urlC == ".htm")  {return "text/html";}
-    if (urlC == ".html") {return "text/html";}
-    if (urlC == ".ico")  {return "image/x-icon";}
-    if (urlC == ".jpeg") {return "image/jpeg";} 
-    if (urlC == ".jpg")  {return "image/jpeg";}
-    if (urlC == ".js")   {return "application/javascript";}
-    if (urlC == ".json") {return "application/json";}
-    if (urlC == ".png")  {return "image/png";}
-    if (urlC == ".pdf")  {return "application/pdf";}
-    if (urlC == ".svg")  {return "image/svg+xml";}
-    if (urlC == ".txt")  {return "text/plain";}
+    if (urlC == ".css")
+    {
+        return "text/css";
+    }
+    if (urlC == ".csv")
+    {
+        return "text/csv";
+    }
+    if (urlC == ".gif")
+    {
+        return "image/gif";
+    }
+    if (urlC == ".htm")
+    {
+        return "text/html";
+    }
+    if (urlC == ".html")
+    {
+        return "text/html";
+    }
+    if (urlC == ".ico")
+    {
+        return "image/x-icon";
+    }
+    if (urlC == ".jpeg")
+    {
+        return "image/jpeg";
+    }
+    if (urlC == ".jpg")
+    {
+        return "image/jpeg";
+    }
+    if (urlC == ".js")
+    {
+        return "application/javascript";
+    }
+    if (urlC == ".json")
+    {
+        return "application/json";
+    }
+    if (urlC == ".png")
+    {
+        return "image/png";
+    }
+    if (urlC == ".pdf")
+    {
+        return "application/pdf";
+    }
+    if (urlC == ".svg")
+    {
+        return "image/svg+xml";
+    }
+    if (urlC == ".txt")
+    {
+        return "text/plain";
+    }
     // TODO: add support for error 415 unsupported media type
     return "text/plain";
 }
 
-std::string getMessageFromStatusCode(int status) {
-    switch(status) {
-        case 200: return "OK";
-        case 400: return "Bad Request";
-        case 403: return "Forbidden";
-        case 404: return "Not Found";
-        case 405: return "Method Not Allowed";
-        case 411: return "Length Required";
-        case 413: return "Payload Too Large";
-        case 414: return "URI Too Long";
-        case 415: return "Unsupported Media Type";
-        case 500: return "Internal Server Error";
-        case 501: return "Not Implemented";
-        case 505: return "HTTP Version Not Supported";
-        default: return "Status Code not recognized";
+std::string getMessageFromStatusCode(int status)
+{
+    switch (status)
+    {
+    case 200:
+        return "OK";
+    case 400:
+        return "Bad Request";
+    case 403:
+        return "Forbidden";
+    case 404:
+        return "Not Found";
+    case 405:
+        return "Method Not Allowed";
+    case 411:
+        return "Length Required";
+    case 413:
+        return "Payload Too Large";
+    case 414:
+        return "URI Too Long";
+    case 415:
+        return "Unsupported Media Type";
+    case 500:
+        return "Internal Server Error";
+    case 501:
+        return "Not Implemented";
+    case 505:
+        return "HTTP Version Not Supported";
+    default:
+        return "Status Code not recognized";
     }
     return "Status Code not recognized";
 }
 
-std::string sanitizeDots(std::string string) {
+std::string sanitizeDots(std::string string)
+{
     size_t pos;
-    while ((pos = string.find("..")) != std::string::npos) {
+    while ((pos = string.find("..")) != std::string::npos)
+    {
         string.erase(pos, 2);
     }
-    while ((pos = string.find("../")) != std::string::npos) {
+    while ((pos = string.find("../")) != std::string::npos)
+    {
         string.erase(pos, 3);
     }
     return string;
 }
 
-std::string removeHexChars(std::string& url) {
+std::string removeHexChars(std::string &url)
+{
     std::string result;
-    for(std::size_t i = 0; i < url.length(); ++i) {
-        if (url[i] == '%' && i + 2 < url.length()) {
-            std::string hex = url.substr(i + 1, 2); 
-            result += hexToAsciiChar(hex); 
+    for (std::size_t i = 0; i < url.length(); ++i)
+    {
+        if (url[i] == '%' && i + 2 < url.length())
+        {
+            std::string hex = url.substr(i + 1, 2);
+            result += hexToAsciiChar(hex);
             i += 2;
-        } else {
+        }
+        else
+        {
             result += url[i];
         }
     }
@@ -189,25 +312,26 @@ std::string removeHexChars(std::string& url) {
     return result;
 }
 
-ERROR checkPermissions(std::string fullPath, int mode) {
+ERROR checkPermissions(std::string fullPath, int mode)
+{
     ERROR error = 0;
-    if ((error = access(fullPath.c_str(), mode))) {
+    if ((error = access(fullPath.c_str(), mode)))
+    {
         return error;
     }
     return SUCCESS;
 }
 
-
-
-
-int strToInt(std::string str) {
+int strToInt(std::string str)
+{
     std::stringstream ss(str);
     int number;
     ss >> number;
     return number;
 }
 
-int strToHex(const std::string& str) {
+int strToHex(const std::string &str)
+{
     int number = 0;
     std::stringstream ss;
     ss << std::hex << str;
@@ -215,21 +339,25 @@ int strToHex(const std::string& str) {
     return number;
 }
 
-std::string intToStr(int number) {
+std::string intToStr(int number)
+{
     std::stringstream ss;
     ss << number;
     return ss.str();
 }
 
-std::string to_lower(const std::string& input) {
+std::string to_lower(const std::string &input)
+{
     std::string result = input;
-    for (std::string::size_type i = 0; i < result.size(); ++i) {
+    for (std::string::size_type i = 0; i < result.size(); ++i)
+    {
         result[i] = std::tolower(static_cast<unsigned char>(result[i]));
     }
     return result;
 }
 
-std::string trim(const std::string& str) {
+std::string trim(const std::string &str)
+{
     size_t first = str.find_first_not_of(" \t\r\n");
     size_t last = str.find_last_not_of(" \t\r\n");
     if (first == std::string::npos || last == std::string::npos)
@@ -237,13 +365,12 @@ std::string trim(const std::string& str) {
     return str.substr(first, last - first + 1);
 }
 
-
-
 std::string readBinaryStream(std::istringstream &stream, int size)
 {
     int i = 0;
     std::string fileContent;
-    while(i < size){
+    while (i < size)
+    {
         char ch;
         stream.get(ch);
         fileContent += ch;
@@ -284,7 +411,7 @@ std::string readBinaryStream(std::istringstream &stream, int size)
 //         if (line.find("Content-Disposition: form-data;") != std::string::npos) {
 //             if (!currentSection.empty()) {
 //                 sections.push_back(currentSection);
-//                 currentSection = ""; 
+//                 currentSection = "";
 //             }
 //         }
 //         currentSection += line + "\n";
@@ -307,7 +434,7 @@ std::string readBinaryStream(std::istringstream &stream, int size)
 //             body += line + "\n";
 //         } else if (line.find("Content-Disposition:") != std::string::npos) {
 //             std::string::size_type namePos = line.find("name=\"");
-            
+
 //             if (namePos != std::string::npos) {
 //                 namePos += 6;
 //                 std::string::size_type endPos = line.find("\"", namePos);
@@ -317,7 +444,7 @@ std::string readBinaryStream(std::istringstream &stream, int size)
 //             }
 
 //             std::string::size_type filenamePos = line.find("filename=\"");
-            
+
 //             if (filenamePos != std::string::npos) {
 //                 filenamePos += 10;
 //                 std::string::size_type endPos = line.find("\"", filenamePos);
