@@ -35,7 +35,7 @@ typedef int ERROR;
 
 #define ALLOWED_CHARS "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~:/?#[]@!$&'()*+,;=%"
 
-#define VERSION "0.0.1"
+#define VERSION "1.0.0"
 
 //List of possible error in the program, used to return a string error message
 //to check the actual error message, checkout functionn ErrToStr in Utlis.cpp
@@ -123,7 +123,7 @@ enum RequestStates {
     POST,
     DELETE,
   };
-int handle_arguments(char **argv);
+int handle_arguments(int argc , char **argv);
 
 std::string to_lower(const std::string& input);
 
