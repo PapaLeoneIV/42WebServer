@@ -7,8 +7,8 @@ class Exception : public std::exception {
     std::string message;
     
     public:
-        Exception(const char* msg) : message(msg) {}
-        Exception(const std::string& msg) : message(msg) {}
+        Exception(const char* msg)  throw() : message(msg) {}
+        Exception(const std::string& msg) throw() : message(msg) {}
         virtual ~Exception() throw() {}
     
         const char* what() const throw() {

@@ -14,7 +14,7 @@ int main(int argc, char **argv, char**envp)
         
         // TODO: finish parsing of config file
         // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/18
-        //if(validateConfigPath() && parseConfigFile()) return 1;
+        //if(validatePath() && createConfigTree()) return 1;
         
         
         //----TMP------
@@ -35,7 +35,7 @@ int main(int argc, char **argv, char**envp)
             std::cout << "webserver [OPTIONS]: wrong number of arguments" << std::endl;
             return 1;
         }
-        // if(validateConfigPath() && parseConfigFile()) return 1;
+        // if(validatePath() && createConfigTree()) return 1;
         
         return 0;
     }

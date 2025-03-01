@@ -57,8 +57,8 @@ private:
 
 class ConfigParser {
 public:
-  int validateConfigPath(std::string path);
-  TreeNode *parseConfigFile(std::string path);
+  int validatePath(std::string path);
+  TreeNode *createConfigTree(std::string path);
   int isValidDirective(std::string token);
   bool verifyDirectives(Server *server);
   int checkMandatoryDirectives(Server *server);
@@ -100,6 +100,6 @@ std::string removeComments(std::ifstream &file);
 std::string trimLeftRight(const std::string &str);
 std::string removeEmptyLines(const std::string &input);
 std::string trimm(const std::string &input);
-int setUpDefaultValues(Server *server);
+int setUpDefaultDirectiveValues(Server *server);
 
 #endif // CONFIGPARSER
