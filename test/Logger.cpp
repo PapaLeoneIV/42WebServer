@@ -6,7 +6,7 @@ void Logger::info(const std::string& message) {
 }
 
 void Logger::error(const std::string& file, const std::string& message) {
-    std::cout << "\033[1;31m[ERROR]\033[0m \033[1m" << file << "\033[0m: \033[1;31merror:\033[0m " << message << std::endl;
+    std::cout << "\033[1;31m[ERROR]\033[0m \033[1m" << file << "\033[0m " << message << std::endl;
 }
 
 
