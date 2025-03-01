@@ -18,8 +18,12 @@ SRCS = 	main.cpp \
 
 all: $(TARGET)
 
+parser:
+	g++ test/*.cpp ./src/*.cpp ./src/utils/*.cpp -I. -I./includes -g -Wall -Wextra -Wextra --std=c++98 -o  ./test/test
+
+
 configParser:
-	g++ test/*.cpp ./src/*.cpp ./src/utils/*.cpp -I. -I./includes -g -Wall -Wextra -Wextra --std=c++98 -o  testConfigParser
+	g++ test/*.cpp ./src/*.cpp ./src/utils/*.cpp -I. -I./includes -g -Wall -Wextra -Wextra --std=c++98 -o testConfigParser
 
 testParser: configParser
 	@echo "--------------------------------------------------"
