@@ -21,6 +21,7 @@
 
 typedef int (*FunctionPtr)(std::vector<std::string>);
 
+typedef std::map<std::string, std::vector<std::string> > ConfigDirectiveMap;
 
 
     
@@ -69,6 +70,9 @@ class ConfigParser {
     int validateConfigPath(std::string path);
     TreeNode * parseConfigFile(std::string path);
     int isValidDirective(std::string token);
+    bool verifyDirectives(Server *server);
+    int checkMandatoryDirectives(Server *server);
+    void extractDirectives(Server *server, TreeNode *node);
 
     
 
@@ -87,7 +91,6 @@ std::string removeComments(std::ifstream &file);
 std::string trimLeftRight(const std::string &str); 
 std::string removeEmptyLines(const std::string &input); 
 std::string trimm(const std::string &input);
-int checkMandatoryDirectives(Server *server);
 int setUpDefaultValues(Server *server);
 
 
