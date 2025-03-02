@@ -4,10 +4,10 @@
         "name": "C/C++ Debug (gdb Launch)",
         "type": "cppdbg",
         "request": "launch",
-        "program": "/nfs/sgoinfre/goinfre/Perso/rileone/Desktop/42WebServer/test/a.out",
-        "args": ["../config/nginx.conf"],
+        "program": "/home/papaleoneiv/Desktop/42WebServer/test/a.out",
+        "args": ["../config/invalid_port.conf"],
         "stopAtEntry": true,
-        "cwd": "/nfs/sgoinfre/goinfre/Perso/rileone/Desktop/42WebServer/test/a.out",
+        "cwd": "/home/papaleoneiv/Desktop/42WebServer/test",
         "environment": [],
         "MIMode": "gdb",
         "setupCommands": [
