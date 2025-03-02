@@ -13,25 +13,28 @@ SRCS = 	main.cpp \
 		src/Booter.cpp \
 		src/ServerManager.cpp \
 		src/Utils.cpp \
+		src/ConfigParser.cpp \
+		src/Exception.cpp \
+		src/Logger.cpp \
 		src/utils/utilsServerManager.cpp \
 		src/utils/utilsParser.cpp
 
+
 all: $(TARGET)
 
-parser:
-	g++ test/*.cpp ./src/*.cpp ./src/utils/*.cpp -I. -I./includes -g -Wall -Wextra -Wextra --std=c++98 -o  ./test/test
+testfile: $(SRCS)
+	@echo "--------------------------------------------------"
+	@echo "Compiling tester..."
+	@echo "--------------------------------------------------"
+	g++ $(SRCS) -I. -I./includes -g -Wall -Wextra -Wextra --std=c++98 -o tester
 
-
-configParser:
-	g++ test/*.cpp ./src/*.cpp ./src/utils/*.cpp -I. -I./includes -g -Wall -Wextra -Wextra --std=c++98 -o testConfigParser
-
-testParser: configParser
+launch_test: tester
 	@echo "--------------------------------------------------"
 	@echo "Running tests for all config files..."
 	@echo "--------------------------------------------------"
 	@for config_file in ./config/*.conf; do \
 		echo "Testing $$config_file..."; \
-		./testConfigParser $$config_file; \
+		./tester $$config_file; \
 		echo "--------------------------------------------------"; \
 	done
 

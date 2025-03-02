@@ -1,4 +1,6 @@
+#include "ServerManager.hpp"
 #include "ConfigParser.hpp"
+#include "Booter.hpp"
 #include "Exception.hpp"
 #include "Logger.hpp"
 #include <sstream>
@@ -13,25 +15,25 @@
     s.top()->add(node);                                    \
     tokenIdx++;
 
-#define check_open_block(openblock, i)                       \
-    if (openblock != "{")                                    \
-    {                                                        \
+#define check_open_block(openblock, i)                                                \
+    if (openblock != "{")                                                             \
+    {                                                                                 \
         Logger::error(path, "'server' || 'location' needs to have a open brace '{'"); \
-        return NULL;                                               \
+        return NULL;                                                                  \
     }
 
-#define check_directive_semicolom(value, tokenIdx)                 \
-    if (value.at(value.size() - 1) != ';')                         \
-    {                                                              \
+#define check_directive_semicolom(value, tokenIdx)               \
+    if (value.at(value.size() - 1) != ';')                       \
+    {                                                            \
         Logger::error(path, "directive needs to end with ';' "); \
-        return NULL;                                                     \
+        return NULL;                                             \
     }
 
 /** This function uses fnToParseDirectives, its a map of string and functions.
     The associated functions are used to parse the values of the directives.
     ex:
     fnToParseDirectives["listen"] = &ConfigParser::parseListenValues;
-    or 
+    or
     fnToParseDirectives["host"] = &ConfigParser::parseHostValues;
 */
 bool ConfigParser::verifyDirectives(Server *server)
@@ -130,7 +132,6 @@ std::string removeEmptyLines(const std::string &input)
     return resultStream.str();
 }
 
-
 /** This function is used to check if the directive is valid.
     It uses the directives vector to check if the directive is valid.
     If the directive is valid it returns 1, or there are two possibilities. One that the
@@ -140,8 +141,10 @@ std::string removeEmptyLines(const std::string &input)
 int ConfigParser::isValidDirective(std::string token)
 {
     std::vector<std::string>::iterator it;
-    for (it = this->directives.begin(); it != this->directives.end(); ++it){
-        if (token == *it){
+    for (it = this->directives.begin(); it != this->directives.end(); ++it)
+    {
+        if (token == *it)
+        {
             return 1;
         }
     }
@@ -157,7 +160,8 @@ int ConfigParser::validatePath(std::string path)
     }
 
     size_t dotIdx = path.find_last_of(".");
-    if(dotIdx == std::string::npos){
+    if (dotIdx == std::string::npos)
+    {
         Logger::error(path, "The file must have a '.' to indicate the file extension.");
         return 1;
     }
@@ -192,42 +196,54 @@ int ConfigParser::validatePath(std::string path)
     return 0;
 }
 
-void ConfigParser::fromConfigFileToServers(ServerManager *serverManager, char **argv){
-    
-    ConfigParser configParser;
-    
-    TreeNode *root = configParser.createConfigTree(std::string(argv[1]));
-        
-    if (root == NULL)
-        throw Exception("invalid configuration file");
-    
-    for (std::vector<TreeNode *>::iterator currentNode = root->getChildren().begin(); currentNode != root->getChildren().end(); ++currentNode){
+int ConfigParser::fromConfigFileToServers(char *file)
+{
+
+    Booter booter;
+    std::vector<Server *> servers;
+
+    TreeNode *root = this->createConfigTree(std::string(file));
+
+    if (root == NULL){
+        Logger::error("", "invalid configuration file");
+        return 1;
+    }
+
+    for (std::vector<TreeNode *>::iterator currentNode = root->getChildren().begin(); currentNode != root->getChildren().end(); ++currentNode)
+    {
         if ((*currentNode)->getDirective() == "server")
         {
             Server *server = new Server();
-            
-            configParser.extractDirectives(server, *currentNode);
-            
-            if (configParser.checkMandatoryDirectives(server))
-                throw Exception("missing mandatory directives");
-            
+
+            if(this->extractDirectives(server, *currentNode)){
+                Logger::error(this->getFileName(), "duplicate directive error");
+                return 1;
+            }
+
+            if (this->checkMandatoryDirectives(server)){
+                Logger::error(this->getFileName(), "missing mandatory directives");
+                return 1;
+            }
+
             setUpDefaultDirectiveValues(server);
-            
-            if (configParser.verifyDirectives(server))
-                throw Exception("invalid directive value");
-            
-            serverManager->addServer(server);
+
+            if (this->verifyDirectives(server)){
+                Logger::error(this->getFileName(), "invalid directive value");
+                return 1;
+            }
+            servers.push_back(server); 
         }
     }
+    this->setTmpServer(servers);
+    return 0;
 }
-
-
 
 TreeNode *ConfigParser::createConfigTree(std::string path)
 {
 
     std::ifstream file(path.c_str());
-    if (!file){
+    if (!file)
+    {
         Logger::error(path, "The file could not be opened.");
         return NULL;
     }
@@ -256,8 +272,8 @@ TreeNode *ConfigParser::createConfigTree(std::string path)
         if (isValidDirective(tokens[tokenIdx]))
         {
             std::string value;
-            std::getline(lineStream, value);     
-            std::istringstream valueStream(value);    
+            std::getline(lineStream, value);
+            std::istringstream valueStream(value);
 
             std::vector<std::string> valueTokens;
             std::string valueToken;
@@ -270,7 +286,7 @@ TreeNode *ConfigParser::createConfigTree(std::string path)
             }
             std::string &lastValue = valueTokens[valueTokens.size() - 1];
             check_directive_semicolom(lastValue, tokenIdx);
-            lastValue = lastValue.substr(0, lastValue.size() - 1); 
+            lastValue = lastValue.substr(0, lastValue.size() - 1);
             add_block_to_Tree(directive, token, valueTokens, tokenIdx, s);
             continue;
         }
@@ -296,7 +312,7 @@ TreeNode *ConfigParser::createConfigTree(std::string path)
             push_back_next_token(locationPath, tokenIdx);
             std::string openblock;
             push_back_next_token(openblock, tokenIdx)
-            check_open_block(openblock, tokenIdx);
+                check_open_block(openblock, tokenIdx);
             if (s.top()->getDirective() != "server")
                 break;
             locationPathV.push_back(locationPath);
@@ -308,7 +324,8 @@ TreeNode *ConfigParser::createConfigTree(std::string path)
         // fine blocco
         if (token == "}")
         {
-            if (s.size() <= 1){
+            if (s.size() <= 1)
+            {
                 Logger::error(path, "Error during the parsing");
                 return NULL;
             }
@@ -320,9 +337,10 @@ TreeNode *ConfigParser::createConfigTree(std::string path)
         Logger::error(path, "invalid token found '" + token + "'");
     }
 
-    if (s.size() > 1){
-        Logger::error(path,  "Error during the parsing");
-        return(NULL);
+    if (s.size() > 1)
+    {
+        Logger::error(path, "Error during the parsing");
+        return (NULL);
     }
     return root;
 }
@@ -365,7 +383,8 @@ int ConfigParser::parseListenValues(std::vector<std::string> v)
             size_t i = 0;
             while (i < octect.size())
             {
-                if (!isdigit(octect[i])){
+                if (!isdigit(octect[i]))
+                {
                     Logger::error(this->getFileName(), "address octect is not a digit");
                     return 1;
                 }
@@ -408,7 +427,8 @@ int ConfigParser::parseListenValues(std::vector<std::string> v)
     }
     return 0;
 }
-int ConfigParser::parseHostValues(std::vector<std::string> v){
+int ConfigParser::parseHostValues(std::vector<std::string> v)
+{
     if (v.size() > 1)
     {
         Logger::error(this->getFileName(), "'host' directive can't have more than one value");
@@ -455,7 +475,8 @@ int ConfigParser::parseServerNameValues(std::vector<std::string> v)
     size_t i = 0;
     while (i < v.size())
     {
-        if (v[i].empty()){
+        if (v[i].empty())
+        {
             Logger::error(this->getFileName(), "server_name directive can't have empty values");
             return 1;
         }
@@ -466,19 +487,22 @@ int ConfigParser::parseServerNameValues(std::vector<std::string> v)
 
 int ConfigParser::parseErrorPageValues(std::vector<std::string> v)
 {
-    if (v.size() != 2){
+    if (v.size() != 2)
+    {
         Logger::error(this->getFileName(), "'error_page' directive must have 2 values [code] [path]");
         return 1;
     }
     std::string code = v[0];
     std::string path = v[1];
-    if (code.size() != 3){
+    if (code.size() != 3)
+    {
         Logger::error(this->getFileName(), "'error_page' [code] must have 3 digits");
         return 1;
     }
     for (size_t i = 0; i < code.size(); ++i)
     {
-        if (!isdigit(code[i])){
+        if (!isdigit(code[i]))
+        {
             Logger::error(this->getFileName(), "'error_page' [code] must be a digit");
             return 1;
         }
@@ -486,19 +510,22 @@ int ConfigParser::parseErrorPageValues(std::vector<std::string> v)
     std::stringstream num(code);
     int codeNum;
     num >> codeNum;
-    if (codeNum < 100 || codeNum > 599){
+    if (codeNum < 100 || codeNum > 599)
+    {
         Logger::error(this->getFileName(), "'error_page' [code] must be in the range 100-599");
         return 1;
     }
 
-    if (path.empty()){
+    if (path.empty())
+    {
         Logger::error(this->getFileName(), "'error_page' [path] is empty");
         return 1;
     }
     std::string rootFolder = getcwd(NULL, 0);
     rootFolder = rootFolder.append("/");
     rootFolder = rootFolder.append(path);
-    if (access(rootFolder.c_str(), R_OK) != 0){
+    if (access(rootFolder.c_str(), R_OK) != 0)
+    {
         Logger::error(this->getFileName(), "'error_page' [path] is not readable " + rootFolder);
         return 1;
     }
@@ -513,22 +540,24 @@ int ConfigParser::parseClientMaxBodyValues(std::vector<std::string> v)
         return 1;
     }
     std::string value = v[0];
-    if (value.empty()){
+    if (value.empty())
+    {
         Logger::error(this->getFileName(), "'client_max_body_size' directive can't have empty values");
         return 1;
     }
     for (size_t i = 0; i < value.size(); ++i)
     {
-        if (!isdigit(value[i])){
+        if (!isdigit(value[i]))
+        {
             Logger::error(this->getFileName(), "'client_max_body_size' directive must be a digit");
             return 1;
         }
-        
     }
     std::stringstream num(value);
     int valueNum;
     num >> valueNum;
-    if (valueNum <= 0 || valueNum >= INT_MAX){
+    if (valueNum <= 0 || valueNum >= INT_MAX)
+    {
         Logger::error(this->getFileName(), "'client_max_body_size' directive must be in the range 1-INT_MAX");
         return 1;
     }
@@ -537,17 +566,20 @@ int ConfigParser::parseClientMaxBodyValues(std::vector<std::string> v)
 // Syntax:	root path;
 int ConfigParser::parseRootValues(std::vector<std::string> v)
 {
-    if (v.size() != 1){
+    if (v.size() != 1)
+    {
         Logger::error(this->getFileName(), "'root' path must have 1 value");
         return 1;
     }
     std::string path = v[0];
-    if (path.empty()){
+    if (path.empty())
+    {
         Logger::error(this->getFileName(), "'root' path can't have empty values");
         return 1;
     }
-    if (access(path.c_str(), R_OK) != 0){
-        Logger::error(this->getFileName(), "'root' path is not readable " + path );
+    if (access(path.c_str(), R_OK) != 0)
+    {
+        Logger::error(this->getFileName(), "'root' path is not readable " + path);
         return 1;
     }
     return 0;
@@ -560,13 +592,15 @@ int ConfigParser::parseIndexValues(std::vector<std::string> v)
     while (i < v.size())
     {
         std::string value = v[i];
-        if (value.empty()){
+        if (value.empty())
+        {
             Logger::error(this->getFileName(), "'index' directive can't have empty values");
             return 1;
         }
 
         size_t dotIdx = value.find_last_of(".");
-        if (dotIdx == 0 || dotIdx == value.size()){
+        if (dotIdx == 0 || dotIdx == value.size())
+        {
             Logger::error(this->getFileName(), "'.' position cannot be at the beginning or at the end of the string");
             return 1;
         }
@@ -574,11 +608,12 @@ int ConfigParser::parseIndexValues(std::vector<std::string> v)
         if (dotIdx != std::string::npos)
         {
             std::string extension = value.substr(dotIdx, value.size());
-            if (extension != ".html"){
+            if (extension != ".html")
+            {
                 Logger::error(this->getFileName(), "index directive must have .html extension");
                 return 1; // TODO: atm i m only accepting .html as index file, check if we can allow other extension
             }
-                          // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/24
+            // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/24
             i++;
         }
     }
@@ -588,17 +623,20 @@ int ConfigParser::parseIndexValues(std::vector<std::string> v)
 // Syntax:	autoindex on | off;
 int ConfigParser::parseAutoIndexValues(std::vector<std::string> v)
 {
-    if (v.size() != 1){
+    if (v.size() != 1)
+    {
         Logger::error(this->getFileName(), "'autoindex' directive must have 1 value");
         return 1;
     }
     std::string value = v[0];
-    if (value.empty()){
+    if (value.empty())
+    {
         Logger::error(this->getFileName(), "'autoindex' directive can't have empty values");
         return 1;
     }
 
-    if (value != "on" && value != "off"){
+    if (value != "on" && value != "off")
+    {
         Logger::error(this->getFileName(), "'autoindex' directive must be 'on' or 'off'");
         return 1;
     }
@@ -608,7 +646,8 @@ int ConfigParser::parseAutoIndexValues(std::vector<std::string> v)
 
 int ConfigParser::parseAllowMethodsValues(std::vector<std::string> v)
 {
-    if (v.empty() || v.size() > 6){
+    if (v.empty() || v.size() > 6)
+    {
         Logger::error(this->getFileName(), "'allow_methods' directive must have 1-5 values");
         return 1;
     }
@@ -616,7 +655,8 @@ int ConfigParser::parseAllowMethodsValues(std::vector<std::string> v)
     while (i < v.size())
     {
         std::string value = v[0];
-        if (value != "GET" && value != "POST" && value != "PUT" && value != "DELETE" && value != "HEAD"){
+        if (value != "GET" && value != "POST" && value != "PUT" && value != "DELETE" && value != "HEAD")
+        {
             Logger::error(this->getFileName(), "'allow_methods' directive must be 'GET', 'POST', 'PUT', 'DELETE' or 'HEAD'");
             return 1;
         }
@@ -626,10 +666,11 @@ int ConfigParser::parseAllowMethodsValues(std::vector<std::string> v)
 }
 
 //'return' code [text];
-// TODO :need to attach root to the [text] value 
+// TODO :need to attach root to the [text] value
 int ConfigParser::parseReturnValues(std::vector<std::string> v)
 {
-    if (v.empty() || v.size() > 2){
+    if (v.empty() || v.size() > 2)
+    {
         Logger::error(this->getFileName(), "'return' directive must have 1-2 values");
         return 1;
     }
@@ -639,7 +680,8 @@ int ConfigParser::parseReturnValues(std::vector<std::string> v)
 
     for (size_t i = 0; i < errorCode.size(); ++i)
     {
-        if (!isdigit(errorCode[i])){
+        if (!isdigit(errorCode[i]))
+        {
             Logger::error(this->getFileName(), "'return' directive must have a digit as first value");
             return 1;
         }
@@ -647,7 +689,8 @@ int ConfigParser::parseReturnValues(std::vector<std::string> v)
     std::stringstream num(errorCode);
     int codeNum;
     num >> codeNum;
-    if (codeNum < 100 || codeNum > 599){
+    if (codeNum < 100 || codeNum > 599)
+    {
         Logger::error(this->getFileName(), "'return' directive must be in the range 100-599");
         return 1;
     }
@@ -656,7 +699,8 @@ int ConfigParser::parseReturnValues(std::vector<std::string> v)
     if (v.size() == 2)
     {
         std::string text = v[1];
-        if (text.empty()){
+        if (text.empty())
+        {
             Logger::error(this->getFileName(), "'return' directive can't have empty values");
             return 1;
         }
@@ -672,15 +716,17 @@ int ConfigParser::parseReturnValues(std::vector<std::string> v)
 // Syntax: alias path;
 int ConfigParser::parseAliasValues(std::vector<std::string> v)
 {
-    if (v.size() != 1){
+    if (v.size() != 1)
+    {
         Logger::error(this->getFileName(), "'alias' directive must have a value");
         return 1;
     }
     std::string path = v[0];
-    if (path.empty()){
+    if (path.empty())
+    {
         Logger::error(this->getFileName(), "'alias' path cannot be empty");
         return 1;
-    } 
+    }
     return 0;
 }
 
@@ -709,7 +755,8 @@ int ConfigParser::parseCgiExtValues(std::vector<std::string> v)
     while (i < v.size())
     {
         std::string extension = v[i];
-        if (extension[0] != '.'){
+        if (extension[0] != '.')
+        {
             Logger::error(this->getFileName(), "cgi_ext [extension] must start with '.'");
             return 1;
         }
@@ -719,7 +766,8 @@ int ConfigParser::parseCgiExtValues(std::vector<std::string> v)
             if (extension == extensionsAllowd[j])
                 knwonExtension = false;
         }
-        if(knwonExtension){
+        if (knwonExtension)
+        {
             Logger::error(this->getFileName(), "cgi_ext [extension] is not allowed");
             return 1;
         }
@@ -730,21 +778,26 @@ int ConfigParser::parseCgiExtValues(std::vector<std::string> v)
 
 int ConfigParser::parseCGIPathValues(std::vector<std::string> v)
 {
-    if (v.size() < 1){
+    if (v.size() < 1)
+    {
         Logger::error(this->getFileName(), "cgi_path directive must have at least 1 value");
         return 1;
     }
-    for(size_t i = 0; i < v.size(); ++i){
+    for (size_t i = 0; i < v.size(); ++i)
+    {
         std::string path = v[0];
-        if (path.empty()){
+        if (path.empty())
+        {
             Logger::error(this->getFileName(), "cgi_path [path] can't have empty values");
             return 1;
         }
-        if (path[0] != '/'){
+        if (path[0] != '/')
+        {
             Logger::error(this->getFileName(), "cgi_path [path] must start with '/'");
             return 1;
         }
-        if (access(path.c_str(), R_OK) != 0){
+        if (access(path.c_str(), R_OK) != 0)
+        {
             Logger::error(this->getFileName(), "cgi_path [path] is not readable");
             return 1;
         }
@@ -755,16 +808,19 @@ int ConfigParser::parseCGIPathValues(std::vector<std::string> v)
 // Syntax: proxy_pass URL;
 int ConfigParser::parseProxyPassValues(std::vector<std::string> v)
 {
-    if (v.size() != 1){
+    if (v.size() != 1)
+    {
         Logger::error(this->getFileName(), "proxy_pass directive must have 1 value");
         return 1;
     }
     std::string url = v[0];
-    if (url.empty()){
+    if (url.empty())
+    {
         Logger::error(this->getFileName(), "proxy_pass [URL] can't have empty values");
         return 1;
     }
-    if (url[0] != '/'){
+    if (url[0] != '/')
+    {
         Logger::error(this->getFileName(), "proxy_pass [URL] must start with '/'");
         return 1;
     }
@@ -824,10 +880,10 @@ int setUpDefaultDirectiveValues(Server *server)
     return 0;
 }
 
-void ConfigParser::extractDirectives(Server *server, TreeNode *node)
+int ConfigParser::extractDirectives(Server *server, TreeNode *node)
 {
     if (node == NULL)
-        return;
+        return 1;
     std::vector<TreeNode *> children = node->getChildren();
     std::vector<TreeNode *>::iterator currentNode;
 
@@ -837,9 +893,10 @@ void ConfigParser::extractDirectives(Server *server, TreeNode *node)
         {
             if (node->getDirective() == "server")
             {
-                if(server->getServerDir()[(*currentNode)->getDirective()].size() > 0){
+                if (server->getServerDir()[(*currentNode)->getDirective()].size() > 0)
+                {
                     Logger::error(this->getFileName(), "directive " + (*currentNode)->getDirective() + " already set");
-                    exit(1);
+                    return(1);
                 }
                 server->setServerDir((*currentNode)->getDirective(), (*currentNode)->getValue());
             }
@@ -848,13 +905,14 @@ void ConfigParser::extractDirectives(Server *server, TreeNode *node)
                 if (node->getValue().size() > 1)
                 {
                     Logger::error(this->getFileName(), "location directive can't have more than one value");
-                    exit(1);
+                    return(1);
                 }
                 server->setLocationDir(node->getValue()[0], (*currentNode)->getDirective(), (*currentNode)->getValue());
             }
         }
         extractDirectives(server, *currentNode);
     }
+    return 0;
 }
 
 int ConfigParser::checkMandatoryDirectives(Server *server)
@@ -923,10 +981,19 @@ void ConfigParser::setFileName(std::string file)
     this->fileName = file;
 }
 
-
 std::string ConfigParser::getFileName()
 {
     return this->fileName;
+}
+
+std::vector<Server *> &ConfigParser::getTmpServer()
+{
+    return this->tmpServerArray;
+}
+
+void ConfigParser::setTmpServer(std::vector<Server *> server)
+{
+    this->tmpServerArray = server;
 }
 
 ConfigParser::ConfigParser()

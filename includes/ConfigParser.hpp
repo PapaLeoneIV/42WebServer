@@ -19,57 +19,59 @@
 #include "../includes/Server.hpp"
 #include "../includes/ServerManager.hpp"
 
-
 typedef int (*FunctionPtr)(std::vector<std::string>);
- 
+
 typedef std::map<std::string, std::vector<std::string> > ConfigDirectiveMap;
 
-class TreeNode {
-  public:
-    TreeNode(std::string directive, std::vector<std::string> value) {
-      this->directive = directive;
-      this->value = value;
-    }
-    void add(TreeNode *node) { children.push_back(node); }
-    void print(int level = 0) {
-      for (int i = 0; i < level; ++i)
-        std::cout << "  ";
-      std::cout << directive;
-      if (!value.empty()) {
-        size_t i = 0;
-        while (i < value.size()) {
-          std::cout << " " << value[i];
-          i++;
-        }
+class TreeNode
+{
+public:
+  TreeNode(std::string directive, std::vector<std::string> value)
+  {
+    this->directive = directive;
+    this->value = value;
+  }
+  void add(TreeNode *node) { children.push_back(node); }
+  void print(int level = 0)
+  {
+    for (int i = 0; i < level; ++i)
+      std::cout << "  ";
+    std::cout << directive;
+    if (!value.empty())
+    {
+      size_t i = 0;
+      while (i < value.size())
+      {
+        std::cout << " " << value[i];
+        i++;
       }
-      std::cout << std::endl;
-      for (size_t i = 0; i < children.size(); ++i)
-        children[i]->print(level + 1);
     }
-    std::string &getDirective() { return directive; }
-    std::vector<std::string> &getValue() { return value; }
-    std::vector<TreeNode *> &getChildren() { return children; }
-  
-  private:
-    std::string directive;
-    std::vector<std::string> value;
-    std::vector<TreeNode *> children;
-  };
+    std::cout << std::endl;
+    for (size_t i = 0; i < children.size(); ++i)
+      children[i]->print(level + 1);
+  }
+  std::string &getDirective() { return directive; }
+  std::vector<std::string> &getValue() { return value; }
+  std::vector<TreeNode *> &getChildren() { return children; }
 
-class ConfigParser {
+private:
+  std::string directive;
+  std::vector<std::string> value;
+  std::vector<TreeNode *> children;
+};
+
+class ConfigParser
+{
 public:
   int validatePath(std::string path);
   TreeNode *createConfigTree(std::string path);
   int isValidDirective(std::string token);
   bool verifyDirectives(Server *server);
   int checkMandatoryDirectives(Server *server);
-  void extractDirectives(Server *server, TreeNode *node);
-  void fromConfigFileToServers(ServerManager *serverManager, char **argv);
+  int extractDirectives(Server *server, TreeNode *node);
+  int fromConfigFileToServers(char *file);
 
-
-
-
-int parseListenValues(std::vector<std::string> v);
+  int parseListenValues(std::vector<std::string> v);
   int parseHostValues(std::vector<std::string> v);
   int parseServerNameValues(std::vector<std::string> v);
   int parseErrorPageValues(std::vector<std::string> v);
@@ -86,6 +88,8 @@ int parseListenValues(std::vector<std::string> v);
 
   void setFileName(std::string path);
   std::string getFileName();
+  std::vector<Server *> &getTmpServer();
+  void setTmpServer(std::vector<Server *> server);
 
   ConfigParser();
   ~ConfigParser();
@@ -95,6 +99,7 @@ int parseListenValues(std::vector<std::string> v);
   std::vector<std::string> extensionsAllowd;
 
 private:
+  std::vector<Server *> tmpServerArray;
   std::string fileName;
 };
 
