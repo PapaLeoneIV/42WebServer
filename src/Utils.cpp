@@ -7,7 +7,7 @@ int handle_arguments(int argc, char **argv)
         {
             if (std::string(argv[1]) == "--help"){
                 std::cout << std::endl;
-                std::cout << "Usage: webserver [OPTIONS] <config-filepath>" << std::endl;
+                std::cout << "Usage: webserver { [OPTIONS] || <config-filepath> }" << std::endl;
                 std::cout << "         --help                           Display this help and exit" << std::endl;
                 std::cout << "         -t <config-filepath>             Test the configuration file" << std::endl;
                 std::cout << "         -v                               Display the current version" << std::endl;
@@ -25,16 +25,15 @@ int handle_arguments(int argc, char **argv)
                 std::cout << "webserver config-file testing: missing <config-filepath>" << std::endl;
                 exit(0);
             }
-
-            std::cout << "webserver: try 'webserver --help' for more information" << std::endl;
-            exit(0);
+            
+            return 1;
+            //parse and boot server
             
         } else if(argc == 3) {
             if (std::string(argv[1]) != "-t"){
                 std::cout << "webserver: try 'webserver --help' for more information" << std::endl;
                 exit(0);
             }
-            //parse config and print if ok or not
         } else {
             std::cout << "webserver: try 'webserver --help' for more information" << std::endl;
             exit(0);
