@@ -5,9 +5,10 @@
 #include "Logger.hpp"
 int main(int argc, char **argv)
 {
-    if (!handle_arguments(argc, argv))
+    if (handle_arguments(argc, argv))
         return (1);
 
+    Logger::info("webserver: starting...");
     ServerManager serverManager;
     ConfigParser configParser;
  
@@ -15,15 +16,23 @@ int main(int argc, char **argv)
         Logger::error(argv[1], "invalid configuration file");
         return 1;
     }
+    Logger::info("Configuration file loaded successfully");
 
     Booter booter;
+    Logger::info("Starting servers...");
     for(size_t i = 0; i < configParser.getTmpServer().size(); i++){
         Server *server = configParser.getTmpServer()[i];
-        booter.bootServer(server,server->getServerDir()["host"][0].c_str(), server->getServerDir()["listen"][0].c_str());
-        Logger::info("Server started on " + server->getServerDir()["host"][0] + ":" + server->getServerDir()["listen"][0]);
+
+        std::string host = server->getServerDir()["host"][0];
+        std::string port = server->getServerDir()["listen"][0];
+        std::string msg = "Server started on " + std::string(host) + ":" + std::string(port);
+        Logger::info(msg);
+        
+        booter.bootServer(server, host.c_str(), port.c_str());
         serverManager.addServer(server);
     }
-    
+    Logger::info("Servers started successfully");
+
     serverManager.eventLoop();
 
     return 0;

@@ -153,24 +153,13 @@ int ConfigParser::isValidDirective(std::string token)
 
 int ConfigParser::validatePath(std::string path)
 {
+    this->setFileName(path);
     if (path.empty())
     {
         Logger::error(path, "Path is empty.");
         return 1;
     }
 
-    size_t dotIdx = path.find_last_of(".");
-    if (dotIdx == std::string::npos)
-    {
-        Logger::error(path, "The file must have a '.' to indicate the file extension.");
-        return 1;
-    }
-    std::string fileExtension = path.substr(dotIdx, path.size());
-    if (fileExtension != ".conf")
-    {
-        Logger::error(path, "The file must have a .conf extension.");
-        return 1;
-    }
 
     struct stat fileInfo;
     if (stat(path.c_str(), &fileInfo) != 0 || !(fileInfo.st_mode & S_IFREG))
@@ -192,7 +181,20 @@ int ConfigParser::validatePath(std::string path)
         return 1;
     }
 
-    this->setFileName(path);
+    size_t dotIdx = path.find_last_of(".");
+    if (dotIdx == std::string::npos)
+    {
+        Logger::error(path, "The file must have a '.' to indicate the file extension.");
+        return 1;
+    }
+    std::string fileExtension = path.substr(dotIdx, path.size());
+    if (fileExtension != ".conf")
+    {
+        Logger::error(path, "The file must have a .conf extension.");
+        return 1;
+    }
+
+
     return 0;
 }
 

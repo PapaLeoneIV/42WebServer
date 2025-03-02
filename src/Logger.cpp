@@ -2,7 +2,7 @@
 
 
 void Logger::info(const std::string& message) {
-    std::cout << "\033[1;32m[INFO] : " << message << "\033[0m" << std::endl;
+    std::cout << "\033[1;32m[INFO]\033[0m : " << message  << std::endl;
 }
 
 void Logger::error(const std::string& file, const std::string& message) {
