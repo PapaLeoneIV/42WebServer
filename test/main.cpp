@@ -4,48 +4,18 @@
 #include "Logger.hpp"
 
 
-
-
 int main(int argc, char **argv)
 {
     if (argc != 2)
         return 1;
     ConfigParser configParser;
+    ServerManager serverManager;
     try{
         
         if (configParser.validatePath(std::string(argv[1])))
             throw Exception("invalid path for configuration file");
         
-        configParser.setFileName(argv[1]);
-        
-        TreeNode *root = configParser.createConfigTree(std::string(argv[1]));
-        
-        if (root == NULL)
-            throw Exception("invalid configuration file");
-        
-        std::vector<TreeNode *> children = root->getChildren();
-        std::vector<TreeNode *>::iterator currentNode;
-        
-        ServerManager *serverManager = new ServerManager();
-
-        for (currentNode = children.begin(); currentNode != children.end(); ++currentNode){
-            if ((*currentNode)->getDirective() == "server")
-            {
-                Server *server = new Server();
-                
-                configParser.extractDirectives(server, *currentNode);
-                
-                if (configParser.checkMandatoryDirectives(server))
-                    throw Exception("missing mandatory directives");
-                
-                setUpDefaultDirectiveValues(server);
-                
-                if (configParser.verifyDirectives(server))
-                    throw Exception("invalid directive value");
-                
-                serverManager->addServer(server);
-            }
-        }
+        configParser.fromConfigFileToServers(&serverManager, argv);
     }
     catch (Exception &e){
         Logger::error(configParser.getFileName(), e.what());

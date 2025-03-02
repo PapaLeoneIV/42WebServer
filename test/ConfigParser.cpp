@@ -51,7 +51,9 @@ bool ConfigParser::verifyDirectives(Server *server)
         ConfigDirectiveMap locationDirMap = (*locationDirIt).second;
         for (ConfigDirectiveMap::iterator locationDirMapIt = locationDirMap.begin(); locationDirMapIt != locationDirMap.end(); ++locationDirMapIt)
         {
-            if ((this->*fnToParseDirectives[(*locationDirMapIt).first])((*locationDirMapIt).second))
+            std::string nginxLocationDir = (*locationDirMapIt).first;
+            std::vector<std::string> nginxLocationDirValue = (*locationDirMapIt).second;
+            if ((this->*fnToParseDirectives[nginxLocationDir])(nginxLocationDirValue))
                 return 1;
         }
     }
@@ -148,8 +150,6 @@ int ConfigParser::isValidDirective(std::string token)
 
 int ConfigParser::validatePath(std::string path)
 {
-    
-
     if (path.empty())
     {
         Logger::error(path, "Path is empty.");
@@ -187,8 +187,41 @@ int ConfigParser::validatePath(std::string path)
         Logger::error(path, "The file could not be opened.");
         return 1;
     }
+
+    this->setFileName(path);
     return 0;
 }
+
+void ConfigParser::fromConfigFileToServers(ServerManager *serverManager, char **argv){
+    
+    ConfigParser configParser;
+    
+    TreeNode *root = configParser.createConfigTree(std::string(argv[1]));
+        
+    if (root == NULL)
+        throw Exception("invalid configuration file");
+    
+    for (std::vector<TreeNode *>::iterator currentNode = root->getChildren().begin(); currentNode != root->getChildren().end(); ++currentNode){
+        if ((*currentNode)->getDirective() == "server")
+        {
+            Server *server = new Server();
+            
+            configParser.extractDirectives(server, *currentNode);
+            
+            if (configParser.checkMandatoryDirectives(server))
+                throw Exception("missing mandatory directives");
+            
+            setUpDefaultDirectiveValues(server);
+            
+            if (configParser.verifyDirectives(server))
+                throw Exception("invalid directive value");
+            
+            serverManager->addServer(server);
+        }
+    }
+}
+
+
 
 TreeNode *ConfigParser::createConfigTree(std::string path)
 {

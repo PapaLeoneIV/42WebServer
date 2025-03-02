@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "../includes/Server.hpp"
+#include "../includes/ServerManager.hpp"
 
 
 typedef int (*FunctionPtr)(std::vector<std::string>);
@@ -24,36 +25,36 @@ typedef int (*FunctionPtr)(std::vector<std::string>);
 typedef std::map<std::string, std::vector<std::string> > ConfigDirectiveMap;
 
 class TreeNode {
-public:
-  TreeNode(std::string directive, std::vector<std::string> value) {
-    this->directive = directive;
-    this->value = value;
-  }
-  void add(TreeNode *node) { children.push_back(node); }
-  void print(int level = 0) {
-    for (int i = 0; i < level; ++i)
-      std::cout << "  ";
-    std::cout << directive;
-    if (!value.empty()) {
-      size_t i = 0;
-      while (i < value.size()) {
-        std::cout << " " << value[i];
-        i++;
-      }
+  public:
+    TreeNode(std::string directive, std::vector<std::string> value) {
+      this->directive = directive;
+      this->value = value;
     }
-    std::cout << std::endl;
-    for (size_t i = 0; i < children.size(); ++i)
-      children[i]->print(level + 1);
-  }
-  std::string &getDirective() { return directive; }
-  std::vector<std::string> &getValue() { return value; }
-  std::vector<TreeNode *> &getChildren() { return children; }
-
-private:
-  std::string directive;
-  std::vector<std::string> value;
-  std::vector<TreeNode *> children;
-};
+    void add(TreeNode *node) { children.push_back(node); }
+    void print(int level = 0) {
+      for (int i = 0; i < level; ++i)
+        std::cout << "  ";
+      std::cout << directive;
+      if (!value.empty()) {
+        size_t i = 0;
+        while (i < value.size()) {
+          std::cout << " " << value[i];
+          i++;
+        }
+      }
+      std::cout << std::endl;
+      for (size_t i = 0; i < children.size(); ++i)
+        children[i]->print(level + 1);
+    }
+    std::string &getDirective() { return directive; }
+    std::vector<std::string> &getValue() { return value; }
+    std::vector<TreeNode *> &getChildren() { return children; }
+  
+  private:
+    std::string directive;
+    std::vector<std::string> value;
+    std::vector<TreeNode *> children;
+  };
 
 class ConfigParser {
 public:
@@ -63,6 +64,7 @@ public:
   bool verifyDirectives(Server *server);
   int checkMandatoryDirectives(Server *server);
   void extractDirectives(Server *server, TreeNode *node);
+  void fromConfigFileToServers(ServerManager *serverManager, char **argv);
 
 
 
