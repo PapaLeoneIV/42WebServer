@@ -180,6 +180,12 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
 
     // TODO: check if we need to close the connection or if we can keep the client fd open for next request 
     // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/13
+    
+    
+    
+    // TODO: BUG SCOPERTO, praticamente quando non c'e' il campo connection, 
+    // il client non viene mai cancellato dalla mappa dei clienti
+    // e continuiamo a mandargli sempre la stessa response. Vo a casa see ya
     if(request->getHeaders()["connection"] == "close")
         this->removeClient(fd);
     
