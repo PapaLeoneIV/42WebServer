@@ -13,13 +13,30 @@ SRCS = 	main.cpp \
 		src/Booter.cpp \
 		src/ServerManager.cpp \
 		src/Utils.cpp \
+		src/ConfigParser.cpp \
+		src/Exception.cpp \
+		src/Logger.cpp \
 		src/utils/utilsServerManager.cpp \
 		src/utils/utilsParser.cpp
 
+
 all: $(TARGET)
 
-configParser:
-	c++ test/ConfigParser.cpp test/main.cpp ./src/*.cpp ./src/utils/*.cpp -I. -I./includes -Wall -Wextra -Wextra --std=c++98 -o  testConfigParser 
+testfile: $(SRCS)
+	@echo "--------------------------------------------------"
+	@echo "Compiling tester..."
+	@echo "--------------------------------------------------"
+	g++ $(SRCS) -I. -I./includes -g -Wall -Wextra -Wextra --std=c++98 -o tester
+
+launch_test: tester
+	@echo "--------------------------------------------------"
+	@echo "Running tests for all config files..."
+	@echo "--------------------------------------------------"
+	@for config_file in ./config/*.conf; do \
+		echo "Testing $$config_file..."; \
+		./tester $$config_file; \
+		echo "--------------------------------------------------"; \
+	done
 
 $(TARGET): $(SRCS)
 	$(CC) $(CFLAGS) -o $(TARGET) $(SRCS)
@@ -30,5 +47,4 @@ clean:
 re: clean
 	$(CC) $(CFLAGS) -o $(TARGET) $(SRCS)
 
-
-.PHONY: all clean
+.PHONY: all clean testParser

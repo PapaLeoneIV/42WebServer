@@ -1,4 +1,6 @@
 #include "Utils.hpp"
+#include "Logger.hpp"
+#include "ConfigParser.hpp"
 
 int handle_arguments(int argc, char **argv)
 {
@@ -6,37 +8,41 @@ int handle_arguments(int argc, char **argv)
         if (argc == 2)
         {
             if (std::string(argv[1]) == "--help"){
-                std::cout << std::endl;
-                std::cout << "Usage: webserver { [OPTIONS] || <config-filepath> }" << std::endl;
-                std::cout << "         --help                           Display this help and exit" << std::endl;
-                std::cout << "         -t <config-filepath>             Test the configuration file" << std::endl;
-                std::cout << "         -v                               Display the current version" << std::endl;
-                std::cout << std::endl;
-                exit(0);
+                Logger::info("Usage: webserver { [OPTIONS] || <config-filepath> }");
+                Logger::info("         --help                           Display this help and exit");
+                Logger::info("         -t <config-filepath>             Test the configuration file");
+                Logger::info("         -v                               Display the current version");
+                return(1);
             }
             // version command
             if (std::string(argv[1]) == "-v"){
-                std::cout << "webserver version: webserver/" << VERSION << std::endl;
-                exit(0);
+                Logger::info("webserver version: webserver/1.0.0");
+                return(1);
             }
             // testing config file command
             if (std::string(argv[1]) == "-t")
             {
-                std::cout << "webserver config-file testing: missing <config-filepath>" << std::endl;
-                exit(0);
+                Logger::info("webserver config-file testing: missing <config-filepath>");
+                return(1);
             }
             
-            return 1;
-            //parse and boot server
+            return 0;
             
         } else if(argc == 3) {
             if (std::string(argv[1]) != "-t"){
-                std::cout << "webserver: try 'webserver --help' for more information" << std::endl;
-                exit(0);
+                Logger::info("webserver: try 'webserver --help' for more information");
+                return(1);
             }
+            ConfigParser configParser;
+            if (configParser.validatePath(argv[2]) || configParser.fromConfigFileToServers(argv[2])){
+                Logger::error(configParser.getFileName(), "config-file testing: KO");
+                return(1);
+            }
+            Logger::info("webserver config-file testing: OK");
+            return(1);
         } else {
-            std::cout << "webserver: try 'webserver --help' for more information" << std::endl;
-            exit(0);
+            Logger::info("webserver: try 'webserver --help' for more information");
+            return(1);
         }
         return 0;
 } 
