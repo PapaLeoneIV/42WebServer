@@ -23,6 +23,7 @@ class ServerManager{
 	void	registerNewConnections	(SOCKET serverFd, Server *server);
 	void	processRequest	(Client *client);
 	void	sendResponse	(SOCKET fd, Client *client);
+	void	sendErrorResponse();
 
 	ERROR	readHeaderData 	(Client *client);
 	ERROR	readBodyData	(Client *client);

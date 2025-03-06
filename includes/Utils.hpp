@@ -115,6 +115,7 @@ enum RequestStates {
     StateChunkedChunk, 
     
     StateParsingComplete,
+    StateParsingError,
   
   };
   

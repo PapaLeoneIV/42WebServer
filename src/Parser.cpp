@@ -107,7 +107,7 @@ void Parser::validateResource(Client *client, Server *server)
 
 Parser::Parser() {
 
-    this->_allowd_versions.insert("HTTP/1.1");
+    this->_allowd_versions.insert("HTTP/1.1 ");
     this->_allowd_versions.insert("undefined");
 
     

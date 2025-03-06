@@ -383,6 +383,12 @@ int Request::consume(std::string buffer){
                     std::stringstream ss;
                     ss << std::hex << this->content;
                     ss >> this->number;
+                    if (!(ss >> this->number))
+                    {
+                        this->error = 400; // conversione in hex fallita
+                        this->state = StateParsingError;
+                        return 1;
+                    }
                     if(this->number == 0)
                     {
                         this->content.clear();
@@ -394,6 +400,12 @@ int Request::consume(std::string buffer){
                     this->state = StateChunkedNumber_LF;
                     continue;
                 }
+                if (!isxdigit(character)) {
+                    this->error = 400;  //carattere non esadecimale
+                    this->state = StateParsingError;
+                    return 1;
+                }
+                this->content += character;
                 break;
             }
             case StateChunkedNumber_CR : {
