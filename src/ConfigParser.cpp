@@ -614,6 +614,7 @@ int ConfigParser::parseIndexValues(std::vector<std::string> v)
             {
                 Logger::error(this->getFileName(), "index directive must have .html extension");
                 return 1; // TODO: atm i m only accepting .html as index file, check if we can allow other extension
+                          // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/30
             }
             // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/24
             i++;
@@ -669,6 +670,7 @@ int ConfigParser::parseAllowMethodsValues(std::vector<std::string> v)
 
 //'return' code [text];
 // TODO :need to attach root to the [text] value
+// Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/29
 int ConfigParser::parseReturnValues(std::vector<std::string> v)
 {
     if (v.empty() || v.size() > 2)
