@@ -146,6 +146,7 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     
     
     //TODO: queste sono hardcodate per il momento
+    //Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/33
     response->setHeaders("Host", "localhost");
     
     if(request->getHeaders()["connection"] == "keep-alive")
