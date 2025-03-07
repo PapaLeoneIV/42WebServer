@@ -96,7 +96,6 @@ void ServerManager::registerNewConnections(SOCKET serverFd, Server *server)
 void ServerManager::processRequest(Client *client)
 {
     Parser parser;
-    Response response;
 
     char buffer[BUFFER_SIZE];
     int bytesRecv = recv(client->getSocketFd(), buffer, sizeof(buffer), 0); //O_NONBLOCK
@@ -116,9 +115,9 @@ void ServerManager::processRequest(Client *client)
     }
 
     if (client->getRequest()->state == StateParsingError){ //controllo su errori di parsing
-        
-        this->sendErrorResponse();
-
+		client->getResponse()->setStatusCode(client->getRequest()->error);
+		client->getResponse()->prepareResponse();
+		send(client->getSocketFd(), client->getResponse()->getResponse().c_str(), client->getResponse()->getResponse().size(), 0);
         this->removeClient(client->getSocketFd());
         return;
     }
@@ -138,14 +137,6 @@ void ServerManager::processRequest(Client *client)
         this->addToSet(client->getSocketFd(), &this->_masterPool);
     }
 }
-
-/*void ServerManager::sendErrorResponse()
-{
-    Response *response = client->getResponse();
-    response->setStatusCode(client->getRequest()->error);
-    response->fillStatusLine()
-
-}*/
 
 void ServerManager::sendResponse(SOCKET fd, Client *client)
 {
