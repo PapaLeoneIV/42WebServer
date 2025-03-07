@@ -516,7 +516,28 @@ void Request::setHeaders(std::map<std::string, std::string>& headers)   {this->h
 
 void Request::setBody(std::string& body)    {this->body = body;}
 
+void Request::flush() {
+  //sempliocity for the moment
+    this->headers.clear();
+    this->raw = "";
+    this->state = 0;
+    this->method = "";
+    this->url = "";
+    this->version = "";
+    this->body = "";
+    this->content = "";
+    this->has_body = false;
+    this->is_chunked = false;
+    this->error = 0;
 
+    this->number = 0;
+    this->body_counter = 0;
+    this->encoded_counter = 0;
+    this->encoded_char = "";
+    this->headers_key = "";
+    this->methods.clear();
+
+}
 Request::~Request(){};
 
 Request::Request() 

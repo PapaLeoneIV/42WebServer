@@ -84,6 +84,17 @@ void Response::setContentType(std::string content_type) {this->_content_type = c
 void Response::setStatusMessage(std::string status_message) {this->_status_message = status_message;}
 void Response::setStatusCode(int status)    {this->_status = status;}
 
+void Response::flush(){
+
+   this->_finalResponse = "";
+   this->_headers.clear();
+   this->_body = "";
+   this->_content_type = ""; 
+   this->_status_message = "";  
+   this->_status = 0;
+};
+
+
 Response::Response()
 {
     this->_finalResponse = "";
