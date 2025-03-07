@@ -140,18 +140,25 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     if(!request || !response || client->getRequest()->state != StateParsingComplete){
         return;
     }
-
     // TODO: maybe, it will be better to move the response generation into a separate component 
     // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/14
+    
+    
+    
+    //TODO: queste sono hardcodate per il momento
     response->setHeaders("Host", "localhost");
+    
+    if(request->getHeaders()["connection"] == "keep-alive")
+    {
+        response->setHeaders("Connection", "keep-alive");
+    }
+    else response->setHeaders("Connection", "close");
+
     if(!response->getBody().empty()){
         response->setHeaders("Content-Type", getContentType(request->getUrl(), response->getStatus()));
         response->setHeaders("Content-Length", intToStr(response->getBody().size()));
     }
     
-    if(request->getHeaders()["connection"] == "close")
-        response->setHeaders("Connection", "close");
-
     response->prepareResponse();
 
     int bytes_sent = send(fd, response->getResponse().c_str(), response->getResponse().size(), 0);
@@ -164,8 +171,14 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
 
     // TODO: check if we need to close the connection or if we can keep the client fd open for next request 
     // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/13
-    if(request->getHeaders()["connection"] == "close")
+    if(request->getHeaders()["connection"] != "keep-alive")
+    {
         this->removeClient(fd);
+        return;
+    }
+    //not sure if i fixed it, need to ch1eck how keep-alive should behave
+    request->flush();
+    response->flush();
     
     return; 
 }

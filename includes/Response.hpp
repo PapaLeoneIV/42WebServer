@@ -36,7 +36,7 @@ class Response{
     void                                setStatusMessage      (std::string status_message);
     void                                setStatusCode         (int status);
     void                                setHeaders            (std::string key, std::string value);
-
+    void                                flush();
 
     private:
 
