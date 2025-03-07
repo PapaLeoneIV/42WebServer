@@ -116,6 +116,7 @@ void ServerManager::processRequest(Client *client)
 
     if (client->getRequest()->state == StateParsingError){ //controllo su errori di parsing
 		client->getResponse()->setStatusCode(client->getRequest()->error);
+		client->getResponse()->setBody(client->getResponse()->getErrorPage(client->getRequest()->error));
 		client->getResponse()->prepareResponse();
 		send(client->getSocketFd(), client->getResponse()->getResponse().c_str(), client->getResponse()->getResponse().size(), 0);
         this->removeClient(client->getSocketFd());
