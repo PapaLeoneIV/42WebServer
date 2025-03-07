@@ -140,18 +140,20 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     if(!request || !response || client->getRequest()->state != StateParsingComplete){
         return;
     }
-
     // TODO: maybe, it will be better to move the response generation into a separate component 
     // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/14
-    response->setHeaders("Host", "localhost");
+    
+    
+    
+    //TODO: queste sono hardcodate per il momento
+    esponse->setHeaders("Host", "localhost");
+    response->setHeaders("Connection", "close");
+
     if(!response->getBody().empty()){
         response->setHeaders("Content-Type", getContentType(request->getUrl(), response->getStatus()));
         response->setHeaders("Content-Length", intToStr(response->getBody().size()));
     }
     
-    if(request->getHeaders()["connection"] == "close")
-        response->setHeaders("Connection", "close");
-
     response->prepareResponse();
 
     int bytes_sent = send(fd, response->getResponse().c_str(), response->getResponse().size(), 0);
@@ -166,6 +168,12 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/13
     if(request->getHeaders()["connection"] == "close")
         this->removeClient(fd);
+       
+    // if(request->getHeaders()["connection"] == "keep-alive")
+    // {
+    //     request->flush();
+    //     response->flush();
+    // }
     
     return; 
 }
