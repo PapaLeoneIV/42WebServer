@@ -146,8 +146,13 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     
     
     //TODO: queste sono hardcodate per il momento
-    esponse->setHeaders("Host", "localhost");
-    response->setHeaders("Connection", "close");
+    response->setHeaders("Host", "localhost");
+    
+    if(request->getHeaders()["connection"] == "keep-alive")
+    {
+        response->setHeaders("Connection", "keep-alive");
+    }
+    else response->setHeaders("Connection", "close");
 
     if(!response->getBody().empty()){
         response->setHeaders("Content-Type", getContentType(request->getUrl(), response->getStatus()));
@@ -166,14 +171,14 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
 
     // TODO: check if we need to close the connection or if we can keep the client fd open for next request 
     // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/13
-    if(request->getHeaders()["connection"] == "close")
+    if(request->getHeaders()["connection"] != "keep-alive")
+    {
         this->removeClient(fd);
-       
-    // if(request->getHeaders()["connection"] == "keep-alive")
-    // {
-    //     request->flush();
-    //     response->flush();
-    // }
+        return;
+    }
+    //not sure if i fixed it, need to ch1eck how keep-alive should behave
+    request->flush();
+    response->flush();
     
     return; 
 }
