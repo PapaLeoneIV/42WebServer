@@ -1,12 +1,13 @@
 
-#include "Booter.hpp"
-#include "Parser.hpp"
-#include "Request.hpp"
-#include "Response.hpp"
-#include "Server.hpp"
-#include "Client.hpp"
-#include "ServerManager.hpp"
-#include "Utils.hpp"
+#include "../includes/Booter.hpp"
+#include "../includes/Parser.hpp"
+#include "../includes/Request.hpp"
+#include "../includes/Response.hpp"
+#include "../includes/Server.hpp"
+#include "../includes/Client.hpp"
+#include "../includes/ServerManager.hpp"
+#include "../includes/Utils.hpp"
+#include <cstdlib>
 
 
 /**
@@ -21,7 +22,9 @@ void ServerManager::eventLoop()
         
         //bisogna resettare gli fd ad ogni nuovo ciclo
         FD_ZERO(&this->_readPool);
+        FD_SET(0, &this->_readPool);
         FD_ZERO(&this->_writePool);
+        FD_SET(0, &this->_writePool);
         
         this->initFdSets();
 
@@ -136,60 +139,70 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     Request *request = client->getRequest();
     Response *response = client->getResponse();
 
-    //safety checks perche in realta sono scarso e senza questi e' tutto buggoso
-    if(!request || !response || client->getRequest()->state != StateParsingComplete){
+    if (!request || !response || request->state != StateParsingComplete) {
         return;
     }
-    // TODO: maybe, it will be better to move the response generation into a separate component 
-    // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/14
-    
-    
-    
-    //TODO: queste sono hardcodate per il momento
-    //Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/33
-    response->setHeaders("Host", "localhost");
-    
-    if(request->getHeaders()["connection"] == "keep-alive")
-    {
-        response->setHeaders("Connection", "keep-alive");
-    }
-    else response->setHeaders("Connection", "close");
 
-    if(!response->getBody().empty()){
+    // Set response headers
+    response->setHeaders("Host", "localhost");
+
+    if (request->getHeaders()["connection"] == "keep-alive") {
+        response->setHeaders("Connection", "keep-alive");
+    } else {
+        response->setHeaders("Connection", "close");
+    }
+
+    if (!response->getBody().empty()) {
         response->setHeaders("Content-Type", getContentType(request->getUrl(), response->getStatus()));
         response->setHeaders("Content-Length", intToStr(response->getBody().size()));
     }
-    
+
     response->prepareResponse();
 
     int bytes_sent = send(fd, response->getResponse().c_str(), response->getResponse().size(), 0);
 
-    if (bytes_sent == -1){
+    if (bytes_sent == -1) {
         std::cerr << "Error: send failed: closing connection" << std::endl;
         this->removeClient(fd);
         return;
     }
 
-    // TODO: check if we need to close the connection or if we can keep the client fd open for next request 
-    // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/13
-    if(request->getHeaders()["connection"] != "keep-alive")
-    {
+    request->print_Request();
+
+    // If the client does NOT support keep-alive, close the connection
+    if (request->getHeaders()["connection"] != "keep-alive") {
         this->removeClient(fd);
         return;
     }
-    //not sure if i fixed it, need to ch1eck how keep-alive should behave
     request->flush();
     response->flush();
-    
-    return; 
+    if (this->_clients_map.count(fd) > 0){
+        delete this->_clients_map[fd];
+        this->_clients_map.erase(fd);
+    }
+    if(FD_ISSET(fd, &this->_masterPool)){
+        removeFromSet(fd, &this->_masterPool);
+    }
+
+
+    return;
 }
+
+
+
+
+
+
+
 
 void ServerManager::initFdSets()
 {
     for (std::map<SOCKET, Server*>::iterator server_it = this->_servers_map.begin(); server_it != this->_servers_map.end(); ++server_it){
-        FD_SET(server_it->first, &this->_masterPool);
-        if(server_it->first > this->_maxSocket){
-            this->_maxSocket = server_it->first;
+        SOCKET serverSocket = server_it->first;
+
+        FD_SET(serverSocket, &this->_masterPool);
+        if(serverSocket > this->_maxSocket){
+            this->_maxSocket = serverSocket;
         }
     }
     //TODO: client non penso ce ne possono essere in questo momento
