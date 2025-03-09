@@ -22,9 +22,7 @@ void ServerManager::eventLoop()
         
         //bisogna resettare gli fd ad ogni nuovo ciclo
         FD_ZERO(&this->_readPool);
-        FD_SET(0, &this->_readPool);
         FD_ZERO(&this->_writePool);
-        FD_SET(0, &this->_writePool);
         
         this->initFdSets();
 
@@ -167,23 +165,8 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
         return;
     }
 
-    request->print_Request();
 
-    // If the client does NOT support keep-alive, close the connection
-    if (request->getHeaders()["connection"] != "keep-alive") {
-        this->removeClient(fd);
-        return;
-    }
-    request->flush();
-    response->flush();
-    if (this->_clients_map.count(fd) > 0){
-        delete this->_clients_map[fd];
-        this->_clients_map.erase(fd);
-    }
-    if(FD_ISSET(fd, &this->_masterPool)){
-        removeFromSet(fd, &this->_masterPool);
-    }
-
+    this->removeClient(fd);
 
     return;
 }
