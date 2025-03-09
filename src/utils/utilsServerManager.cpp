@@ -1,11 +1,11 @@
-#include "ServerManager.hpp"
-#include "Booter.hpp"
-#include "Parser.hpp"
-#include "Request.hpp"
-#include "Response.hpp"
-#include "Server.hpp"
-#include "Client.hpp"
-#include "Utils.hpp"
+#include "../../includes/ServerManager.hpp"
+#include "../../includes/Booter.hpp"
+#include "../../includes/Parser.hpp"
+#include "../../includes/Request.hpp"
+#include "../../includes/Response.hpp"
+#include "../../includes/Server.hpp"
+#include "../../includes/Client.hpp"
+#include "../../includes/Utils.hpp"
 
 
 Client *ServerManager::getClient(SOCKET clientFd){

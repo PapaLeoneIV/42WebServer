@@ -1,6 +1,6 @@
-#include "Utils.hpp"
-#include "Logger.hpp"
-#include "ConfigParser.hpp"
+#include "../includes/Utils.hpp"
+#include "../includes/Logger.hpp"
+#include "../includes/ConfigParser.hpp"
 
 int handle_arguments(int argc, char **argv)
 {

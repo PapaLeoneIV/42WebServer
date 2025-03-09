@@ -1,8 +1,7 @@
-#include "ServerManager.hpp"
-#include "ConfigParser.hpp"
-#include "Booter.hpp"
-#include "Exception.hpp"
-#include "Logger.hpp"
+#include "../includes/ConfigParser.hpp"
+#include "../includes/Booter.hpp"
+#include "../includes/Exception.hpp"
+#include "../includes/Logger.hpp"
 #include <sstream>
 
 #define push_back_next_token(token, tokenIdx) \
