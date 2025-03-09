@@ -3,9 +3,9 @@
 
 #include <string>
 #include <map>
-#include "Utils.hpp"
-#include "Server.hpp"
-#include "Client.hpp"
+#include "../includes/Utils.hpp"
+#include "../includes/Server.hpp"
+#include "../includes/Client.hpp"
 
 typedef int SOCKET;
 typedef int ERROR;
