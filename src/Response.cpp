@@ -1,5 +1,5 @@
-#include "Response.hpp"
-#include "Utils.hpp"
+#include "../includes/Response.hpp"
+#include "../includes/Utils.hpp"
 
 
 //Response  Section 6
@@ -52,14 +52,14 @@ void Response::fillHeader(std::string headerKey, std::string headerValue){
 std::string Response::getErrorPage(int status) {
     switch (status) {
 
-        case 400: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/400.html");
-        case 403: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/403.html");
-        case 404: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/404.html");
-        case 405: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/405.html");
-        case 411: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/411.html");
-        case 500: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/500.html");
-        case 501: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/501.html");
-        case 505: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/505.html");
+        case 400: return readTextFile("./static/errorPage/400.html");
+        case 403: return readTextFile("./static/errorPage/403.html");
+        case 404: return readTextFile("./static/errorPage/404.html");
+        case 405: return readTextFile("./static/errorPage/405.html");
+        case 411: return readTextFile("./static/errorPage/411.html");
+        case 500: return readTextFile("./static/errorPage/500.html");
+        case 501: return readTextFile("./static/errorPage/501.html");
+        case 505: return readTextFile("./static/errorPage/505.html");
     }
     return "";
 }
