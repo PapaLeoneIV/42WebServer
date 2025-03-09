@@ -69,7 +69,7 @@ void Parser::validateResource(Client *client, Server *server)
     //check if the requested resource is accessible
     fileType = this->checkResource(filePath, response);
     if(fileType == FAILURE){
-        response->setBody(response->getErrorPage(response->getStatus()));
+        response->setBody(getErrorPage(response->getStatus()));
         return;
     }
     
@@ -95,7 +95,7 @@ void Parser::validateResource(Client *client, Server *server)
    
     //final check to see if there has been an error
     if(response->getStatus() != 200){
-        response->setBody(response->getErrorPage(response->getStatus()));
+        response->setBody(getErrorPage(response->getStatus()));
         return;
     }
 

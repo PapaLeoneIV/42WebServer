@@ -161,4 +161,6 @@ std::vector<std::string> splitIntoSections(std::istringstream &iss);
 
 std::map<std::string, std::string> extractSection(const std::string &section);
 
+
+std::string getErrorPage(int status);
 #endif
