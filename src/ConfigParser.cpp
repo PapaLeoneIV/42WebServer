@@ -469,8 +469,6 @@ int ConfigParser::parseHostValues(std::vector<std::string> v)
     return 0;
 }
 
-// TODO: implement some more robust checks
-// Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/25
 int ConfigParser::parseServerNameValues(std::vector<std::string> v)
 {
     size_t i = 0;
@@ -612,10 +610,8 @@ int ConfigParser::parseIndexValues(std::vector<std::string> v)
             if (extension != ".html")
             {
                 Logger::error(this->getFileName(), "index directive must have .html extension");
-                return 1; // TODO: atm i m only accepting .html as index file, check if we can allow other extension
-                          // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/30
+                return 1; 
             }
-            // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/24
             i++;
         }
     }
@@ -668,8 +664,6 @@ int ConfigParser::parseAllowMethodsValues(std::vector<std::string> v)
 }
 
 //'return' code [text];
-// TODO :need to attach root to the [text] value
-// Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/29
 int ConfigParser::parseReturnValues(std::vector<std::string> v)
 {
     if (v.empty() || v.size() > 2)
@@ -707,11 +701,6 @@ int ConfigParser::parseReturnValues(std::vector<std::string> v)
             Logger::error(this->getFileName(), "'return' directive can't have empty values");
             return 1;
         }
-        // it needs to be a string enclose by double quotes(I DECIDED LIKE THIS OK?) lil bitch sit down
-        // if (text[0] != '\"' || text[text.size()] != '\"'){
-        //     Logger::error(this->getFileName(), "return value must be enclosed in double queotes ");
-        //     return 1;
-        // }
     }
     return 0;
 }
