@@ -284,11 +284,16 @@ std::string getMessageFromStatusCode(int status)
 }
 
 
-// TODO: fix absoloute path con path relativo preso da file di configurazione 
-// Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/11
-std::string getErrorPage(int status) {
-    switch (status) {
+std::string getErrorPage(int status, Server *server) {
+    std::map<std::string, std::vector<std::string> > serverDir = server->getServerDir();
+    std::map<std::string, std::vector<std::string> > ::iterator it = serverDir.begin();
+    for(; it != server->getServerDir().end(); it++){
+        if(it->first == "error_page" && strToInt(it->second[0]) == status){
+            return readTextFile(it->second[1]);
+        }
+    }
 
+    switch (status) {
         case 400: return readTextFile("./static/errorPage/400.html");
         case 403: return readTextFile("./static/errorPage/403.html");
         case 404: return readTextFile("./static/errorPage/404.html");
