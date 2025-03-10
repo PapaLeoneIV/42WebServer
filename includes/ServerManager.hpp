@@ -23,6 +23,7 @@ class ServerManager{
 	void	registerNewConnections	(SOCKET serverFd, Server *server);
 	void	processRequest	(Client *client);
 	void	sendResponse	(SOCKET fd, Client *client);
+	void closeClientConnection(SOCKET fd, Client* client);
 
 	ERROR	readHeaderData 	(Client *client);
 	ERROR	readBodyData	(Client *client);
@@ -34,6 +35,7 @@ class ServerManager{
 	void	addServer	(Server *server);
 	void	addToSet	(SOCKET fd, fd_set *fdSet);
 	void	removeFromSet	(SOCKET fd, fd_set *fd_set);
+	void	handleClientTimeout(time_t currentTime);
 
 	std::map<SOCKET, Server*>	getServerMap(void);
 	

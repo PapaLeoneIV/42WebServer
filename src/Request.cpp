@@ -498,6 +498,25 @@ void Request::print_Request() {
 
 }
 
+void Request::reset(void) {
+    this->headers.clear();
+    this->raw.clear();
+    this->state = StateMethod;
+    this->method.clear();
+    this->url.clear();
+    this->version.clear();
+    this->body.clear();
+    this->content.clear();
+    this->has_body = false;
+    this->is_chunked = false;
+    this->error = 0;
+    this->number = 0;
+    this->body_counter = 0;
+    this->encoded_counter = 0;
+    this->encoded_char.clear();
+    this->headers_key.clear();
+}
+
 std::string &Request::getUrl()  {return this->url;}
 
 std::string &Request::getVersion()  {return this->version;}

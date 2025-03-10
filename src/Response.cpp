@@ -46,6 +46,15 @@ void Response::fillHeader(std::string headerKey, std::string headerValue){
     this->_finalResponse.append("\r\n");    
 }
 
+void Response::reset(void) {
+    this->_finalResponse.clear();
+    this->_headers.clear();
+    this->_body.clear();
+    this->_content_type.clear();
+    this->_status_message = "OK";
+    this->_status = 200;
+}
+
 
 // TODO: fix absoloute path con path relativo preso da file di configurazione 
 // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/11
@@ -65,10 +74,8 @@ std::string Response::getErrorPage(int status) {
 }
 
 void Response::setHeaders(std::string key, std::string value) {
-    std::pair<std::string, std::string> KValHead(key, value);
-    this->_headers.insert(KValHead);
+    this->_headers[key] = value;
 }
-
 
 std::string &Response::getResponse()    {return this->_finalResponse;}
 std::string &Response::getContentType() {return this->_content_type;};

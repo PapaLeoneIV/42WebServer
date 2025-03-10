@@ -1,4 +1,3 @@
-
 #include "Booter.hpp"
 #include "Parser.hpp"
 #include "Request.hpp"
@@ -34,6 +33,10 @@ void ServerManager::eventLoop()
         //vengono aggiunti in masterpool e copiati nei rispetti bit array
         this->_readPool = this->_masterPool;
         this->_writePool = this->_masterPool;
+
+        // Controllo i timeout delle connessioni persistenti
+        time_t currentTime = time(NULL);
+        this->handleClientTimeout(currentTime);
 
         if ((fds_changed = select(this->_maxSocket + 1, &this->_readPool, &this->_writePool, 0, &timeout)) < 0)
             throw std::runtime_error(ErrToStr(ERR_SELECT));
@@ -86,6 +89,8 @@ void ServerManager::registerNewConnections(SOCKET serverFd, Server *server)
     this->addToSet(new_socket, &this->_masterPool);
     //aggiungo un riferimento al server all interno del client
     client->setServer(server);
+    //inizializzo l'ultimo accesso
+    client->updateLastActivity();
     
     this->_clients_map[new_socket] = client;
 
@@ -97,24 +102,27 @@ void ServerManager::processRequest(Client *client)
 {
     Parser parser;
 
+    // Aggiorno l'ultimo accesso del client
+    client->updateLastActivity();
+
     char buffer[BUFFER_SIZE];
     int bytesRecv = recv(client->getSocketFd(), buffer, sizeof(buffer), 0); //O_NONBLOCK
 
     if(bytesRecv == -1){
-        this->removeClient(client->getSocketFd());
+        std::cerr << "Error in recv(): " << strerror(errno) << std::endl;
+        this->closeClientConnection(client->getSocketFd(), client);
         return;
     }
     
     if(bytesRecv == 0){
-        this->removeClient(client->getSocketFd());
+        std::cout << "[" << client->getSocketFd() << "] INFO: Client closed connection" << std::endl;
+        this->closeClientConnection(client->getSocketFd(), client);
         return;
     }
     
     if(bytesRecv > 0){
         client->getRequest()->consume(buffer);
     }
-
-
 
     if(client->getRequest()->state == StateParsingComplete /*TODO: prepare error response if there is an error in consume() */){
         
@@ -136,6 +144,9 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     Request *request = client->getRequest();
     Response *response = client->getResponse();
 
+    // Aggiorniamo l'ultimo accesso del client
+    client->updateLastActivity();
+
     //safety checks perche in realta sono scarso e senza questi e' tutto buggoso
     if(!request || !response || client->getRequest()->state != StateParsingComplete){
         return;
@@ -149,8 +160,13 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
         response->setHeaders("Content-Length", intToStr(response->getBody().size()));
     }
     
-    if(request->getHeaders()["connection"] == "close")
+    // Gestione dell'header Connection
+    std::string connectionHeader = to_lower(request->getHeaders()["connection"]);
+    if(connectionHeader == "close") {
         response->setHeaders("Connection", "close");
+    } else {
+        response->setHeaders("Connection", "keep-alive");
+    }
 
     response->prepareResponse();
 
@@ -158,14 +174,17 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
 
     if (bytes_sent == -1){
         std::cerr << "Error: send failed: closing connection" << std::endl;
-        this->removeClient(fd);
+        this->closeClientConnection(fd, client);
         return;
     }
 
-    // TODO: check if we need to close the connection or if we can keep the client fd open for next request 
-    // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/13
-    if(request->getHeaders()["connection"] == "close")
-        this->removeClient(fd);
+    // Gestione della connessione dopo l'invio della risposta
+    if(connectionHeader == "close") {
+        this->closeClientConnection(fd, client);
+    } else {
+        client->reset();
+        std::cout << "[" << fd << "] INFO: Connection kept alive for next request" << std::endl;
+    }
     
     return; 
 }

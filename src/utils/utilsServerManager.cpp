@@ -63,6 +63,69 @@ const char *ServerManager::getClientIP(Client *client){
     return address_info;
 }
 
+void ServerManager::closeClientConnection(SOCKET fd, Client* client) 
+{
+    if (client == NULL) {
+        // Se il client non esiste, chiudo solo il socket
+        if (fd != -1) {
+            removeFromSet(fd, &this->_masterPool);
+            removeFromSet(fd, &this->_readPool);
+            removeFromSet(fd, &this->_writePool);
+            shutdown(fd, SHUT_RDWR);
+            close(fd);
+        }
+        return;
+    }
+
+    // Rimuovo il socket da tutti i set
+    removeFromSet(fd, &this->_masterPool);
+    removeFromSet(fd, &this->_readPool);
+    removeFromSet(fd, &this->_writePool);
+    
+    // Chiudo il socket solo se è ancora valido
+    int socket_status;
+    socklen_t len = sizeof(socket_status);
+    if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &socket_status, &len) == 0) {
+        // Il socket è ancora valido, possiamo chiuderlo
+        if (shutdown(fd, SHUT_RDWR) < 0 && errno != ENOTCONN) {
+            std::cerr << "Error shutting down socket: " << strerror(errno) << std::endl;
+        }
+        if (close(fd) < 0) {
+            std::cerr << "Error closing socket: " << strerror(errno) << std::endl;
+        }
+    } else {
+        // Il socket non è più valido, probabilmente già chiuso
+        std::cout << "[" << fd << "] INFO: Socket already closed" << std::endl;
+    }
+    
+    // Rimuovo il client dalla mappa e lo dealloco
+    this->_clients_map.erase(fd);
+    delete client;
+    
+}
+
+
+void ServerManager::handleClientTimeout(time_t currentTime) {
+    std::vector<SOCKET> clientsToRemove;
+    
+    // Identifico i client che hanno superato il timeout
+    for (std::map<SOCKET, Client*>::iterator it = this->_clients_map.begin(); it != this->_clients_map.end(); ++it) {
+        Client* client = it->second;
+        // Se il client non ha avuto attività per più di TIMEOUT_SEC sec, lo rimuovo
+        if (currentTime - client->getLastActivity() > TIMEOUT_SEC) {
+            clientsToRemove.push_back(it->first);
+        }
+    }
+    
+    // Rimuovo i client che hanno superato il timeout
+    for (std::vector<SOCKET>::iterator it = clientsToRemove.begin(); it != clientsToRemove.end(); ++it) {
+        SOCKET fd = *it;
+        Client* client = this->_clients_map[fd];
+        std::cout << "[" << fd << "] INFO: Connection timeout, closing connection" << std::endl;
+        this->closeClientConnection(fd, client);
+    }
+}
+
 // ERROR ServerManager::readHeaderData(Client *client){
 //     char headerBuff[1];
 

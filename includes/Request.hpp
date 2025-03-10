@@ -35,6 +35,8 @@ public:
     void  setBody (std::string& body);
     void  setHasBody  (bool hasBody);
 
+    void reset(void);
+
     std::map<std::string, std::string> headers;
     std::string raw;
     int state;
