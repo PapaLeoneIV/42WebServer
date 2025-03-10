@@ -93,6 +93,21 @@ void ServerManager::registerNewConnections(SOCKET serverFd, Server *server)
 
 #define BUFFER_SIZE 4*1024 //4KB
 
+void ServerManager::handleError(Client *client)
+{
+	client->getResponse()->setStatusCode(client->getRequest()->error);
+	std::string errorPage = client->getResponse()->getErrorPage(client->getRequest()->error);
+	if (errorPage.empty()){ // check se esiste errPage corrispondente
+		this->removeClient(client->getSocketFd());
+		return;
+	}
+	client->getResponse()->setBody(errorPage);
+	client->getResponse()->prepareResponse();
+	send(client->getSocketFd(), client->getResponse()->getResponse().c_str(), client->getResponse()->getResponse().size(), 0);
+    this->removeClient(client->getSocketFd());
+	return;
+}
+
 void ServerManager::processRequest(Client *client)
 {
     Parser parser;
@@ -111,15 +126,12 @@ void ServerManager::processRequest(Client *client)
     }
     
     if(bytesRecv > 0){
+		std::cout << "["<< client->getSocketFd() <<  "] INFO: Received " << bytesRecv << " bytes" << std::endl;
         client->getRequest()->consume(buffer);
     }
-
+	
     if (client->getRequest()->state == StateParsingError){ //controllo su errori di parsing
-		client->getResponse()->setStatusCode(client->getRequest()->error);
-		client->getResponse()->setBody(client->getResponse()->getErrorPage(client->getRequest()->error));
-		client->getResponse()->prepareResponse();
-		send(client->getSocketFd(), client->getResponse()->getResponse().c_str(), client->getResponse()->getResponse().size(), 0);
-        this->removeClient(client->getSocketFd());
+		handleError(client);
         return;
     }
 
@@ -157,8 +169,9 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
         response->setHeaders("Content-Length", intToStr(response->getBody().size()));
     }
     
-    if(request->getHeaders()["connection"] == "close")
+    if(response->getStatus() >= 400 || request->getHeaders()["connection"] == "close") {
         response->setHeaders("Connection", "close");
+	}
 
     response->prepareResponse();
 
@@ -178,7 +191,7 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     // TODO: BUG SCOPERTO, praticamente quando non c'e' il campo connection, 
     // il client non viene mai cancellato dalla mappa dei clienti
     // e continuiamo a mandargli sempre la stessa response. Vo a casa see ya
-    if(request->getHeaders()["connection"] == "close")
+    if(request->getHeaders().find("connection") == request->getHeaders().end() || request->getHeaders()["connection"] == "close")
         this->removeClient(fd);
     
     return; 

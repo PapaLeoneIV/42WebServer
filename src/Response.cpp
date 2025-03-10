@@ -57,6 +57,7 @@ std::string Response::getErrorPage(int status) {
         case 404: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/404.html");
         case 405: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/405.html");
         case 411: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/411.html");
+        case 414: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/414.html");
         case 500: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/500.html");
         case 501: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/501.html");
         case 505: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/505.html");
