@@ -1,12 +1,12 @@
-
-#include "Booter.hpp"
-#include "Parser.hpp"
-#include "Request.hpp"
-#include "Response.hpp"
-#include "Server.hpp"
-#include "Client.hpp"
-#include "ServerManager.hpp"
-#include "Utils.hpp"
+#include "../includes/Booter.hpp"
+#include "../includes/Parser.hpp"
+#include "../includes/Request.hpp"
+#include "../includes/Response.hpp"
+#include "../includes/Server.hpp"
+#include "../includes/Client.hpp"
+#include "../includes/ServerManager.hpp"
+#include "../includes/Utils.hpp"
+#include <cstdlib>
 
 
 /**
@@ -34,6 +34,10 @@ void ServerManager::eventLoop()
         //vengono aggiunti in masterpool e copiati nei rispetti bit array
         this->_readPool = this->_masterPool;
         this->_writePool = this->_masterPool;
+
+        // Controllo i timeout delle connessioni persistenti
+        time_t currentTime = time(NULL);
+        this->handleClientTimeout(currentTime);
 
         if ((fds_changed = select(this->_maxSocket + 1, &this->_readPool, &this->_writePool, 0, &timeout)) < 0)
             throw std::runtime_error(ErrToStr(ERR_SELECT));
@@ -86,6 +90,8 @@ void ServerManager::registerNewConnections(SOCKET serverFd, Server *server)
     this->addToSet(new_socket, &this->_masterPool);
     //aggiungo un riferimento al server all interno del client
     client->setServer(server);
+    //inizializzo l'ultimo accesso
+    client->updateLastActivity();
     
     this->_clients_map[new_socket] = client;
 
@@ -112,20 +118,34 @@ void ServerManager::processRequest(Client *client)
 {
     Parser parser;
 
-    char buffer[BUFFER_SIZE];
-    int bytesRecv = recv(client->getSocketFd(), buffer, sizeof(buffer), 0); //O_NONBLOCK
+    // Aggiorno l'ultimo accesso del client
+    client->updateLastActivity();
+
+    char buffer[BUFFER_SIZE + 1];
+    memset(buffer, 0, sizeof(buffer));
+
+    int bytesRecv = recv(client->getSocketFd(), buffer, BUFFER_SIZE, 0); //O_NONBLOCK
 
     if(bytesRecv == -1){
-        this->removeClient(client->getSocketFd());
+        std::cerr << "[" << client->getSocketFd() << "] Error in recv(): " << strerror(errno) << std::endl;
+        this->closeClientConnection(client->getSocketFd(), client);
         return;
     }
     
     if(bytesRecv == 0){
-        this->removeClient(client->getSocketFd());
+        std::cout << "[" << client->getSocketFd() << "] INFO: Client closed connection" << std::endl;
+        this->closeClientConnection(client->getSocketFd(), client);
         return;
     }
     
     if(bytesRecv > 0){
+        std::cout << "[" << client->getSocketFd() << "] INFO: Received " << bytesRecv << " bytes: " << std::endl;
+
+        // TODO: handle the request (DELETE)
+
+        int result = client->getRequest()->consume(buffer);
+        std::cout << "[" << client->getSocketFd() << "] INFO: Request parsing result: " << result << ", state: " << client->getRequest()->state << std::endl;
+    }
 		std::cout << "["<< client->getSocketFd() <<  "] INFO: Received " << bytesRecv << " bytes" << std::endl;
         client->getRequest()->consume(buffer);
     }
@@ -138,7 +158,8 @@ void ServerManager::processRequest(Client *client)
     }*/
 
 
-    if(client->getRequest()->state == StateParsingComplete /*TODO: prepare error response if there is an error in consume() */){
+    if(client->getRequest()->state == StateParsingComplete){
+        std::cout << "[" << client->getSocketFd() << "] INFO: Request parsing complete, method: " << client->getRequest()->getMethod() << ", URL: " << client->getRequest()->getUrl() << std::endl;
         
         // TODO: based on the value from the config file, we need to decide if it is a valid request
         // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/16
@@ -158,57 +179,73 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     Request *request = client->getRequest();
     Response *response = client->getResponse();
 
-    //safety checks perche in realta sono scarso e senza questi e' tutto buggoso
-    if(!request || !response || client->getRequest()->state < StateParsingComplete){
+    // Aggiorniamo l'ultimo accesso del client
+    client->updateLastActivity();
+
+    if (!request || !response || request->state != StateParsingComplete) {
+        std::cerr << "[" << fd << "] ERROR: Cannot send response, invalid request or response state" << std::endl;
         return;
     }
-    
-    
-    // TODO: maybe, it will be better to move the response generation into a separate component 
-    // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/14
+
+    std::cout << "[" << fd << "] INFO: Preparing response for " << request->getMethod() << " " << request->getUrl() << " (Status: " << response->getStatus() << ")" << std::endl;
+
+    // Set response headers
     response->setHeaders("Host", "localhost");
-    if(!response->getBody().empty()){
-        response->setHeaders("Content-Type", getContentType(request->getUrl(), response->getStatus()));
-        response->setHeaders("Content-Length", intToStr(response->getBody().size()));
-    }
-    
-    if(request->state == StateParsingError) {
+
+    std::string connectionHeader = to_lower(request->getHeaders()["connection"]);
+    if (connectionHeader == "keep-alive") {
+        response->setHeaders("Connection", "keep-alive");
+    } else {
         response->setHeaders("Connection", "close");
     }
 
-    if(request->getHeaders()["connection"] == "close") {
-        response->setHeaders("Connection", "close");
+    // se non ho il body non setto i due header
+    if (!response->getBody().empty()) {
+        response->setHeaders("Content-Type", getContentType(request->getUrl(), response->getStatus()));
+        response->setHeaders("Content-Length", intToStr(response->getBody().size()));
     }
-    
+
     response->prepareResponse();
-    
+
+    std::cout << "[" << fd << "] INFO: Sending response: " << std::endl;
+
     int bytes_sent = send(fd, response->getResponse().c_str(), response->getResponse().size(), 0);
-    
-    if (bytes_sent == -1){
-        std::cerr << "Error: send failed: closing connection" << std::endl;
-        this->removeClient(fd);
+
+    if (bytes_sent == -1) {
+        std::cerr << "[" << fd << "] ERROR: Send failed: " << strerror(errno) << std::endl;
+        this->closeClientConnection(fd, client);
         return;
     }
+
+    std::cout << "[" << fd << "] INFO: Response sent successfully (" << bytes_sent << " bytes)" << std::endl;
+
+    // Gestione della connessione dopo l'invio della risposta
+    if(connectionHeader == "close") {
+        std::cout << "[" << fd << "] INFO: Closing connection as requested by client" << std::endl;
+        this->closeClientConnection(fd, client);
+    } else {
+        client->reset();
+        std::cout << "[" << fd << "] INFO: Connection kept alive for next request" << std::endl;
+    }
     
-    // TODO: check if we need to close the connection or if we can keep the client fd open for next request 
-    // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/13
-    
-    
-    
-    // TODO: BUG SCOPERTO, praticamente quando non c'e' il campo connection, 
-    // il client non viene mai cancellato dalla mappa dei clienti
-    // e continuiamo a mandargli sempre la stessa response. Vo a casa see ya
-    if(request->getHeaders().find("connection") == request->getHeaders().end() || request->getHeaders()["connection"] == "close")
-        this->removeClient(fd);
     return; 
 }
+
+
+
+
+
+
+
 
 void ServerManager::initFdSets()
 {
     for (std::map<SOCKET, Server*>::iterator server_it = this->_servers_map.begin(); server_it != this->_servers_map.end(); ++server_it){
-        FD_SET(server_it->first, &this->_masterPool);
-        if(server_it->first > this->_maxSocket){
-            this->_maxSocket = server_it->first;
+        SOCKET serverSocket = server_it->first;
+
+        FD_SET(serverSocket, &this->_masterPool);
+        if(serverSocket > this->_maxSocket){
+            this->_maxSocket = serverSocket;
         }
     }
     //TODO: client non penso ce ne possono essere in questo momento

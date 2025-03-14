@@ -1,5 +1,5 @@
-#include "Response.hpp"
-#include "Utils.hpp"
+#include "../includes/Response.hpp"
+#include "../includes/Utils.hpp"
 
 
 //Response  Section 6
@@ -64,12 +64,20 @@ std::string Response::getErrorPage(int status) {
     }
     return "";
 }
-
-void Response::setHeaders(std::string key, std::string value) {
-    std::pair<std::string, std::string> KValHead(key, value);
-    this->_headers.insert(KValHead);
+void Response::reset(void) {
+    this->_finalResponse.clear();
+    this->_headers.clear();
+    this->_body.clear();
+    this->_content_type.clear();
+    this->_status_message = "OK";
+    this->_status = 200;
 }
 
+
+
+void Response::setHeaders(std::string key, std::string value) {
+    this->_headers[key] = value;
+}
 
 std::string &Response::getResponse()    {return this->_finalResponse;}
 std::string &Response::getContentType() {return this->_content_type;};
@@ -84,6 +92,17 @@ void Response::setBody(std::string body)    {this->_body = body;}
 void Response::setContentType(std::string content_type) {this->_content_type = content_type;}
 void Response::setStatusMessage(std::string status_message) {this->_status_message = status_message;}
 void Response::setStatusCode(int status)    {this->_status = status;}
+
+void Response::flush(){
+
+   this->_finalResponse = "";
+   this->_headers.clear();
+   this->_body = "";
+   this->_content_type = ""; 
+   this->_status_message = "";  
+   this->_status = 0;
+};
+
 
 Response::Response()
 {

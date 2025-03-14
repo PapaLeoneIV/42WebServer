@@ -34,6 +34,9 @@ public:
     void  setHeaders  (std::map<std::string, std::string>& headers);
     void  setBody (std::string& body);
     void  setHasBody  (bool hasBody);
+    void  flush();
+
+    void reset(void);
 
     std::map<std::string, std::string> headers;
     std::string raw;

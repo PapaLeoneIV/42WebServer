@@ -3,9 +3,9 @@
 
 #include <string>
 #include <map>
-#include "Utils.hpp"
-#include "Server.hpp"
-#include "Client.hpp"
+#include "../includes/Utils.hpp"
+#include "../includes/Server.hpp"
+#include "../includes/Client.hpp"
 
 typedef int SOCKET;
 typedef int ERROR;
@@ -25,6 +25,7 @@ class ServerManager{
 	void	sendResponse	(SOCKET fd, Client *client);
 	void	sendErrorResponse(Response *response, SOCKET fd);
 	void	handleError(Client *client);
+	void	closeClientConnection(SOCKET fd, Client* client);
 
 	ERROR	readHeaderData 	(Client *client);
 	ERROR	readBodyData	(Client *client);
@@ -36,6 +37,7 @@ class ServerManager{
 	void	addServer	(Server *server);
 	void	addToSet	(SOCKET fd, fd_set *fdSet);
 	void	removeFromSet	(SOCKET fd, fd_set *fd_set);
+	void	handleClientTimeout(time_t currentTime);
 
 	std::map<SOCKET, Server*>	getServerMap(void);
 	

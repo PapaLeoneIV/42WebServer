@@ -1,8 +1,8 @@
-#include "Client.hpp"
-#include "Server.hpp"
-#include "Request.hpp"
-#include "Response.hpp"
-#include "Utils.hpp"
+#include "../includes/Client.hpp"
+#include "../includes/Server.hpp"
+#include "../includes/Request.hpp"
+#include "../includes/Response.hpp"
+#include "../includes/Utils.hpp"
 sockaddr_storage        &Client::getAddr()                          {return this->_address;};
 socklen_t               &Client::getAddrLen()                       {return this->_address_length;};
 SOCKET                  &Client::getSocketFd()                      {return this->_socket;};
@@ -27,30 +27,30 @@ void                    Client::setRecvData(int bytes)              {this->_rece
 void                    Client::setServer(Server *server)           {this->_server = server;}
 void                   Client::setContentLength(int content_length) {this->_content_length = content_length;}
 Client::Client() {
-  this->_Request = new Request();
-  this->_Response = new Response();
-  this->_server = NULL;
-  memset(&this->_address, 0, sizeof(this->_address));
-  this->_address_length = sizeof(this->_address);
-  this->_socket = 0;
-  this->_requestData = "";
-  this->_headersData = "";
-  this->_bodyData = "";
-  this->_received = 0;
+    this->_Request = new Request();
+    this->_Response = new Response();
+    this->_server = NULL;
+    memset(&this->_address, 0, sizeof(this->_address));
+    this->_address_length = sizeof(this->_address);
+    this->_socket = 0;
+    this->_requestData = "";
+    this->_headersData = "";
+    this->_bodyData = "";
+    this->_received = 0;
 };
 
 Client::Client(SOCKET fd) {
-  this->_Request = new Request();
-  this->_Response = new Response();
-  this->_server = NULL;
-
-  memset(&this->_address, 0, sizeof(this->_address));
-  this->_address_length = sizeof(this->_address);
-  this->_socket = fd;
-  this->_requestData = "";
-  this->_headersData = "";
-  this->_bodyData = "";
-  this->_received = 0;
+    this->_Request = new Request();
+    this->_Response = new Response();
+    this->_server = NULL;
+    memset(&this->_address, 0, sizeof(this->_address));
+    this->_address_length = sizeof(this->_address);
+    this->_socket = fd;
+    this->_requestData = "";
+    this->_headersData = "";
+    this->_bodyData = "";
+    this->_received = 0;
+    this->_last_activity = time(NULL);
 };
 
 Client::Client(Client & other) {
@@ -65,30 +65,44 @@ Client::Client(Client & other) {
     for (int i = 0; i < MAX_REQUEST_SIZE + 1; i++) {
         this->_requestData[i] = other._requestData[i];
     }
-
-    // if (other._Request) {
-    //     this->_Request = new Request(*other._Request);  // Assuming Request has a copy constructor
-    // } else {
-    //     this->_Request = NULL;
-    // }
-    // if (other._Response) {
-    //     this->_Response = new Response(*other._Response);  // Assuming Response has a copy constructor
-    // } else {
-    //     this->_Response = NULL;
-    // }
 }
-
 
 Client::~Client(){
   static char address_info[INET6_ADDRSTRLEN];
   int x = getnameinfo((sockaddr*)&this->getAddr(), this->getAddrLen(), address_info, sizeof(address_info), NULL, 0, NI_NUMERICHOST);
   if (x != 0) {
     std::cerr << "Error getting client address: " << gai_strerror(x) << std::endl;
-} else {
+  } else {
     std::cout << "[" << this->getSocketFd() << "] INFO: Connection closed from " << address_info << std::endl;
-}
+  }
   if(this->_Request)
     delete this->_Request;
   if(this->_Response)
     delete this->_Response;
 };
+
+
+// Resetto lo stato del client (no socket, indirizzo o server) per una nuova richiesta mantenendo la connessione aperta (keep-alive).
+void Client::reset() {
+    if (this->_Request) {
+        this->_Request->reset();
+    }
+    if (this->_Response) {
+        this->_Response->reset();
+    }
+    
+    this->_requestData = "";
+    this->_headersData = "";
+    this->_bodyData = "";
+    this->_received = 0;
+    
+    this->updateLastActivity();
+}
+
+time_t Client::getLastActivity(void) {
+    return this->_last_activity;
+}
+
+void Client::updateLastActivity(void) {
+    this->_last_activity = time(NULL);
+}

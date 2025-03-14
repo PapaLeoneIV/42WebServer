@@ -1,5 +1,7 @@
-#include "Request.hpp"
-#include "Utils.hpp"
+#include "../includes/Request.hpp"
+#include "../includes/Utils.hpp"
+#include "../includes/Logger.hpp"
+
 
 /**
 * After we user recv(), we pass the request to consume().
@@ -112,6 +114,8 @@ int Request::consume(std::string buffer){
                 //TODO '?' handle query params if we want to do it
                 //Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/10
                 if(character == '?'){
+                    Logger::info("Query params not supported yet");
+                    this->error = -1;
                     //switch to state "extract query params"
                     break;
                 }
@@ -120,8 +124,6 @@ int Request::consume(std::string buffer){
                 if(character == '%'){
                     this->raw += character;
                     this->state = StateEncodedSep;
-                    // TODO :
-                    // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/9
                     //switch to state "encoded percent"
                     continue;
                 }
@@ -392,8 +394,6 @@ int Request::consume(std::string buffer){
                 }
                 if(this->body_counter == strToInt(this->headers["content-length"]))
                 {
-                    //TODO check if the last character should be added to this->raw
-                    //Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/8
                     this->state = StateParsingComplete;
                     continue;
                 }
@@ -483,8 +483,6 @@ int Request::consume(std::string buffer){
                     this->error = -1;
                     return 1;
                 }
-                //TODO understand if i need to handle an additional CRLF at the end of the body, after the 0/r/n
-                //Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/7
                 this->raw += character;
                 this->state = StateParsingComplete;
                 break;
@@ -532,7 +530,28 @@ void Request::print_Request() {
 
 }
 
+void Request::reset(void) {
+    this->headers.clear();
+    this->raw.clear();
+    this->state = StateMethod;
+    this->method.clear();
+    this->url.clear();
+    this->version.clear();
+    this->body.clear();
+    this->content.clear();
+    this->has_body = false;
+    this->is_chunked = false;
+    this->error = 0;
+    this->number = 0;
+    this->body_counter = 0;
+    this->encoded_counter = 0;
+    this->encoded_char.clear();
+    this->headers_key.clear();
+}
+
 std::string &Request::getUrl()  {return this->url;}
+
+std::string &Request::getMethod()  {return this->method;}
 
 std::string &Request::getVersion()  {return this->version;}
 
@@ -550,7 +569,28 @@ void Request::setHeaders(std::map<std::string, std::string>& headers)   {this->h
 
 void Request::setBody(std::string& body)    {this->body = body;}
 
+void Request::flush() {
+  //sempliocity for the moment
+    this->headers.clear();
+    this->raw = "";
+    this->state = 0;
+    this->method = "";
+    this->url = "";
+    this->version = "";
+    this->body = "";
+    this->content = "";
+    this->has_body = false;
+    this->is_chunked = false;
+    this->error = 0;
 
+    this->number = 0;
+    this->body_counter = 0;
+    this->encoded_counter = 0;
+    this->encoded_char = "";
+    this->headers_key = "";
+    this->methods.clear();
+
+}
 Request::~Request(){};
 
 Request::Request() 

@@ -1,9 +1,9 @@
-#include "Parser.hpp"
-#include "Request.hpp"
-#include "Client.hpp"
-#include "Server.hpp"
-#include "Response.hpp"
-#include "Utils.hpp"
+#include "../includes/Parser.hpp"
+#include "../includes/Request.hpp"
+#include "../includes/Client.hpp"
+#include "../includes/Server.hpp"
+#include "../includes/Response.hpp"
+#include "../includes/Utils.hpp"
 
 
 
@@ -69,8 +69,7 @@ void Parser::validateResource(Client *client, Server *server)
     //check if the requested resource is accessible
     fileType = this->checkResource(filePath, response);
     if(fileType == FAILURE){
-        response->setBody(response->getErrorPage(response->getStatus()));
-        request->state = StateParsingError;
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
         return;
     }
     
@@ -96,7 +95,7 @@ void Parser::validateResource(Client *client, Server *server)
    
     //final check to see if there has been an error
     if(response->getStatus() != 200){
-        response->setBody(response->getErrorPage(response->getStatus()));
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
         return;
     }
 

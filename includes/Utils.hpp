@@ -27,6 +27,8 @@
 typedef int SOCKET;
 typedef int ERROR;
 
+class Server;
+
 #define MAX_REQUEST_SIZE 10*1024*1024 //2MB
 
 #define TIMEOUT_SEC 5
@@ -162,4 +164,6 @@ std::vector<std::string> splitIntoSections(std::istringstream &iss);
 
 std::map<std::string, std::string> extractSection(const std::string &section);
 
+
+std::string getErrorPage(int status, Server *server);
 #endif

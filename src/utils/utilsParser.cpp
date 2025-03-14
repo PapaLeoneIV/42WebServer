@@ -1,9 +1,7 @@
-#include "Parser.hpp"
-#include "Request.hpp"
-#include "Response.hpp"
-#include "Server.hpp"
-#include "Client.hpp"
-#include "Utils.hpp"
+#include "../../includes/Parser.hpp"
+#include "../../includes/Response.hpp"
+#include "../../includes/Client.hpp"
+#include "../../includes/Utils.hpp"
 
 
 // ERROR Parser::extractFirstLine(Request *request, Response *response, std::string firstLine) {
