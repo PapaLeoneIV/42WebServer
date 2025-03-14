@@ -93,10 +93,24 @@ void ServerManager::registerNewConnections(SOCKET serverFd, Server *server)
 
 #define BUFFER_SIZE 4*1024 //4KB
 
+void ServerManager::handleError(Client *client)
+{
+	client->getResponse()->setStatusCode(client->getRequest()->error);
+	std::string errorPage = client->getResponse()->getErrorPage(client->getRequest()->error);
+	if (errorPage.empty()){ // check se esiste errPage corrispondente
+		this->removeClient(client->getSocketFd());
+		return;
+	}
+	client->getResponse()->setBody(errorPage);
+	client->getResponse()->prepareResponse();
+	send(client->getSocketFd(), client->getResponse()->getResponse().c_str(), client->getResponse()->getResponse().size(), 0);
+    this->removeClient(client->getSocketFd());
+	return;
+}
+
 void ServerManager::processRequest(Client *client)
 {
     Parser parser;
-    Response response;
 
     char buffer[BUFFER_SIZE];
     int bytesRecv = recv(client->getSocketFd(), buffer, sizeof(buffer), 0); //O_NONBLOCK
@@ -112,12 +126,12 @@ void ServerManager::processRequest(Client *client)
     }
     
     if(bytesRecv > 0){
+		std::cout << "["<< client->getSocketFd() <<  "] INFO: Received " << bytesRecv << " bytes" << std::endl;
         client->getRequest()->consume(buffer);
     }
 /*
     if (client->getRequest()->state == StateParsingError){ //controllo su errori di parsing
-        
-        this->sendErrorResponse();
+		this->sendErrorResponse();
 
         this->removeClient(client->getSocketFd());
         return;
@@ -178,7 +192,13 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     
     // TODO: check if we need to close the connection or if we can keep the client fd open for next request 
     // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/13
-    if(request->getHeaders()["connection"] == "close")
+    
+    
+    
+    // TODO: BUG SCOPERTO, praticamente quando non c'e' il campo connection, 
+    // il client non viene mai cancellato dalla mappa dei clienti
+    // e continuiamo a mandargli sempre la stessa response. Vo a casa see ya
+    if(request->getHeaders().find("connection") == request->getHeaders().end() || request->getHeaders()["connection"] == "close")
         this->removeClient(fd);
     return; 
 }

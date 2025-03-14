@@ -29,7 +29,8 @@ int Request::consume(std::string buffer){
                         this->content.clear();
                         if(this->method != this->methods[GET])
                         {
-                            this->error = -1;
+                            this->error = 400; //Bad Request
+							this->state = StateParsingError;
                             return 1;
                         }
                         this->state = StateSpaceAfterMethod;
@@ -46,7 +47,8 @@ int Request::consume(std::string buffer){
                         this->content.clear();
                         if(this->method != this->methods[POST])
                         {
-                            this->error = -1;
+                            this->error = 400; //Bad Request
+							this->state = StateParsingError;
                             return 1;
                         }
                         this->state = StateSpaceAfterMethod;
@@ -63,7 +65,8 @@ int Request::consume(std::string buffer){
                         this->content.clear();
                         if(this->method != this->methods[DELETE])
                         {
-                            this->error = -1;
+                            this->error = 400; //Bad Request
+							this->state = StateParsingError;
                             return 1;
                         }
                         this->state = StateSpaceAfterMethod;
@@ -72,13 +75,15 @@ int Request::consume(std::string buffer){
                     this->content += character;
                     continue;
                 }
-                this->error = -1; //invalid method
+                this->error = 501; //invalid method(Not Implemented)
+				this->state = StateParsingError;
                 return 1;   
             }
             case StateSpaceAfterMethod: {
                 if(character != ' ')
                 {
-                    this->error = -1; //request not valid
+                    this->error = 400; //request not valid
+					this->state = StateParsingError;
                     return 1;
                 }
                 this->state =  StateUrlBegin;
@@ -87,7 +92,8 @@ int Request::consume(std::string buffer){
             case StateUrlBegin:{
                 if(character != '/')
                 {
-                    this->error = -1; //request not valid
+                    this->error = 400; //request not valid
+					this->state = StateParsingError;
                     return 1;
                 }
                 this->content.clear();
@@ -152,12 +158,14 @@ int Request::consume(std::string buffer){
 
             case StateSpaceAfterUrl: {
                 if(character != 'H'){
-                    this->error = -1; //request not valid
+                    this->error = 400; //request not valid
+					this->state = StateParsingError;
                     return 1;
                 }
                 this->url = this->content;
                 if(this->url.size() > 4 * 1024){ //url cannot be longer than 4MB 
-                    this->error = -1;
+                    this->error = 414; //URI too long
+					this->state = StateParsingError;
                     return 1;
                 }
                 this->content.clear();
@@ -167,7 +175,8 @@ int Request::consume(std::string buffer){
             //"HTTP/1.1 only version admitted
             case StateVersion_H:{
                 if(character != 'T'){
-                    this->error = -1;
+                    this->error = 505; //HTTP Version Not Supported
+					this->state = StateParsingError;
                     return 1;
                 }
                 this->state = StateVersion_HT;
@@ -175,7 +184,8 @@ int Request::consume(std::string buffer){
             }
             case StateVersion_HT:{
                 if(character != 'T'){
-                    this->error = -1;
+                    this->error = 505;
+					this->state = StateParsingError;
                     return 1;
                 }
                 this->state = StateVersion_HTT;
@@ -183,7 +193,8 @@ int Request::consume(std::string buffer){
             }
             case StateVersion_HTT:{
                 if(character != 'P'){
-                    this->error = -1;
+                    this->error = 505;
+					this->state = StateParsingError;
                     return 1;
                 }
                 this->state = StateVersion_HTTP;
@@ -191,7 +202,8 @@ int Request::consume(std::string buffer){
             }
             case StateVersion_HTTP:{
                 if(character != '/'){
-                    this->error = -1;
+                    this->error = 505;
+					this->state = StateParsingError;
                     return 1;
                 }
                 this->state = StateVersion_HTTPSlash;
@@ -199,7 +211,8 @@ int Request::consume(std::string buffer){
             }
             case StateVersion_HTTPSlash:{
                 if(character != '1'){
-                    this->error = -1;
+                    this->error = 505;
+					this->state = StateParsingError;
                     return 1;
                 }
                 this->state = StateVersion_HTTPSlashOne;
@@ -207,7 +220,8 @@ int Request::consume(std::string buffer){
             }
             case StateVersion_HTTPSlashOne:{
                 if(character != '.'){
-                    this->error = -1;
+                    this->error = 505;
+					this->state = StateParsingError;
                     return 1;
                 }
                 this->state = StateVersion_HTTPSlashOneDot;
@@ -216,7 +230,8 @@ int Request::consume(std::string buffer){
             }
             case StateVersion_HTTPSlashOneDot:{
                 if(character != '1'){   
-                    this->error = -1;
+                    this->error = 505;
+					this->state = StateParsingError;
                     return 1;
                 }
                 this->state = StateVersion_HTTPSlashOneDotOne;
@@ -224,7 +239,8 @@ int Request::consume(std::string buffer){
             }
             case StateVersion_HTTPSlashOneDotOne:{
                 if(character != '\r'){
-                    this->error = -1;
+                    this->error = 400; //Bad Request
+					this->state = StateParsingError;
                     return 1;
                 }
                 this->version = this->content;
@@ -234,7 +250,8 @@ int Request::consume(std::string buffer){
             }
             case StateFirstLine_CR:{
                 if(character != '\n'){
-                    this->error = -1;
+                    this->error = 400;
+					this->state = StateParsingError;
                     return 1;
                 }
                 this->content.clear();
@@ -255,7 +272,8 @@ int Request::consume(std::string buffer){
                 }
                 if(character == ' ') //no spaces allowed between header key and column
                 {
-                    this->error = -1;
+                    this->error = 400; //Bad Request
+					this->state = StateParsingError;
                     return 1;
                 }
                 if((character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z')  
@@ -263,7 +281,8 @@ int Request::consume(std::string buffer){
                     break;
                 }
                 std::cout << "this->error: character not allowed" << std::endl;
-                this->error = -1;
+                this->error = 400; //Bad Request
+				this->state = StateParsingError;
                 return 1;
             }
             case StateHeadersTrailingSpaceStart: {
@@ -294,7 +313,8 @@ int Request::consume(std::string buffer){
                 }
                 if(character < 32 || character > 126) //non printable chars
                 {
-                    this->error = -1;
+                    this->error = 400; //Bad Request
+					this->state = StateParsingError;
                     return 1;
                 }
                 break;
@@ -317,7 +337,8 @@ int Request::consume(std::string buffer){
                     this->raw += character;
                     continue;
                 }
-                this->error = -1;
+                this->error = 400; //Bad Request
+				this->state = StateParsingError;
                 return 1;
             }
             case StateHeaders_LF:{
@@ -333,7 +354,8 @@ int Request::consume(std::string buffer){
             case StateHeadersEnd_CR:{
                 if(character != '\n')
                 {
-                    this->error= -1;
+                    this->error= 400; //Bad Request
+					this->state = StateParsingError;
                     return 1;
                 }
                 if(!this->headers["content-length"].empty())
