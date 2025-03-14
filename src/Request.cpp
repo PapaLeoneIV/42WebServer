@@ -517,6 +517,8 @@ void Request::reset(void) {
 
 std::string &Request::getUrl()  {return this->url;}
 
+std::string &Request::getMethod()  {return this->method;}
+
 std::string &Request::getVersion()  {return this->version;}
 
 std::map<std::string, std::string> &Request::getHeaders()   {return this->headers;}
