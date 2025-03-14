@@ -95,8 +95,11 @@ void Client::reset() {
     this->_headersData = "";
     this->_bodyData = "";
     this->_received = 0;
+    this->_content_length = 0;
     
     this->updateLastActivity();
+    
+    std::cout << "[" << this->_socket << "] INFO: Client state reset for keep-alive connection" << std::endl;
 }
 
 time_t Client::getLastActivity(void) {

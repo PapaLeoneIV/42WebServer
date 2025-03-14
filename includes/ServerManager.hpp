@@ -36,6 +36,8 @@ class ServerManager{
 	void	addToSet	(SOCKET fd, fd_set *fdSet);
 	void	removeFromSet	(SOCKET fd, fd_set *fd_set);
 	void	handleClientTimeout(time_t currentTime);
+	void	resetPoolForNextRequest(SOCKET fd);
+	void	debugPools(const std::string& label, SOCKET fd);
 
 	std::map<SOCKET, Server*>	getServerMap(void);
 	

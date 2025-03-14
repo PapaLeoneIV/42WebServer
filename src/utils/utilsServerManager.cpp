@@ -57,6 +57,26 @@ void ServerManager::removeFromSet(SOCKET fd, fd_set *fd_set){
     }
 }
 
+void ServerManager::resetPoolForNextRequest(SOCKET fd){
+    // this->debugPools("Prima di resetPoolForNextRequest", fd);
+    
+    this->removeFromSet(fd, &this->_writePool);
+    this->addToSet(fd, &this->_readPool);
+    
+    // this->debugPools("Dopo resetPoolForNextRequest", fd);
+}
+
+void ServerManager::debugPools(const std::string& label, SOCKET fd) {
+    bool inReadPool = FD_ISSET(fd, &this->_readPool);
+    bool inWritePool = FD_ISSET(fd, &this->_writePool);
+    bool inMasterPool = FD_ISSET(fd, &this->_masterPool);
+    
+    std::cout << "[" << fd << "] DEBUG: " << label 
+              << " - readPool: " << (inReadPool ? "SI" : "NO")
+              << ", writePool: " << (inWritePool ? "SI" : "NO")
+              << ", masterPool: " << (inMasterPool ? "SI" : "NO") << std::endl;
+}
+
 const char *ServerManager::getClientIP(Client *client){
     static char address_info[INET6_ADDRSTRLEN];
     getnameinfo((sockaddr*)&client->getAddr(), client->getAddrLen(), address_info, sizeof(address_info), 0, 0, NI_NUMERICHOST);
