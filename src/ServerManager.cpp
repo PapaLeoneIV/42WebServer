@@ -156,7 +156,8 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     // Set response headers
     response->setHeaders("Host", "localhost");
 
-    if (request->getHeaders()["connection"] == "keep-alive") {
+    std::string connectionHeader = to_lower(request->getHeaders()["connection"]);
+    if (connectionHeader == "keep-alive") {
         response->setHeaders("Connection", "keep-alive");
     } else {
         response->setHeaders("Connection", "close");
