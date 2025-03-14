@@ -146,9 +146,6 @@ void ServerManager::processRequest(Client *client)
         int result = client->getRequest()->consume(buffer);
         std::cout << "[" << client->getSocketFd() << "] INFO: Request parsing result: " << result << ", state: " << client->getRequest()->state << std::endl;
     }
-		std::cout << "["<< client->getSocketFd() <<  "] INFO: Received " << bytesRecv << " bytes" << std::endl;
-        client->getRequest()->consume(buffer);
-    }
 /*
     if (client->getRequest()->state == StateParsingError){ //controllo su errori di parsing
 		this->sendErrorResponse();
