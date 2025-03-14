@@ -1,11 +1,13 @@
-#include "Booter.hpp"
-#include "Parser.hpp"
-#include "Request.hpp"
-#include "Response.hpp"
-#include "Server.hpp"
-#include "Client.hpp"
-#include "ServerManager.hpp"
-#include "Utils.hpp"
+
+#include "../includes/Booter.hpp"
+#include "../includes/Parser.hpp"
+#include "../includes/Request.hpp"
+#include "../includes/Response.hpp"
+#include "../includes/Server.hpp"
+#include "../includes/Client.hpp"
+#include "../includes/ServerManager.hpp"
+#include "../includes/Utils.hpp"
+#include <cstdlib>
 
 
 /**
@@ -147,32 +149,29 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     // Aggiorniamo l'ultimo accesso del client
     client->updateLastActivity();
 
-    //safety checks perche in realta sono scarso e senza questi e' tutto buggoso
-    if(!request || !response || client->getRequest()->state != StateParsingComplete){
+    if (!request || !response || request->state != StateParsingComplete) {
         return;
     }
 
-    // TODO: maybe, it will be better to move the response generation into a separate component 
-    // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/14
+    // Set response headers
     response->setHeaders("Host", "localhost");
-    if(!response->getBody().empty()){
+
+    if (request->getHeaders()["connection"] == "keep-alive") {
+        response->setHeaders("Connection", "keep-alive");
+    } else {
+        response->setHeaders("Connection", "close");
+    }
+
+    if (!response->getBody().empty()) {
         response->setHeaders("Content-Type", getContentType(request->getUrl(), response->getStatus()));
         response->setHeaders("Content-Length", intToStr(response->getBody().size()));
-    }
-    
-    // Gestione dell'header Connection
-    std::string connectionHeader = to_lower(request->getHeaders()["connection"]);
-    if(connectionHeader == "close") {
-        response->setHeaders("Connection", "close");
-    } else {
-        response->setHeaders("Connection", "keep-alive");
     }
 
     response->prepareResponse();
 
     int bytes_sent = send(fd, response->getResponse().c_str(), response->getResponse().size(), 0);
 
-    if (bytes_sent == -1){
+    if (bytes_sent == -1) {
         std::cerr << "Error: send failed: closing connection" << std::endl;
         this->closeClientConnection(fd, client);
         return;
@@ -189,12 +188,21 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     return; 
 }
 
+
+
+
+
+
+
+
 void ServerManager::initFdSets()
 {
     for (std::map<SOCKET, Server*>::iterator server_it = this->_servers_map.begin(); server_it != this->_servers_map.end(); ++server_it){
-        FD_SET(server_it->first, &this->_masterPool);
-        if(server_it->first > this->_maxSocket){
-            this->_maxSocket = server_it->first;
+        SOCKET serverSocket = server_it->first;
+
+        FD_SET(serverSocket, &this->_masterPool);
+        if(serverSocket > this->_maxSocket){
+            this->_maxSocket = serverSocket;
         }
     }
     //TODO: client non penso ce ne possono essere in questo momento

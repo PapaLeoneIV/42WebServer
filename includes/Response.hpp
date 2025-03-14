@@ -18,7 +18,6 @@ class Response{
 
     void                                print                 (void);
     void                                prepareResponse       (void);
-    std::string                         getErrorPage          (int status);
 
     void                                fillStatusLine        (void);
     void                                fillHeader            (std::string headerKey, std::string headerValue);
@@ -37,6 +36,7 @@ class Response{
     void                                setStatusCode         (int status);
     void                                setHeaders            (std::string key, std::string value);
     void                                reset                 (void);
+    void                                flush();
 
     private:
 

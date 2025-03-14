@@ -1,5 +1,5 @@
-#include "Response.hpp"
-#include "Utils.hpp"
+#include "../includes/Response.hpp"
+#include "../includes/Utils.hpp"
 
 
 //Response  Section 6
@@ -56,22 +56,6 @@ void Response::reset(void) {
 }
 
 
-// TODO: fix absoloute path con path relativo preso da file di configurazione 
-// Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/11
-std::string Response::getErrorPage(int status) {
-    switch (status) {
-
-        case 400: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/400.html");
-        case 403: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/403.html");
-        case 404: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/404.html");
-        case 405: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/405.html");
-        case 411: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/411.html");
-        case 500: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/500.html");
-        case 501: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/501.html");
-        case 505: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/505.html");
-    }
-    return "";
-}
 
 void Response::setHeaders(std::string key, std::string value) {
     this->_headers[key] = value;
@@ -90,6 +74,17 @@ void Response::setBody(std::string body)    {this->_body = body;}
 void Response::setContentType(std::string content_type) {this->_content_type = content_type;}
 void Response::setStatusMessage(std::string status_message) {this->_status_message = status_message;}
 void Response::setStatusCode(int status)    {this->_status = status;}
+
+void Response::flush(){
+
+   this->_finalResponse = "";
+   this->_headers.clear();
+   this->_body = "";
+   this->_content_type = ""; 
+   this->_status_message = "";  
+   this->_status = 0;
+};
+
 
 Response::Response()
 {

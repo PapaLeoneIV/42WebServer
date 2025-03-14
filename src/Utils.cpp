@@ -1,6 +1,6 @@
-#include "Utils.hpp"
-#include "Logger.hpp"
-#include "ConfigParser.hpp"
+#include "../includes/Utils.hpp"
+#include "../includes/Logger.hpp"
+#include "../includes/ConfigParser.hpp"
 
 int handle_arguments(int argc, char **argv)
 {
@@ -281,6 +281,29 @@ std::string getMessageFromStatusCode(int status)
         return "Status Code not recognized";
     }
     return "Status Code not recognized";
+}
+
+
+std::string getErrorPage(int status, Server *server) {
+    std::map<std::string, std::vector<std::string> > serverDir = server->getServerDir();
+    std::map<std::string, std::vector<std::string> > ::iterator it = serverDir.begin();
+    for(; it != server->getServerDir().end(); it++){
+        if(it->first == "error_page" && strToInt(it->second[0]) == status){
+            return readTextFile(it->second[1]);
+        }
+    }
+
+    switch (status) {
+        case 400: return readTextFile("./static/errorPage/400.html");
+        case 403: return readTextFile("./static/errorPage/403.html");
+        case 404: return readTextFile("./static/errorPage/404.html");
+        case 405: return readTextFile("./static/errorPage/405.html");
+        case 411: return readTextFile("./static/errorPage/411.html");
+        case 500: return readTextFile("./static/errorPage/500.html");
+        case 501: return readTextFile("./static/errorPage/501.html");
+        case 505: return readTextFile("./static/errorPage/505.html");
+    }
+    return "";
 }
 
 std::string sanitizeDots(std::string string)
