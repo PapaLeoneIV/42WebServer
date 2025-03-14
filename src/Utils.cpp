@@ -285,6 +285,7 @@ std::string getMessageFromStatusCode(int status)
 
 
 std::string getErrorPage(int status, Server *server) {
+
     std::map<std::string, std::vector<std::string> > serverDir = server->getServerDir();
     std::map<std::string, std::vector<std::string> > ::iterator it = serverDir.begin();
     for(; it != server->getServerDir().end(); it++){
