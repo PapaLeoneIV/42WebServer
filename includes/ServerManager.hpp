@@ -24,6 +24,7 @@ class ServerManager{
 	void	processRequest	(Client *client);
 	void	sendResponse	(SOCKET fd, Client *client);
 	void	sendErrorResponse(Response *response, SOCKET fd);
+	void	handleError(Client *client);
 
 	ERROR	readHeaderData 	(Client *client);
 	ERROR	readBodyData	(Client *client);
