@@ -114,14 +114,14 @@ void ServerManager::processRequest(Client *client)
     if(bytesRecv > 0){
         client->getRequest()->consume(buffer);
     }
-
+/*
     if (client->getRequest()->state == StateParsingError){ //controllo su errori di parsing
         
         this->sendErrorResponse();
 
         this->removeClient(client->getSocketFd());
         return;
-    }
+    }*/
 
 
     if(client->getRequest()->state == StateParsingComplete /*TODO: prepare error response if there is an error in consume() */){
@@ -139,24 +139,17 @@ void ServerManager::processRequest(Client *client)
     }
 }
 
-/*void ServerManager::sendErrorResponse()
-{
-    Response *response = client->getResponse();
-    response->setStatusCode(client->getRequest()->error);
-    response->fillStatusLine()
-
-}*/
-
 void ServerManager::sendResponse(SOCKET fd, Client *client)
 {
     Request *request = client->getRequest();
     Response *response = client->getResponse();
 
     //safety checks perche in realta sono scarso e senza questi e' tutto buggoso
-    if(!request || !response || client->getRequest()->state != StateParsingComplete){
+    if(!request || !response || client->getRequest()->state < StateParsingComplete){
         return;
     }
-
+    
+    
     // TODO: maybe, it will be better to move the response generation into a separate component 
     // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/14
     response->setHeaders("Host", "localhost");
@@ -165,24 +158,28 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
         response->setHeaders("Content-Length", intToStr(response->getBody().size()));
     }
     
-    if(request->getHeaders()["connection"] == "close")
+    if(request->state == StateParsingError) {
         response->setHeaders("Connection", "close");
+    }
 
+    if(request->getHeaders()["connection"] == "close") {
+        response->setHeaders("Connection", "close");
+    }
+    
     response->prepareResponse();
-
+    
     int bytes_sent = send(fd, response->getResponse().c_str(), response->getResponse().size(), 0);
-
+    
     if (bytes_sent == -1){
         std::cerr << "Error: send failed: closing connection" << std::endl;
         this->removeClient(fd);
         return;
     }
-
+    
     // TODO: check if we need to close the connection or if we can keep the client fd open for next request 
     // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/13
     if(request->getHeaders()["connection"] == "close")
         this->removeClient(fd);
-    
     return; 
 }
 

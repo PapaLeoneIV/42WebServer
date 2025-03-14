@@ -70,6 +70,7 @@ void Parser::validateResource(Client *client, Server *server)
     fileType = this->checkResource(filePath, response);
     if(fileType == FAILURE){
         response->setBody(response->getErrorPage(response->getStatus()));
+        request->state = StateParsingError;
         return;
     }
     
