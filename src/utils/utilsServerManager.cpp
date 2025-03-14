@@ -6,7 +6,7 @@
 #include "../../includes/Server.hpp"
 #include "../../includes/Client.hpp"
 #include "../../includes/Utils.hpp"
-
+#include "../../includes/Logger.hpp"
 
 Client *ServerManager::getClient(SOCKET clientFd){
     
@@ -77,10 +77,10 @@ void ServerManager::debugPools(const std::string& label, SOCKET fd) {
               << ", masterPool: " << (inMasterPool ? "SI" : "NO") << std::endl;
 }
 
-const char *ServerManager::getClientIP(Client *client){
+const std::string ServerManager::getClientIP(Client *client){
     static char address_info[INET6_ADDRSTRLEN];
     getnameinfo((sockaddr*)&client->getAddr(), client->getAddrLen(), address_info, sizeof(address_info), 0, 0, NI_NUMERICHOST);
-    return address_info;
+    return std::string(address_info);
 }
 
 void ServerManager::closeClientConnection(SOCKET fd, Client* client) 
@@ -108,14 +108,14 @@ void ServerManager::closeClientConnection(SOCKET fd, Client* client)
     if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &socket_status, &len) == 0) {
         // Il socket è ancora valido, possiamo chiuderlo
         if (shutdown(fd, SHUT_RDWR) < 0 && errno != ENOTCONN) {
-            std::cerr << "Error shutting down socket: " << strerror(errno) << std::endl;
+            Logger::error("ServerManager", "Error shutting down socket: " + std::string(strerror(errno)));
         }
         if (close(fd) < 0) {
-            std::cerr << "Error closing socket: " << strerror(errno) << std::endl;
+            Logger::error("ServerManager", "Error closing socket: " + std::string(strerror(errno)));
         }
     } else {
         // Il socket non è più valido, probabilmente già chiuso
-        std::cout << "[" << fd << "] INFO: Socket already closed" << std::endl;
+        Logger::info("Socket already closed [" + intToStr(fd) + "]");
     }
     
     // Rimuovo il client dalla mappa e lo dealloco
@@ -141,7 +141,7 @@ void ServerManager::handleClientTimeout(time_t currentTime) {
     for (std::vector<SOCKET>::iterator it = clientsToRemove.begin(); it != clientsToRemove.end(); ++it) {
         SOCKET fd = *it;
         Client* client = this->_clients_map[fd];
-        std::cout << "[" << fd << "] INFO: Connection timeout, closing connection" << std::endl;
+        Logger::info("Connection timeout, closing connection [" + intToStr(fd) + "]");
         this->closeClientConnection(fd, client);
     }
 }

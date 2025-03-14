@@ -6,6 +6,7 @@
 #include "../includes/Client.hpp"
 #include "../includes/ServerManager.hpp"
 #include "../includes/Utils.hpp"
+#include "../includes/Logger.hpp"
 #include <cstdlib>
 
 
@@ -72,13 +73,13 @@ void ServerManager::registerNewConnections(SOCKET serverFd, Server *server)
 
      //setto il socket come non bloccante
     if(fcntl(new_socket, F_SETFL, O_NONBLOCK) < 0){
-        std::cout << "Error: fcntl failed" << std::endl;
+        Logger::error("ServerManager", "Error: fcntl failed");
         delete client;
         close(new_socket);
         return;
     } 
 
-    std::cout << "["<< new_socket <<  "] INFO: New connection from " << this->getClientIP(client) << std::endl;
+    Logger::info("New connection from " + this->getClientIP(client) + " [" + intToStr(new_socket) + "]");
     //setto il nuovo socket al client
     client->setSocketFd(new_socket);
     //aggiungo il socket al pool di socket da monitorare
@@ -109,26 +110,26 @@ void ServerManager::processRequest(Client *client)
     int bytesRecv = recv(fd, buffer, BUFFER_SIZE, 0); //O_NONBLOCK
 
     if(bytesRecv == -1){
-        std::cerr << "[" << fd << "] Error in recv(): " << strerror(errno) << std::endl;
+        Logger::error("ServerManager", "Error in recv(): " + std::string(strerror(errno)) + " [" + intToStr(fd) + "]");
         this->closeClientConnection(fd, client);
         return;
     }
     
     if(bytesRecv == 0){
-        std::cout << "[" << fd << "] INFO: Client closed connection" << std::endl;
+        Logger::info("Client closed connection [" + intToStr(fd) + "]");
         this->closeClientConnection(fd, client);
         return;
     }
     
     if(bytesRecv > 0){
-        std::cout << "[" << fd << "] INFO: Received " << bytesRecv << " bytes " << std::endl;
+        Logger::info("Received " + intToStr(bytesRecv) + " bytes [" + intToStr(fd) + "]");
 
         int result = client->getRequest()->consume(buffer);
-        std::cout << "[" << fd << "] INFO: Request parsing result: " << result << ", state: " << client->getRequest()->state << std::endl;
+        Logger::info("Request parsing result: " + intToStr(result) + ", state: " + intToStr(client->getRequest()->state) + " [" + intToStr(fd) + "]");
     }
 
     if(client->getRequest()->state == StateParsingComplete){
-        std::cout << "[" << client->getSocketFd() << "] INFO: Request parsing complete, method: " << client->getRequest()->getMethod() << ", URL: " << client->getRequest()->getUrl() << std::endl;
+        Logger::info("Request parsing complete, method: " + client->getRequest()->getMethod() + ", URL: " + client->getRequest()->getUrl() + " [" + intToStr(fd) + "]");
         
         // TODO: based on the value from the config file, we need to decide if it is a valid request
         // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/16
@@ -156,11 +157,11 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     client->updateLastActivity();
 
     if (!request || !response || request->state != StateParsingComplete) {
-        std::cerr << "[" << fd << "] ERROR: Cannot send response, invalid request or response state" << std::endl;
+        Logger::error("ServerManager", "Cannot send response, invalid request or response state [" + intToStr(fd) + "]");
         return;
     }
 
-    std::cout << "[" << fd << "] INFO: Preparing response for " << request->getMethod() << " " << request->getUrl() << " (Status: " << response->getStatus() << ")" << std::endl;
+    Logger::info("Preparing response for " + request->getMethod() + " " + request->getUrl() + " (Status: " + intToStr(response->getStatus()) + ") [" + intToStr(fd) + "]");
 
     // setta gli headers della response
     response->setHeaders("Host", "localhost");
@@ -180,21 +181,21 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
 
     response->prepareResponse();
 
-    std::cout << "[" << fd << "] INFO: Sending response: " << std::endl;
+    Logger::info("Sending response [" + intToStr(fd) + "]");
 
     int bytes_sent = send(fd, response->getResponse().c_str(), response->getResponse().size(), 0);
 
     if (bytes_sent == -1) {
-        std::cerr << "[" << fd << "] ERROR: Send failed: " << strerror(errno) << std::endl;
+        Logger::error("ServerManager", "Send failed: " + std::string(strerror(errno)) + " [" + intToStr(fd) + "]");
         this->closeClientConnection(fd, client);
         return;
     }
 
-    std::cout << "[" << fd << "] INFO: Response sent successfully (" << bytes_sent << " bytes)" << std::endl;
+    Logger::info("Response sent successfully (" + intToStr(bytes_sent) + " bytes) [" + intToStr(fd) + "]");
 
     // gestione della connessione dopo l'invio della risposta
     if(connectionHeader == "close") {
-        std::cout << "[" << fd << "] INFO: Closing connection as requested by client" << std::endl;
+        Logger::info("Closing connection as requested by client [" + intToStr(fd) + "]");
         this->closeClientConnection(fd, client);
     } else {
         client->reset();
@@ -202,7 +203,7 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
         
         // this->debugPools("Dopo sendResponse (keep-alive)", fd);
         
-        std::cout << "[" << fd << "] INFO: Connection kept alive for next request" << std::endl;
+        Logger::info("Connection kept alive for next request [" + intToStr(fd) + "]");
     }
     
     return; 
