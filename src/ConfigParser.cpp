@@ -42,6 +42,9 @@ bool ConfigParser::verifyDirectives(Server *server)
     {
         std::string nginxDir = (*serverDirIt).first;
         std::vector<std::string> nginxDirValue = (*serverDirIt).second;
+        if(this->fnToParseDirectives.find(nginxDir) == this->fnToParseDirectives.end()){
+            return 1;
+        }
         if ((this->*fnToParseDirectives[nginxDir])(nginxDirValue))
             return 1;
     }
@@ -486,40 +489,12 @@ int ConfigParser::parseServerNameValues(std::vector<std::string> v)
 
 int ConfigParser::parseErrorPageValues(std::vector<std::string> v)
 {
-    if (v.size() != 2)
+    if (v.size() != 1)
     {
-        Logger::error(this->getFileName(), "'error_page' directive must have 2 values [code] [path]");
+        Logger::error(this->getFileName(), "'error_page' directive must have 1 value");
         return 1;
     }
-    std::string code = v[0];
-    std::string path = v[1];
-    if (code.size() != 3)
-    {
-        Logger::error(this->getFileName(), "'error_page' [code] must have 3 digits");
-        return 1;
-    }
-    for (size_t i = 0; i < code.size(); ++i)
-    {
-        if (!isdigit(code[i]))
-        {
-            Logger::error(this->getFileName(), "'error_page' [code] must be a digit");
-            return 1;
-        }
-    }
-    std::stringstream num(code);
-    int codeNum;
-    num >> codeNum;
-    if (codeNum < 100 || codeNum > 599)
-    {
-        Logger::error(this->getFileName(), "'error_page' [code] must be in the range 100-599");
-        return 1;
-    }
-
-    if (path.empty())
-    {
-        Logger::error(this->getFileName(), "'error_page' [path] is empty");
-        return 1;
-    }
+    std::string path = v[0];
     std::string rootFolder = getcwd(NULL, 0);
     rootFolder = rootFolder.append("/");
     rootFolder = rootFolder.append(path);
@@ -872,6 +847,20 @@ int setUpDefaultDirectiveValues(Server *server)
     return 0;
 }
 
+int ConfigParser::checkForAllowdMultipleDirectives(std::string directive)
+{
+    std::vector<std::string> allowdMultipleDirectives;
+    allowdMultipleDirectives.push_back("error_page");
+
+    for (size_t i = 0; i < allowdMultipleDirectives.size(); ++i)
+    {
+        if (directive == allowdMultipleDirectives[i])
+            return 0;
+    }
+    return 1;
+}
+
+
 int ConfigParser::extractDirectives(Server *server, TreeNode *node)
 {
     if (node == NULL)
@@ -881,16 +870,18 @@ int ConfigParser::extractDirectives(Server *server, TreeNode *node)
 
     for (currentNode = children.begin(); currentNode != children.end(); ++currentNode)
     {
+        std::string DirectiveKey = (*currentNode)->getDirective();
         if ((*currentNode)->getChildren().size() == 0)
         {
             if (node->getDirective() == "server")
             {
-                if (server->getServerDir()[(*currentNode)->getDirective()].size() > 0)
+                if (server->getServerDir()[DirectiveKey].size() > 0  && checkForAllowdMultipleDirectives(DirectiveKey))
                 {
-                    Logger::error(this->getFileName(), "directive " + (*currentNode)->getDirective() + " already set");
+                    Logger::error(this->getFileName(), "directive " + DirectiveKey + " already set");
                     return(1);
                 }
-                server->setServerDir((*currentNode)->getDirective(), (*currentNode)->getValue());
+                std::vector<std::string> DirectiveValue = (*currentNode)->getValue();
+                server->setServerDir(DirectiveKey, DirectiveValue);
             }
             if (node->getDirective() == "location")
             {
@@ -899,7 +890,9 @@ int ConfigParser::extractDirectives(Server *server, TreeNode *node)
                     Logger::error(this->getFileName(), "location directive can't have more than one value");
                     return(1);
                 }
-                server->setLocationDir(node->getValue()[0], (*currentNode)->getDirective(), (*currentNode)->getValue());
+                std::string locationPath = node->getValue()[0];
+                std::vector<std::string> DirectiveValue = (*currentNode)->getValue();
+                server->setLocationDir(locationPath, DirectiveKey, DirectiveValue);
             }
         }
         extractDirectives(server, *currentNode);
@@ -993,7 +986,10 @@ ConfigParser::ConfigParser()
     fnToParseDirectives["listen"] = &ConfigParser::parseListenValues;
     fnToParseDirectives["host"] = &ConfigParser::parseHostValues;
     fnToParseDirectives["server_name"] = &ConfigParser::parseServerNameValues;
-    fnToParseDirectives["error_page"] = &ConfigParser::parseErrorPageValues;
+    for(int i = 100; i < 600; i++){
+        std::string error_page = "error_page_" + intToStr(i);
+        fnToParseDirectives[error_page] = &ConfigParser::parseErrorPageValues;
+    }
     fnToParseDirectives["client_max_body_size"] = &ConfigParser::parseClientMaxBodyValues;
     fnToParseDirectives["root"] = &ConfigParser::parseRootValues;
     fnToParseDirectives["index"] = &ConfigParser::parseIndexValues;
