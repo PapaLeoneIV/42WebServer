@@ -70,7 +70,6 @@ int Request::consume(std::string buffer){
                         this->state = StateSpaceAfterMethod;
                         continue;
                     }
-                    this->content += character;
                     continue;
                 }
                 this->error = 501; //invalid method(Not Implemented)

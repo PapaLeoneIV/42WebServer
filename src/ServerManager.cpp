@@ -6,6 +6,7 @@
 #include "../includes/Client.hpp"
 #include "../includes/ServerManager.hpp"
 #include "../includes/Utils.hpp"
+#include "../includes/Logger.hpp"
 #include <cstdlib>
 
 
@@ -29,11 +30,6 @@ void ServerManager::eventLoop()
         memset(&timeout, 0, sizeof(timeout));
         timeout.tv_sec = 5;
         timeout.tv_usec = 0;
-
-        //la gestione degl fd e' semplificata tramite l utilizzo di una pool generica. I nuovi fd
-        //vengono aggiunti in masterpool e copiati nei rispetti bit array
-        this->_readPool = this->_masterPool;
-        this->_writePool = this->_masterPool;
 
         // Controllo i timeout delle connessioni persistenti
         time_t currentTime = time(NULL);
@@ -77,13 +73,13 @@ void ServerManager::registerNewConnections(SOCKET serverFd, Server *server)
 
      //setto il socket come non bloccante
     if(fcntl(new_socket, F_SETFL, O_NONBLOCK) < 0){
-        std::cout << "Error: fcntl failed" << std::endl;
+        Logger::error("ServerManager", "Error: fcntl failed");
         delete client;
         close(new_socket);
         return;
     } 
 
-    std::cout << "["<< new_socket <<  "] INFO: New connection from " << this->getClientIP(client) << std::endl;
+    Logger::info("New connection from " + this->getClientIP(client) + " [" + intToStr(new_socket) + "]");
     //setto il nuovo socket al client
     client->setSocketFd(new_socket);
     //aggiungo il socket al pool di socket da monitorare
@@ -115,22 +111,27 @@ void ServerManager::processRequest(Client *client)
     int bytesRecv = recv(fd, buffer, BUFFER_SIZE, 0); //O_NONBLOCK
 
     if(bytesRecv == -1){
+        Logger::error("ServerManager", "Error in recv(): " + std::string(strerror(errno)) + " [" + intToStr(fd) + "]");
         this->closeClientConnection(fd, client);
         return;
     }
     
     if(bytesRecv == 0){
+        Logger::info("Client closed connection [" + intToStr(fd) + "]");
         this->closeClientConnection(fd, client);
         return;
     }
     
     if(bytesRecv > 0){
+        Logger::info("Received " + intToStr(bytesRecv) + " bytes [" + intToStr(fd) + "]");
 
-        client->getRequest()->consume(buffer);
+        int result = client->getRequest()->consume(buffer);
+        Logger::info("Request parsing result: " + intToStr(result) + ", state: " + intToStr(client->getRequest()->state) + " [" + intToStr(fd) + "]");
     }
 
 
     if(client->getRequest()->state == StateParsingComplete){
+        Logger::info("Request parsing complete, method: " + client->getRequest()->getMethod() + ", URL: " + client->getRequest()->getUrl() + " [" + intToStr(fd) + "]");
         
         // TODO: based on the value from the config file, we need to decide if it is a valid request
         // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/16
@@ -142,11 +143,13 @@ void ServerManager::processRequest(Client *client)
         
         parser.validateResource(client, client->getServer());
         
+        this->removeFromSet(fd, &this->_readPool);
         this->addToSet(fd, &this->_writePool);
         
         // this->debugPools("Dopo processRequest", fd);
     }
 }
+
 
 void ServerManager::sendErrorResponse(Response *response, SOCKET fd, Client *client) 
 {
@@ -184,10 +187,10 @@ void ServerManager::sendErrorResponse(Response *response, SOCKET fd, Client *cli
 
 void ServerManager::sendResponse(SOCKET fd, Client *client)
 {
+    // this->debugPools("Prima di sendResponse", fd);
+    
     Request *request = client->getRequest();
     Response *response = client->getResponse();
-
-    // Aggiorniamo l'ultimo accesso del client
     client->updateLastActivity();
 
     if (!request || !response || request->state != StateParsingComplete) {
@@ -196,12 +199,13 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
             return ;
         }
         std::cerr << "[" << fd << "] ERROR: Cannot send response, invalid request or response state" << std::endl;
+        Logger::error("ServerManager", "Cannot send response, invalid request or response state [" + intToStr(fd) + "]");
         return;
     }
 
-    std::cout << "[" << fd << "] INFO: Preparing response for " << request->getMethod() << " " << request->getUrl() << " (Status: " << response->getStatus() << ")" << std::endl;
+    Logger::info("Preparing response for " + request->getMethod() + " " + request->getUrl() + " (Status: " + intToStr(response->getStatus()) + ") [" + intToStr(fd) + "]");
 
-    // Set response headers
+    // setta gli headers della response
     response->setHeaders("Host", "localhost");
 
     std::string connectionHeader = to_lower(request->getHeaders()["connection"]);
@@ -219,54 +223,67 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
 
     response->prepareResponse();
 
-    std::cout << "[" << fd << "] INFO: Sending response: " << std::endl;
+    Logger::info("Sending response [" + intToStr(fd) + "]");
 
     int bytes_sent = send(fd, response->getResponse().c_str(), response->getResponse().size(), 0);
 
     if (bytes_sent == -1) {
-        std::cerr << "[" << fd << "] ERROR: Send failed: " << strerror(errno) << std::endl;
+        Logger::error("ServerManager", "Send failed: " + std::string(strerror(errno)) + " [" + intToStr(fd) + "]");
         this->closeClientConnection(fd, client);
         return;
     }
 
-    std::cout << "[" << fd << "] INFO: Response sent successfully (" << bytes_sent << " bytes)" << std::endl;
+    Logger::info("Response sent successfully (" + intToStr(bytes_sent) + " bytes) [" + intToStr(fd) + "]");
 
-    // Gestione della connessione dopo l'invio della risposta
+    // gestione della connessione dopo l'invio della risposta
     if(connectionHeader == "close") {
-        std::cout << "[" << fd << "] INFO: Closing connection as requested by client" << std::endl;
+        Logger::info("Closing connection as requested by client [" + intToStr(fd) + "]");
         this->closeClientConnection(fd, client);
     } else {
         client->reset();
-        std::cout << "[" << fd << "] INFO: Connection kept alive for next request" << std::endl;
+        this->resetPoolForNextRequest(fd);
+        
+        // this->debugPools("Dopo sendResponse (keep-alive)", fd);
+        
+        Logger::info("Connection kept alive for next request [" + intToStr(fd) + "]");
     }
     
     return; 
 }
 
 
-
-
-
-
-
-
 void ServerManager::initFdSets()
 {
+    // aggiungo i socket dei server alla read pool
     for (std::map<SOCKET, Server*>::iterator server_it = this->_servers_map.begin(); server_it != this->_servers_map.end(); ++server_it){
         SOCKET serverSocket = server_it->first;
 
-        FD_SET(serverSocket, &this->_masterPool);
+        this->addToSet(serverSocket, &this->_masterPool);
+        this->addToSet(serverSocket, &this->_readPool);
+        
         if(serverSocket > this->_maxSocket){
             this->_maxSocket = serverSocket;
         }
     }
-    //TODO: client non penso ce ne possono essere in questo momento
-    //Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/12
-    for (std::map<SOCKET, Client*>::iterator clientIt = this->_clients_map.begin(); clientIt != this->_clients_map.end(); ++clientIt){
-        FD_SET(clientIt->first, &this->_masterPool);
-        this->_maxSocket = std::max(this->_maxSocket, clientIt->first);
-    }
 
+    // aggiungo i socket dei client al master pool, ma non alla write e alla read pool
+    // perchè verranno aggiunti in base al loro stato in processRequest e sendResponse
+    for (std::map<SOCKET, Client*>::iterator it = this->_clients_map.begin(); it != this->_clients_map.end(); ++it){
+        SOCKET clientSocket = it->first;
+        Client* client = it->second;
+        
+        this->addToSet(clientSocket, &this->_masterPool);
+        
+        // se la richiesta è completa, aggiungo il socket alla write pool
+        if (client->getRequest() && client->getRequest()->state == StateParsingComplete) {
+            this->addToSet(clientSocket, &this->_writePool);
+        } else {
+            //aggiungo il socket alla read pool per ricevere nuovi dati
+            this->addToSet(clientSocket, &this->_readPool);
+        }
+        
+        this->_maxSocket = std::max(this->_maxSocket, clientSocket);
+    }
 }
 std::map<SOCKET, Server*>	ServerManager::getServerMap(void){return this->_servers_map;}
 
@@ -284,4 +301,7 @@ ServerManager::ServerManager()
 }
 
 ServerManager::~ServerManager(){}
+
+
+
 
