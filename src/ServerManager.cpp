@@ -149,6 +149,41 @@ void ServerManager::processRequest(Client *client)
     }
 }
 
+
+void ServerManager::sendErrorResponse(Response *response, SOCKET fd, Client *client) 
+{
+    std::string errorPage = getErrorPage(response->getStatus(), client->getServer());
+    if (errorPage.empty()) {
+        std::cerr << "[" << fd << "] ERROR: Error page not found" << std::endl;
+        return;
+    }
+    response->setBody(errorPage);
+
+    //TODO: da aggiungere il settaggio degli header (fatto a caso quello sotto però worka)
+    //Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/37
+    response->setHeaders("Host", "localhost");
+    response->setHeaders("Content-Type", "text/html");
+    response->setHeaders("Content-Length", intToStr(errorPage.size()));
+    response->setHeaders("Connection", "close");
+
+    response->prepareResponse();
+
+    std::cout << "[" << fd << "] DEBUG: Body size: " << errorPage.size() << " bytes" << std::endl;
+    std::cout << "[" << fd << "] DEBUG: Total response size: " << response->getResponse().size() << " bytes" << std::endl;
+    
+    std::cout << "[" << fd << "] INFO: Sending ERROR response: " << std::endl;
+    int bytes_sent = send(fd, response->getResponse().c_str(), response->getResponse().size(), 0);
+
+    if (bytes_sent == -1) {
+        std::cerr << "[" << fd << "] ERROR: Send failed: " << strerror(errno) << std::endl;
+    }
+    std::cout << "[" << fd << "] INFO: ERROR response sent successfully (" << bytes_sent << " bytes)" << std::endl;
+    
+    std::cout << "[" << fd << "] INFO: Closing connection as demand by ERROR" << std::endl;
+    this->closeClientConnection(fd, client);
+    return;
+}
+
 void ServerManager::sendResponse(SOCKET fd, Client *client)
 {
     // this->debugPools("Prima di sendResponse", fd);

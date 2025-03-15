@@ -289,8 +289,9 @@ std::string getErrorPage(int status, Server *server) {
     std::map<std::string, std::vector<std::string> > serverDir = server->getServerDir();
     std::map<std::string, std::vector<std::string> > ::iterator it = serverDir.begin();
     for(; it != server->getServerDir().end(); it++){
-        if(it->first == "error_page" && strToInt(it->second[0]) == status){
-            return readTextFile(it->second[1]);
+        if(it->first == "error_page_" + intToStr(status)){
+            std::string path = it->second[0];
+            return readTextFile(path);
         }
     }
 
