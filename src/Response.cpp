@@ -46,26 +46,6 @@ void Response::fillHeader(std::string headerKey, std::string headerValue){
     this->_finalResponse.append("\r\n");    
 }
 
-/*
-// TODO: fix absoloute path con path relativo preso da file di configurazione 
-// Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/11
-std::string Response::getErrorPage(int status) {
-    switch (status) {
-
-        case 400: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/400.html");
-        case 403: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/403.html");
-        case 404: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/404.html");
-        case 405: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/405.html");
-        case 411: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/411.html");
-        case 414: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/414.html");
-        case 500: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/500.html");
-        case 501: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/501.html");
-        case 505: return readTextFile("/nfs/homes/rileone/42WebServer/static/errorPage/505.html");
-    }
-    return "";
-}
-*/
-
 void Response::reset(void) {
     this->_finalResponse.clear();
     this->_headers.clear();
