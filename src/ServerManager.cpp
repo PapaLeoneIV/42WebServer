@@ -151,7 +151,11 @@ void ServerManager::processRequest(Client *client)
 
 void ServerManager::sendErrorResponse(Response *response, SOCKET fd, Client *client) 
 {
-    std::string errorPage = response->getErrorPage(response->getStatus());
+    std::string errorPage = getErrorPage(response->getStatus(), client->getServer());
+    if (errorPage.empty()) {
+        std::cerr << "[" << fd << "] ERROR: Error page not found" << std::endl;
+        return;
+    }
     response->setBody(errorPage);
 
     //TODO: da aggiungere il settaggio degli header (fatto a caso quello sotto però worka)

@@ -66,31 +66,6 @@ std::string Response::getErrorPage(int status) {
 }
 */
 
-
-std::string Response::getErrorPage(int status) {
-    // Prova prima a leggere il file
-    std::string filePath = "/nfs/homes/rileone/42WebServer/static/errorPage/" + intToStr(status) + ".html";
-    std::string content = readTextFile(filePath);
-    
-    // Se abbiamo letto contenuto valido, usalo
-    if (!content.empty()) {
-        return content;
-    }
-    
-    // Altrimenti usa un HTML hardcoded di fallback
-    std::string statusMessage = getStatusMessage();
-    
-    return "<html>\n"
-           "<head>\n"
-           "    <title>" + intToStr(status) + " " + statusMessage + "</title>\n"
-           "</head>\n"
-           "<body>\n"
-           "    <h1>" + intToStr(status) + " " + statusMessage + "</h1>\n"
-           "    <p>Sorry, the requested resource could not be found on this server.</p>\n"
-           "</body>\n"
-           "</html>";
-}
-
 void Response::reset(void) {
     this->_finalResponse.clear();
     this->_headers.clear();
