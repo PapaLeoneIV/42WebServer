@@ -127,6 +127,7 @@ void ServerManager::processRequest(Client *client)
         std::cout << "[" << client->getSocketFd() << "] INFO: Received " << bytesRecv << " bytes: " << std::endl;
 
         // TODO: handle the request (DELETE)
+        // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/38
 
         int result = client->getRequest()->consume(buffer);
         std::cout << "[" << client->getSocketFd() << "] INFO: Request parsing result: " << result << ", state: " << client->getRequest()->state << std::endl;
@@ -159,6 +160,7 @@ void ServerManager::sendErrorResponse(Response *response, SOCKET fd, Client *cli
     response->setBody(errorPage);
 
     //TODO: da aggiungere il settaggio degli header (fatto a caso quello sotto però worka)
+    //Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/37
     response->setHeaders("Host", "localhost");
     response->setHeaders("Content-Type", "text/html");
     response->setHeaders("Content-Length", intToStr(errorPage.size()));
