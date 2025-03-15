@@ -99,43 +99,38 @@ void ServerManager::registerNewConnections(SOCKET serverFd, Server *server)
 
 #define BUFFER_SIZE 4*1024 //4KB
 
+
 void ServerManager::processRequest(Client *client)
 {
     Parser parser;
+    SOCKET fd = client->getSocketFd();
+    
+    // this->debugPools("Prima di processRequest", fd);
 
-    // Aggiorno l'ultimo accesso del client
     client->updateLastActivity();
 
     char buffer[BUFFER_SIZE + 1];
     memset(buffer, 0, sizeof(buffer));
 
-    int bytesRecv = recv(client->getSocketFd(), buffer, BUFFER_SIZE, 0); //O_NONBLOCK
+    int bytesRecv = recv(fd, buffer, BUFFER_SIZE, 0); //O_NONBLOCK
 
     if(bytesRecv == -1){
-        std::cerr << "[" << client->getSocketFd() << "] Error in recv(): " << strerror(errno) << std::endl;
-        this->closeClientConnection(client->getSocketFd(), client);
+        this->closeClientConnection(fd, client);
         return;
     }
     
     if(bytesRecv == 0){
-        std::cout << "[" << client->getSocketFd() << "] INFO: Client closed connection" << std::endl;
-        this->closeClientConnection(client->getSocketFd(), client);
+        this->closeClientConnection(fd, client);
         return;
     }
     
     if(bytesRecv > 0){
-        std::cout << "[" << client->getSocketFd() << "] INFO: Received " << bytesRecv << " bytes: " << std::endl;
 
-        // TODO: handle the request (DELETE)
-        // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/38
-
-        int result = client->getRequest()->consume(buffer);
-        std::cout << "[" << client->getSocketFd() << "] INFO: Request parsing result: " << result << ", state: " << client->getRequest()->state << std::endl;
+        client->getRequest()->consume(buffer);
     }
 
 
     if(client->getRequest()->state == StateParsingComplete){
-        std::cout << "[" << client->getSocketFd() << "] INFO: Request parsing complete, method: " << client->getRequest()->getMethod() << ", URL: " << client->getRequest()->getUrl() << std::endl;
         
         // TODO: based on the value from the config file, we need to decide if it is a valid request
         // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/16
@@ -147,13 +142,11 @@ void ServerManager::processRequest(Client *client)
         
         parser.validateResource(client, client->getServer());
         
-        this->removeFromSet(fd, &this->_readPool);
         this->addToSet(fd, &this->_writePool);
         
         // this->debugPools("Dopo processRequest", fd);
     }
 }
-
 
 void ServerManager::sendErrorResponse(Response *response, SOCKET fd, Client *client) 
 {
