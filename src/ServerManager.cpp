@@ -146,9 +146,14 @@ void ServerManager::processRequest(Client *client)
         // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/15
         
         parser.validateResource(client, client->getServer());
-        this->addToSet(client->getSocketFd(), &this->_masterPool);
+        
+        this->removeFromSet(fd, &this->_readPool);
+        this->addToSet(fd, &this->_writePool);
+        
+        // this->debugPools("Dopo processRequest", fd);
     }
 }
+
 
 void ServerManager::sendErrorResponse(Response *response, SOCKET fd, Client *client) 
 {
@@ -183,7 +188,6 @@ void ServerManager::sendErrorResponse(Response *response, SOCKET fd, Client *cli
     this->closeClientConnection(fd, client);
     return;
 }
-
 
 void ServerManager::sendResponse(SOCKET fd, Client *client)
 {
