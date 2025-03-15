@@ -128,6 +128,7 @@ void ServerManager::processRequest(Client *client)
         Logger::info("Request parsing result: " + intToStr(result) + ", state: " + intToStr(client->getRequest()->state) + " [" + intToStr(fd) + "]");
     }
 
+
     if(client->getRequest()->state == StateParsingComplete){
         Logger::info("Request parsing complete, method: " + client->getRequest()->getMethod() + ", URL: " + client->getRequest()->getUrl() + " [" + intToStr(fd) + "]");
         
@@ -157,6 +158,11 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     client->updateLastActivity();
 
     if (!request || !response || request->state != StateParsingComplete) {
+        if (request && request->state == StateParsingError) { //gestione errori di parsing
+            this->sendErrorResponse(response, fd, client);
+            return ;
+        }
+        std::cerr << "[" << fd << "] ERROR: Cannot send response, invalid request or response state" << std::endl;
         Logger::error("ServerManager", "Cannot send response, invalid request or response state [" + intToStr(fd) + "]");
         return;
     }

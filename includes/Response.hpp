@@ -28,6 +28,7 @@ class Response{
     std::string                         &getStatusMessage     (void);
     int                                 &getStatus            (void);
     std::map<std::string, std::string>  &getHeaders           (void);
+    
 
     void                                setResponse           (char *response);
     void                                setBody               (std::string body);
@@ -36,7 +37,7 @@ class Response{
     void                                setStatusCode         (int status);
     void                                setHeaders            (std::string key, std::string value);
     void                                reset                 (void);
-    void                                flush();
+    void                                flush                 (void);
 
     private:
 

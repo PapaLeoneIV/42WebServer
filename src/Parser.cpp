@@ -70,6 +70,7 @@ void Parser::validateResource(Client *client, Server *server)
     fileType = this->checkResource(filePath, response);
     if(fileType == FAILURE){
         response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        request->state = StateParsingError;
         return;
     }
     
@@ -107,7 +108,7 @@ void Parser::validateResource(Client *client, Server *server)
 
 Parser::Parser() {
 
-    this->_allowd_versions.insert("HTTP/1.1");
+    this->_allowd_versions.insert("HTTP/1.1 ");
     this->_allowd_versions.insert("undefined");
 
     
