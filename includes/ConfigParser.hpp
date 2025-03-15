@@ -70,6 +70,7 @@ public:
   int checkMandatoryDirectives(Server *server);
   int extractDirectives(Server *server, TreeNode *node);
   int fromConfigFileToServers(char *file);
+  int checkForAllowdMultipleDirectives(std::string directive);
 
   int parseListenValues(std::vector<std::string> v);
   int parseHostValues(std::vector<std::string> v);

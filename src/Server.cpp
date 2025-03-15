@@ -17,7 +17,34 @@ std::string &Server::getCwd()	{return this->_cwd;};
 std::map<std::string, std::vector<std::string> > Server::getServerDir(void) {return this->serverDir;}
 std::map<std::string, std::map<std::string, std::vector<std::string> > > Server::getLocationDir(void) {return this->locationDir;} 
 
+void Server::printServerDir() {
+	std::map<std::string, std::vector<std::string> >::const_iterator it;
+    for (it = serverDir.begin(); it != serverDir.end(); ++it) {
+        std::cout << "Key: " << it->first << std::endl;
+        const std::vector<std::string>& values = it->second;
+        for (std::vector<std::string>::const_iterator vit = values.begin(); vit != values.end(); ++vit) {
+            std::cout << "  - " << *vit << std::endl;
+        }
+    }
+}
 
+void Server::printLocationDir() {
+	std::map<std::string, std::map<std::string, std::vector<std::string> > >::const_iterator it;
+    for (it = locationDir.begin(); it != locationDir.end(); ++it) {
+        std::cout << "Outer Key: " << it->first << std::endl;
+        const std::map<std::string, std::vector<std::string> >& innerMap = it->second;
+
+        std::map<std::string, std::vector<std::string> >::const_iterator innerIt;
+        for (innerIt = innerMap.begin(); innerIt != innerMap.end(); ++innerIt) {
+            std::cout << "  Inner Key: " << innerIt->first << std::endl;
+            const std::vector<std::string>& values = innerIt->second;
+
+            for (std::vector<std::string>::const_iterator vit = values.begin(); vit != values.end(); ++vit) {
+                std::cout << "    - " << *vit << std::endl;
+            }
+        }
+    }
+}
 
 //SETTERS
 void    Server::setServerSocket(SOCKET server_socket)   {this->_server_socket = server_socket;};
@@ -33,6 +60,12 @@ void    Server::setMaxRequestSize(size_t max_request_size) {this->_max_request_s
 void    Server::setCwd(std::string cwd) {this->_cwd = cwd;};
 
 void	Server::setServerDir(std::string key, std::vector<std::string> value) {
+	if(key == "error_page" && value.size() > 1)
+	{
+		key.append("_");
+		key.append(value[0]);
+		value.erase(value.begin());
+	}
 	this->serverDir[key] = value;
 }
 
