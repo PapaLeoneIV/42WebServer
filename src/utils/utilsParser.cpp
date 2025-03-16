@@ -177,7 +177,7 @@
 // }
 
 
-int Parser::checkResource(std::string filePath, Response* response) {
+int Parser::checkResource(std::string filePath, Response* response, int accessMode) {
     
     struct stat sb;
     if (access(filePath.c_str(), F_OK) == FAILURE) {
@@ -191,7 +191,7 @@ int Parser::checkResource(std::string filePath, Response* response) {
     }
 
     if (S_ISREG(sb.st_mode) || S_ISDIR(sb.st_mode)) {
-        if (checkPermissions(filePath, R_OK) != SUCCESS) {
+        if (checkPermissions(filePath, accessMode) != SUCCESS) {
             response->setStatusCode(403);
             return FAILURE;
         }
@@ -201,7 +201,6 @@ int Parser::checkResource(std::string filePath, Response* response) {
     }
 
     return sb.st_mode;
-
 }
 
 

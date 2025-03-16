@@ -3,6 +3,7 @@
 
 #include <set>
 #include <string>
+#include <sys/unistd.h>
 
 class Server;
 class Client;
@@ -22,7 +23,9 @@ class Parser{
 
     std::string readFile    (std::string filePath, Response *response);
 
-    int     checkResource  (std::string filePath, Response *response);
+    int     checkResource  (std::string filePath, Response *response, int accessMode = R_OK);
+    
+    int     deleteResource  (std::string filePath, Response *response, bool useDetailedResponse = true);
     
     Parser();
     ~Parser();
