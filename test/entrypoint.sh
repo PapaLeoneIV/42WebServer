@@ -13,8 +13,8 @@ nginx -g "daemon off;"
 
 
 if [[ $? -ne 0 ]]; then
-    print_error "Error: Nginx failed to start!"
+    echo "Error: Nginx failed to start!"
     exit 1
 else
-    print_success "Nginx started successfully."
+    echo "Nginx started successfully."
 fi
