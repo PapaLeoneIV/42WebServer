@@ -116,13 +116,20 @@ void Parser::validateResource(Client *client, Server *server)
 
     // TODO: atm is hardcoded to the root directory
     // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/6
-    std::string filePath = server->getCwd() +  server->getRoot() + request->getUrl();
+
+    std::string url = request->getUrl();
+    // rimuovo i parametri di query dall'URL per ottenere il percorso del file
+    std::string cleanUrl = url;
+    size_t queryPos = url.find('?');
+    if (queryPos != std::string::npos) {
+        cleanUrl = url.substr(0, queryPos);
+    }
+    std::string filePath = server->getCwd() + server->getRoot() + cleanUrl;
     
     if (request->getMethod() == "DELETE") {
         Logger::info("DELETE request for: " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
         
-        bool useDetailedResponse = (request->getUrl().find("?details=true") != std::string::npos);
-        // bool useDetailedResponse = true;
+        bool useDetailedResponse = isQueryParamValid(url, "details", false);
         int result = this->deleteResource(filePath, response, useDetailedResponse);
         if (result == SUCCESS) {
             if (response->getStatus() == 204) {
@@ -147,8 +154,9 @@ void Parser::validateResource(Client *client, Server *server)
     
     if(S_ISDIR(fileType)){
         if(*(filePath.rbegin()) != '/'){
-            std::string newUrl = request->getUrl() + "/";
+            std::string newUrl = cleanUrl + "/";
             request->setUrl(newUrl);
+            filePath += "/";
         }
         // TODO:  implement the directory listing feature based on the config file
         // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/5

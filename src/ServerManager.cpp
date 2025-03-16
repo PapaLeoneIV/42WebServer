@@ -235,8 +235,6 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
 
     response->prepareResponse();
 
-    Logger::info("Sending response [" + intToStr(fd) + "]");
-
     int bytes_sent = send(fd, response->getResponse().c_str(), response->getResponse().size(), 0);
 
     if (bytes_sent == -1) {
