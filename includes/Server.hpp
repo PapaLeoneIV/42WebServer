@@ -58,6 +58,8 @@ class Server{
     void    setMaxRequestSize   (size_t max_request_size);
     void    setCwd  (std::string cwd);
 
+    void printServerDir(void);
+    void printLocationDir(void);
 
     private:
 

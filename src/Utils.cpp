@@ -289,8 +289,9 @@ std::string getErrorPage(int status, Server *server) {
     std::map<std::string, std::vector<std::string> > serverDir = server->getServerDir();
     std::map<std::string, std::vector<std::string> > ::iterator it = serverDir.begin();
     for(; it != server->getServerDir().end(); it++){
-        if(it->first == "error_page" && strToInt(it->second[0]) == status){
-            return readTextFile(it->second[1]);
+        if(it->first == "error_page_" + intToStr(status)){
+            std::string path = it->second[0];
+            return readTextFile(path);
         }
     }
 
@@ -300,6 +301,7 @@ std::string getErrorPage(int status, Server *server) {
         case 404: return readTextFile("./static/errorPage/404.html");
         case 405: return readTextFile("./static/errorPage/405.html");
         case 411: return readTextFile("./static/errorPage/411.html");
+        case 414: return readTextFile("./static/errorPage/414.html");
         case 500: return readTextFile("./static/errorPage/500.html");
         case 501: return readTextFile("./static/errorPage/501.html");
         case 505: return readTextFile("./static/errorPage/505.html");

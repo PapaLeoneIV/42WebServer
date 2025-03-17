@@ -38,7 +38,6 @@ class Response{
     void                                setHeaders            (std::string key, std::string value);
     void                                reset                 (void);
     void                                flush                 (void);
-    std::string                         getErrorPage          (int status);
 
     private:
 

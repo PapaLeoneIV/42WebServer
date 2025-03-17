@@ -3,6 +3,7 @@
 #include "../includes/Request.hpp"
 #include "../includes/Response.hpp"
 #include "../includes/Utils.hpp"
+#include "../includes/Logger.hpp"
 sockaddr_storage        &Client::getAddr()                          {return this->_address;};
 socklen_t               &Client::getAddrLen()                       {return this->_address_length;};
 SOCKET                  &Client::getSocketFd()                      {return this->_socket;};
@@ -71,9 +72,9 @@ Client::~Client(){
   static char address_info[INET6_ADDRSTRLEN];
   int x = getnameinfo((sockaddr*)&this->getAddr(), this->getAddrLen(), address_info, sizeof(address_info), NULL, 0, NI_NUMERICHOST);
   if (x != 0) {
-    std::cerr << "Error getting client address: " << gai_strerror(x) << std::endl;
+    Logger::error("Client", "Error getting client address: " + std::string(gai_strerror(x)));
   } else {
-    std::cout << "[" << this->getSocketFd() << "] INFO: Connection closed from " << address_info << std::endl;
+    Logger::info("Connection closed from " + std::string(address_info) + " [" + intToStr(this->getSocketFd()) + "]");
   }
   if(this->_Request)
     delete this->_Request;
@@ -95,8 +96,11 @@ void Client::reset() {
     this->_headersData = "";
     this->_bodyData = "";
     this->_received = 0;
+    this->_content_length = 0;
     
     this->updateLastActivity();
+    
+    Logger::info("Client state reset for keep-alive connection [" + intToStr(this->_socket) + "]");
 }
 
 time_t Client::getLastActivity(void) {
