@@ -127,6 +127,13 @@ void ServerManager::processRequest(Client *client)
 
         int result = client->getRequest()->consume(buffer);
         Logger::info("Request parsing result: " + intToStr(result) + ", state: " + intToStr(client->getRequest()->state) + " [" + intToStr(fd) + "]");
+
+        if(client->getRequest()->state == StateParsingError) {
+            Logger::info("Parsing error detected, sending error response [" + intToStr(fd) + "]");
+            client->getResponse()->setStatusCode(400);
+            this->sendErrorResponse(client->getResponse(), fd, client);
+            return;
+        }
     }
 
 
@@ -165,7 +172,13 @@ void ServerManager::sendErrorResponse(Response *response, SOCKET fd, Client *cli
     response->setHeaders("Host", "localhost");
     response->setHeaders("Content-Type", "text/html");
     response->setHeaders("Content-Length", intToStr(errorPage.size()));
-    response->setHeaders("Connection", "close");
+   
+    std::string connectionHeader = to_lower(client->getRequest()->getHeaders()["connection"]);
+    if (connectionHeader == "close") {
+        response->setHeaders("Connection", "close");
+    } else {
+        response->setHeaders("Connection", "keep-alive");
+    }
 
     response->prepareResponse();
 
@@ -180,8 +193,8 @@ void ServerManager::sendErrorResponse(Response *response, SOCKET fd, Client *cli
     }
     std::cout << "[" << fd << "] INFO: ERROR response sent successfully (" << bytes_sent << " bytes)" << std::endl;
     
-    std::cout << "[" << fd << "] INFO: Closing connection as demand by ERROR" << std::endl;
-    this->closeClientConnection(fd, client);
+    // std::cout << "[" << fd << "] INFO: Closing connection as demand by ERROR" << std::endl;
+    // this->closeClientConnection(fd, client);
     return;
 }
 
@@ -198,7 +211,6 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
             this->sendErrorResponse(response, fd, client);
             return ;
         }
-        std::cerr << "[" << fd << "] ERROR: Cannot send response, invalid request or response state" << std::endl;
         Logger::error("ServerManager", "Cannot send response, invalid request or response state [" + intToStr(fd) + "]");
         return;
     }
@@ -209,10 +221,10 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     response->setHeaders("Host", "localhost");
 
     std::string connectionHeader = to_lower(request->getHeaders()["connection"]);
-    if (connectionHeader == "keep-alive") {
-        response->setHeaders("Connection", "keep-alive");
-    } else {
+    if (connectionHeader == "close") {
         response->setHeaders("Connection", "close");
+    } else {
+        response->setHeaders("Connection", "keep-alive");
     }
 
     // se non ho il body non setto i due header
@@ -222,8 +234,6 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     }
 
     response->prepareResponse();
-
-    Logger::info("Sending response [" + intToStr(fd) + "]");
 
     int bytes_sent = send(fd, response->getResponse().c_str(), response->getResponse().size(), 0);
 

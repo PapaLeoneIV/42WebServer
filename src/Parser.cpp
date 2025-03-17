@@ -4,7 +4,7 @@
 #include "../includes/Server.hpp"
 #include "../includes/Response.hpp"
 #include "../includes/Utils.hpp"
-
+#include "../includes/Logger.hpp"
 
 
 /**
@@ -50,9 +50,61 @@
 //     return request;
 // }
 
+
+int Parser::deleteResource(std::string filePath, Response *response, bool useDetailedResponse) {
+    // Checkko se esiste
+    if (access(filePath.c_str(), F_OK) != 0) {
+        response->setStatusCode(404);
+        return FAILURE;
+    }
+    
+    // Ottengo info sul file prima di eliminarlo (per 200 OK)
+    struct stat fileInfo;
+    std::string fileDetails = "";
+    if (useDetailedResponse && stat(filePath.c_str(), &fileInfo) == 0) {
+        fileDetails = "File: " + filePath + "\n";
+        fileDetails += "Size: " + intToStr(fileInfo.st_size) + " bytes\n";
+        fileDetails += "Last modified: " + std::string(ctime(&fileInfo.st_mtime));
+    }
+    
+    // Checkko se è una directory
+    if (stat(filePath.c_str(), &fileInfo) == 0 && S_ISDIR(fileInfo.st_mode)) {
+        response->setStatusCode(403);
+        Logger::error("Parser", "Cannot delete directory: " + filePath);
+        return FAILURE;
+    }
+
+    // Checkko i permessi
+    int fileType = this->checkResource(filePath, response, W_OK);
+    if (fileType == FAILURE) {
+        Logger::error("Parser", "Resource check failed: " + filePath + " (Status: " + intToStr(response->getStatus()) + ")");
+        return FAILURE;
+    }
+
+    if (remove(filePath.c_str()) != 0) {
+        Logger::error("Parser", "Failed to delete file: " + filePath + " - " + std::string(strerror(errno)));
+        response->setStatusCode(500);
+        return FAILURE;
+    }
+
+    // Secondo HTTP 1.1:
+    // - 204 No Content: quando non c'è bisogno di inviare un corpo nella risposta
+    // - 200 OK: quando si vuole inviare un corpo nella risposta (es. conferma, statistiche, ecc.)
+    if (useDetailedResponse) {
+        response->setStatusCode(200);
+        std::string successBody = "<html><body>\n<h1>File deleted successfully</h1>\n";
+        successBody += "<p>Details:</p>\n";
+        successBody += "<pre>\n" + fileDetails + "</pre>\n";
+        successBody += "</body></html>\n";
+        response->setBody(successBody);
+    } else {
+        response->setStatusCode(204);
+    }
+    return SUCCESS;
+}
+
 void Parser::validateResource(Client *client, Server *server)
 {
-
     int fileType;
     std::string fileContent;
 
@@ -64,20 +116,47 @@ void Parser::validateResource(Client *client, Server *server)
 
     // TODO: atm is hardcoded to the root directory
     // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/6
-    std::string filePath = server->getCwd() +  server->getRoot() + request->getUrl();
+
+    std::string url = request->getUrl();
+    // rimuovo i parametri di query dall'URL per ottenere il percorso del file
+    std::string cleanUrl = url;
+    size_t queryPos = url.find('?');
+    if (queryPos != std::string::npos) {
+        cleanUrl = url.substr(0, queryPos);
+    }
+    std::string filePath = server->getCwd() + server->getRoot() + cleanUrl;
     
-    //check if the requested resource is accessible
+    if (request->getMethod() == "DELETE") {
+        Logger::info("DELETE request for: " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
+        
+        bool useDetailedResponse = isQueryParamValid(url, "details", false);
+        int result = this->deleteResource(filePath, response, useDetailedResponse);
+        if (result == SUCCESS) {
+            if (response->getStatus() == 204) {
+                Logger::info("Resource deleted successfully (204 No Content): " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
+            } else {
+                Logger::info("Resource deleted successfully (200 OK): " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
+            }
+        } else {
+            Logger::error("Parser", "Failed to delete resource: " + filePath + " (Status: " + intToStr(response->getStatus()) + ") [" + intToStr(client->getSocketFd()) + "]");
+
+            response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        }
+        return;
+    }
+
+    //checcko se la risorsa richiesta è accessibile
     fileType = this->checkResource(filePath, response);
     if(fileType == FAILURE){
         response->setBody(getErrorPage(response->getStatus(), client->getServer()));
-        request->state = StateParsingError;
         return;
     }
     
     if(S_ISDIR(fileType)){
         if(*(filePath.rbegin()) != '/'){
-            std::string newUrl = request->getUrl() + "/";
+            std::string newUrl = cleanUrl + "/";
             request->setUrl(newUrl);
+            filePath += "/";
         }
         // TODO:  implement the directory listing feature based on the config file
         // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/5

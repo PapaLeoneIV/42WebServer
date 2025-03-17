@@ -83,8 +83,9 @@ int Request::consume(std::string buffer){
 					this->state = StateParsingError;
                     return 1;
                 }
+                this->raw += character;
                 this->state =  StateUrlBegin;
-                break;
+                continue;
             }
             case StateUrlBegin:{
                 if(character != '/')
@@ -94,8 +95,10 @@ int Request::consume(std::string buffer){
                     return 1;
                 }
                 this->content.clear();
+                this->raw += character;
+                this->content += character;
                 this->state =  StateUrlString;
-                break;
+                continue;
             }
             case StateUrlString:{
                 // https://datatracker.ietf.org/doc/html/rfc1738#section-2.1
@@ -103,17 +106,15 @@ int Request::consume(std::string buffer){
                 || (character >= '0' && character <= '9') || (character == '+') || (character == '.')
                 || (character == '-') || (character == '_') || (character == '!') || (character == '$')  
                 || (character == '*') || (character == '\'') || (character == '(') || (character == ')')
-                || (character == '/')){
-                    break;
+                || (character == '/') || (character == '=') || (character == '&')){
+                    this->content += character;
+                    this->raw += character;
+                    continue;
                 }
-                //TODO '?' handle query params if we want to do it
-                //Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/10
                 if(character == '?'){
-                    Logger::info("Query params not supported yet");
-                    this->error = 501; //Not Implemented
-                    this->state = StateParsingError;
-                    //switch to state "extract query params"
-                    break;
+                    this->content += character;
+                    this->raw += character;
+                    continue;
                 }
 
                 //% https://datatracker.ietf.org/doc/html/rfc3986#section-2.1 HTTP/1.1
@@ -130,7 +131,11 @@ int Request::consume(std::string buffer){
                     this->state = StateSpaceAfterUrl;
                     continue;
                 } 
-                break;
+                // se arriviamo qui, il carattere non è valido per un URL
+                Logger::error("Parser", "Bad character in URL: '" + std::string(1, character) + "', ASCII: " + intToStr(static_cast<int>(character)));
+                this->error = 400;
+                this->state = StateParsingError;
+                return 1;
             }
             case StateEncodedSep:{
                 if(this->encoded_counter == 1)
@@ -485,15 +490,16 @@ int Request::consume(std::string buffer){
             }
         
             case StateParsingComplete:{
+                Logger::info("Parser: Parsing complete. Method: " + this->method + ", URL: " + this->url);
                 return 0;
             }
             
 
             default:
                 std::cout << "case not handled ==> " << character << std::endl;
+                this->raw += character;
+                this->content += character;
         }
-        this->raw += character;
-        this->content += character;
     }
 
     return 1;

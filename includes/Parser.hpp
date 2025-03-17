@@ -3,6 +3,7 @@
 
 #include <set>
 #include <string>
+#include <sys/unistd.h>
 
 class Server;
 class Client;
@@ -22,7 +23,13 @@ class Parser{
 
     std::string readFile    (std::string filePath, Response *response);
 
-    int     checkResource  (std::string filePath, Response *response);
+    int     checkResource  (std::string filePath, Response *response, int accessMode = R_OK);
+    
+    int     deleteResource  (std::string filePath, Response *response, bool useDetailedResponse = true);
+
+    std::string     extractQueryParams(const std::string &url, const std::string  &paramName, const std::string &defaultValue="", const std::vector<std::string> &validValues = std::vector<std::string>());
+
+    bool        isQueryParamValid(const std::string &url, const std::string &paramName, bool defaultValue = false);
     
     Parser();
     ~Parser();

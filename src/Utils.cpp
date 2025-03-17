@@ -255,6 +255,8 @@ std::string getMessageFromStatusCode(int status)
     {
     case 200:
         return "OK";
+    case 204:
+        return "No Content";
     case 400:
         return "Bad Request";
     case 403:
@@ -283,30 +285,42 @@ std::string getMessageFromStatusCode(int status)
     return "Status Code not recognized";
 }
 
-
 std::string getErrorPage(int status, Server *server) {
-
-    std::map<std::string, std::vector<std::string> > serverDir = server->getServerDir();
-    std::map<std::string, std::vector<std::string> > ::iterator it = serverDir.begin();
-    for(; it != server->getServerDir().end(); it++){
-        if(it->first == "error_page_" + intToStr(status)){
-            std::string path = it->second[0];
-            return readTextFile(path);
+    Logger::info("Trying to get error page for status: " + intToStr(status));
+    
+    if (server != NULL) {
+        std::map<std::string, std::vector<std::string> > serverDir = server->getServerDir();
+        std::map<std::string, std::vector<std::string> >::iterator it = serverDir.begin();
+        for(; it != serverDir.end(); it++) {
+            if (it->first == "error_page_" + intToStr(status)) {
+                if (it->second.size() > 0) {
+                    Logger::info("Found error_page directive for status: " + intToStr(status) + ", path: " + it->second[0]);
+                    return readTextFile(it->second[0]);
+                }
+            }
         }
+        Logger::info("No error_page directive found for status: " + intToStr(status) + ", using default");
+    } else {
+        Logger::info("Server is NULL, using default error page");
     }
-
+    std::string errorPath;
     switch (status) {
-        case 400: return readTextFile("./static/errorPage/400.html");
-        case 403: return readTextFile("./static/errorPage/403.html");
-        case 404: return readTextFile("./static/errorPage/404.html");
-        case 405: return readTextFile("./static/errorPage/405.html");
-        case 411: return readTextFile("./static/errorPage/411.html");
-        case 414: return readTextFile("./static/errorPage/414.html");
-        case 500: return readTextFile("./static/errorPage/500.html");
-        case 501: return readTextFile("./static/errorPage/501.html");
-        case 505: return readTextFile("./static/errorPage/505.html");
+        case 400: errorPath = "./static/errorPage/400.html"; break;
+        case 403: errorPath = "./static/errorPage/403.html"; break;
+        case 404: errorPath = "./static/errorPage/404.html"; break;
+        case 405: errorPath = "./static/errorPage/405.html"; break;
+        case 411: errorPath = "./static/errorPage/411.html"; break;
+        case 414: errorPath = "./static/errorPage/414.html"; break;
+        case 500: errorPath = "./static/errorPage/500.html"; break;
+        case 501: errorPath = "./static/errorPage/501.html"; break;
+        case 505: errorPath = "./static/errorPage/505.html"; break;
+        default: 
+            Logger::error("Utils", "No default error page for status: " + intToStr(status));
+            return "<html><body><h1>Errore " + intToStr(status) + "</h1><p>" + getMessageFromStatusCode(status) + "</p></body></html>";
     }
-    return "";
+    
+    Logger::info("Using default error page: " + errorPath);
+    return readTextFile(errorPath);
 }
 
 std::string sanitizeDots(std::string string)
