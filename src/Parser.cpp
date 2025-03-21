@@ -106,6 +106,10 @@ int Parser::deleteResource(std::string filePath, Response *response, bool useDet
 void Parser::handlePostRequest(Client *client, Server *server, const std::string &uploadDir) {
 	Logger::info("Credevi la POST fosse gia' implementata.... cor cazzo");
 
+	//parsing
+	//upload
+	//cgi
+
 	/* Request *request = client->getRequest();
     Response *response = client->getResponse();
     
