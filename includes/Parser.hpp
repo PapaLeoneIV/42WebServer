@@ -4,6 +4,7 @@
 #include <set>
 #include <string>
 #include <sys/unistd.h>
+#include <vector>
 
 class Server;
 class Client;

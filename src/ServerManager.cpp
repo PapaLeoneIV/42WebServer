@@ -17,7 +17,7 @@
 */
 void ServerManager::eventLoop()
 {
-    while(420){
+    while(4.20){
         int fds_changed = 0;
         
         //bisogna resettare gli fd ad ogni nuovo ciclo
@@ -162,7 +162,7 @@ void ServerManager::sendErrorResponse(Response *response, SOCKET fd, Client *cli
 {
     std::string errorPage = getErrorPage(response->getStatus(), client->getServer());
     if (errorPage.empty()) {
-        std::cerr << "[" << fd << "] ERROR: Error page not found" << std::endl;
+		Logger::error("ServerManager", "Error page not found [" + intToStr(fd) + "]");
         return;
     }
     response->setBody(errorPage);
@@ -182,16 +182,14 @@ void ServerManager::sendErrorResponse(Response *response, SOCKET fd, Client *cli
 
     response->prepareResponse();
 
-    std::cout << "[" << fd << "] DEBUG: Body size: " << errorPage.size() << " bytes" << std::endl;
-    std::cout << "[" << fd << "] DEBUG: Total response size: " << response->getResponse().size() << " bytes" << std::endl;
-    
-    std::cout << "[" << fd << "] INFO: Sending ERROR response: " << std::endl;
+	Logger::info("Sending ERROR response [" + intToStr(fd) + "]");    
     int bytes_sent = send(fd, response->getResponse().c_str(), response->getResponse().size(), 0);
 
     if (bytes_sent == -1) {
-        std::cerr << "[" << fd << "] ERROR: Send failed: " << strerror(errno) << std::endl;
+		Logger::error("ServerManager", "Send failed: " + std::string(strerror(errno)) + " [" + intToStr(fd) + "]");
+		return;
     }
-    std::cout << "[" << fd << "] INFO: ERROR response sent successfully (" << bytes_sent << " bytes)" << std::endl;
+	Logger::info("ERROR response sent successfully (" + intToStr(bytes_sent) + " bytes) [" + intToStr(fd) + "]");
     
     // std::cout << "[" << fd << "] INFO: Closing connection as demand by ERROR" << std::endl;
     // this->closeClientConnection(fd, client);
