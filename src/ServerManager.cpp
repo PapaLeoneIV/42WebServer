@@ -186,7 +186,7 @@ void ServerManager::sendErrorResponse(Response *response, SOCKET fd, Client *cli
     int bytes_sent = send(fd, response->getResponse().c_str(), response->getResponse().size(), 0);
 
     if (bytes_sent == -1) {
-		Logger::error("ServerManager", "Send failed: " + std::string(strerror(errno)) + " [" + intToStr(fd) + "]");
+		Logger::error("ServerManager", "Send failed on socket [" + intToStr(fd) + "]");
 		return;
     }
 	Logger::info("ERROR response sent successfully (" + intToStr(bytes_sent) + " bytes) [" + intToStr(fd) + "]");

@@ -103,6 +103,26 @@ int Parser::deleteResource(std::string filePath, Response *response, bool useDet
     return SUCCESS;
 }
 
+void Parser::handlePostRequest(Client *client, Server *server, const std::string &uploadDir) {
+	Logger::info("Credevi la POST fosse gia' implementata.... cor cazzo");
+
+	/* Request *request = client->getRequest();
+    Response *response = client->getResponse();
+    
+    // Ottieni Content-Type e Content-Length
+    std::string contentType = request->getHeaders("Content-Type");
+    std::string contentLengthStr = request->getHeader("Content-Length");
+    
+    // Verifica che Content-Length sia presente
+    if (contentLengthStr.empty()) {
+        response->setStatusCode(411); // Length Required
+        response->setBody(getErrorPage(411, server));
+        Logger::error("Parser", "Missing Content-Length header in POST request");
+        return;
+	}
+ */
+}
+
 void Parser::validateResource(Client *client, Server *server)
 {
     int fileType;
@@ -144,6 +164,26 @@ void Parser::validateResource(Client *client, Server *server)
         }
         return;
     }
+
+	if (request->getMethod() == "POST") {
+		Logger::info("POST request for: " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
+
+		std::string uploadDir = server->getRoot() + "/uploads"; //dir dedicata 
+
+		//check se dir esiste, nel caso la creo
+		struct stat st;
+		if(stat(uploadDir.c_str(), &st) != 0) {
+			if(mkdir(uploadDir.c_str(), 0755) != 0) {
+				response->setStatusCode(500);
+				response->setBody((getErrorPage(500, client->getServer())));
+				Logger::error("Parser", "Failed to create upload directory: " + uploadDir);
+				return;
+			}
+		}
+
+		handlePostRequest(client, server, uploadDir);
+		return;
+	}
 
     //checcko se la risorsa richiesta è accessibile
     fileType = this->checkResource(filePath, response);

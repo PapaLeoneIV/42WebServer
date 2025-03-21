@@ -26,6 +26,7 @@ public:
     std::string &getUrl (void);
     std::string &getVersion (void);
     std::map<std::string, std::string>  &getHeaders (void);
+	std::string getHeader(const std::string& headerName);
 
     bool  &hasBody  (void);
     void  setMethod (std::string& method);

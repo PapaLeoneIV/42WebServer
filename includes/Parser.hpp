@@ -31,6 +31,8 @@ class Parser{
     std::string     extractQueryParams(const std::string &url, const std::string  &paramName, const std::string &defaultValue="", const std::vector<std::string> &validValues = std::vector<std::string>());
 
     bool        isQueryParamValid(const std::string &url, const std::string &paramName, bool defaultValue = false);
+
+	void		handlePostRequest(Client *client, Server *server, const std::string &uploadDir);
     
     Parser();
     ~Parser();

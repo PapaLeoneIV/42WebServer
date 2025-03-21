@@ -551,6 +551,29 @@ void Request::reset(void) {
     this->headers_key.clear();
 }
 
+std::string Request::getHeader(const std::string& headerName)	{
+	//setto tutto header in minuscolo perche' devo accettare indipendentemente(es:CONTENT-TYPE = Content-Type)
+	std::string lowerHeaderName = headerName;
+    for (size_t i = 0; i < lowerHeaderName.length(); i++) {
+        lowerHeaderName[i] = tolower(lowerHeaderName[i]);
+    }
+    
+    for (std::map<std::string, std::string>::iterator it = this->headers.begin(); it != this->headers.end(); ++it) {
+        std::string currentHeader = it->first;
+        std::string lowerCurrentHeader = currentHeader;
+        
+        for (size_t i = 0; i < lowerCurrentHeader.length(); i++) {
+            lowerCurrentHeader[i] = tolower(lowerCurrentHeader[i]);
+        }
+        
+        if (lowerCurrentHeader == lowerHeaderName) {
+            return it->second;
+        }
+    }
+
+    return "";
+}
+
 std::string &Request::getUrl()  {return this->url;}
 
 std::string &Request::getMethod()  {return this->method;}
