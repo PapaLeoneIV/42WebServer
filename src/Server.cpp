@@ -15,7 +15,7 @@ size_t      &Server::getMaxRequestSize(){return this->_max_request_size;};
 std::string &Server::getCwd()	{return this->_cwd;};
 
 std::map<std::string, std::vector<std::string> > Server::getServerDir(void) {return this->serverDir;}
-std::map<std::string, std::map<std::string, std::vector<std::string> > > Server::getLocationDir(void) {return this->locationDir;} 
+std::map<std::string, std::map<std::string, std::vector<std::string> > > &Server::getLocationDir(void) {return this->locationDir;} 
 
 void Server::printServerDir() {
 	std::map<std::string, std::vector<std::string> >::const_iterator it;
