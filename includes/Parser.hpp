@@ -3,6 +3,8 @@
 
 #include <set>
 #include <string>
+#include <vector>
+#include <map>
 
 class Server;
 class Client;
