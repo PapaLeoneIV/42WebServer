@@ -8,7 +8,7 @@
 
 #define URL_MATCHING_ERROR_ALLOWANCE 3
 
-unsigned int Parser::levenshtein_distance(const std::string& s1, const std::string& s2)
+unsigned int Parser::levenshteinDistance(const std::string& s1, const std::string& s2)
 {
 	const std::size_t len1 = s1.size(), len2 = s2.size();
 	std::vector<std::vector<unsigned int> > d(len1 + 1, std::vector<unsigned int>(len2 + 1));
@@ -32,7 +32,7 @@ std::string Parser::findBestApproximationString(std::string url, std::vector<std
     size_t i;
 
     for (i = 0; i < dictionary.size(); i++) {
-        int distance = levenshtein_distance(url, dictionary[i]);
+        int distance = levenshteinDistance(url, dictionary[i]);
         if (distance < URL_MATCHING_ERROR_ALLOWANCE && distance < min_distance) {
             min_distance = distance;
             best_match = dictionary[i];
