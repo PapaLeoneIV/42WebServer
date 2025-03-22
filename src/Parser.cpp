@@ -1,3 +1,4 @@
+#include "../includes/Logger.hpp"
 #include "../includes/Parser.hpp"
 #include "../includes/Request.hpp"
 #include "../includes/Client.hpp"
@@ -5,54 +6,12 @@
 #include "../includes/Response.hpp"
 #include "../includes/Utils.hpp"
 
+#define URL_MATCHING_ERROR_ALLOWANCE 3
 
-
-/**
- * Questa funzione serve ad estrarre tutte le informazioni dalla request, 
- * viene scomposta la prima linea in (METHOD, URL, VERSION), successivamente 
- * vengono insertiti gli HEADERS all interno di una mappa, ed infine il BODY
- * viene estratto in base al tipo di trasferimento presente negl headers(TEXT/PLAIN, TRANSFER-ENCODING, MULTIPART-FORMDATA).
- */
-// Request* Parser::extract(std::string headerData, std::string bodyData, Client *client) {
-    
-//     Response *response = client->getResponse();
-//     Request *request = new Request();
-    
-//     std::string line;
-
-//     std::istringstream headerStream(headerData);
-//     std::istringstream bodyStream(bodyData);
-
-//     std::string dataStr(headerData + bodyData);
-
-//     //controlla che la richiesta sia terminata in modo corretto con \r\n\r\n
-//     if (dataStr.find("\r\n\r\n") == std::string::npos) {
-//         response->setStatusCode(400);
-//         return NULL;
-//     }
-
-//     //controlla che la richiesta abbia un body oppure no
-//     if(!bodyData.empty())
-//         request->setHasBody(true);
-   
-//     if (std::getline(headerStream, line) && this->extractFirstLine(request, response, line) != SUCCESS){
-//         response->setStatusCode(400);
-//         return NULL;
-//     }   
-    
-//     this->extractHeaders(request, headerStream);
-
-//     if(this->extractBody(request, bodyStream) != SUCCESS){
-//         response->setStatusCode(400);
-//         return NULL;
-//     }
-    
-//     return request;
-// }
 unsigned int Parser::levenshtein_distance(const std::string& s1, const std::string& s2)
 {
 	const std::size_t len1 = s1.size(), len2 = s2.size();
-	std::vector<std::vector<unsigned int>> d(len1 + 1, std::vector<unsigned int>(len2 + 1));
+	std::vector<std::vector<unsigned int> > d(len1 + 1, std::vector<unsigned int>(len2 + 1));
 
 	d[0][0] = 0;
 	for(unsigned int i = 1; i <= len1; ++i) d[i][0] = i;
@@ -60,19 +19,21 @@ unsigned int Parser::levenshtein_distance(const std::string& s1, const std::stri
 
 	for(unsigned int i = 1; i <= len1; ++i)
 		for(unsigned int j = 1; j <= len2; ++j)
-                      d[i][j] = std::min(std::min(d[i - 1][j] + 1, d[i][j - 1] + 1), d[i - 1][j - 1] + (s1[i - 1] == s2[j - 1] ? 0 : 1));  
+                      d[i][j] = std::min(std::min(  d[i - 1][j] + 1,
+                                                    d[i][j - 1] + 1),
+                                                    d[i - 1][j - 1] + (s1[i - 1] == s2[j - 1] ? 0 : 1));  
 	return d[len1][len2];
 }
 
 std::string Parser::findBestApproximationString(std::string url, std::vector<std::string> dictionary) {
 
     int min_distance = INT_MAX;
-    std::string best_match;
+    std::string best_match = "";
     size_t i;
 
     for (i = 0; i < dictionary.size(); i++) {
         int distance = levenshtein_distance(url, dictionary[i]);
-        if (distance < min_distance) {
+        if (distance < URL_MATCHING_ERROR_ALLOWANCE && distance < min_distance) {
             min_distance = distance;
             best_match = dictionary[i];
         }
@@ -81,8 +42,7 @@ std::string Parser::findBestApproximationString(std::string url, std::vector<std
     return best_match;
 }
 
-
-std::map<std::string, std::vector<std::string> >  Parser::getMatchingLocation(std::string url, Server *server){
+std::string  Parser::getMatchingLocation(std::string url, Server *server){
     std::vector<std::string> dictionary;
 
 
@@ -90,15 +50,17 @@ std::map<std::string, std::vector<std::string> >  Parser::getMatchingLocation(st
     for(; it != server->getLocationDir().end(); it++){
         dictionary.push_back(it->first);
     }
+    if(url.find_last_of("?") != std::string::npos)
+        url = url.substr(0, url.find_last_of("?"));
+    if(url.find_last_of("/") != std::string::npos)
+        url = url.substr(0, url.find_last_of("/"));
 
-
-    return server->getLocationDir()[findBestApproximationString(url, dictionary)];
+    return findBestApproximationString(url, dictionary);
 
 }
 
 void Parser::validateResource(Client *client, Server *server)
 {
-
     int fileType;
     std::string fileContent;
 
@@ -107,9 +69,15 @@ void Parser::validateResource(Client *client, Server *server)
 
     if(!request || !response)
         return;
-    
-    
-   // std::map<std::string, std::vector<std::string> >  LocationConfig = getMatchingLocation(client->getRequest()->getUrl(), client->getServer());
+
+    std::string bestMatch = this->getMatchingLocation(client->getRequest()->getUrl(), client->getServer());
+    if(bestMatch.empty()){
+        response->setStatusCode(404);
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        request->state = StateParsingError;
+        return;
+    }
+    std::map<std::string, std::vector<std::string> > locationConfig = server->getLocationDir()[bestMatch];
     // TODO: atm is hardcoded to the root directory
     // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/6
     std::string filePath = server->getCwd() +  server->getRoot() + request->getUrl();

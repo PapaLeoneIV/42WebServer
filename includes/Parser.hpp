@@ -24,10 +24,10 @@ class Parser{
 
     std::string readFile    (std::string filePath, Response *response);
 
-    int     checkResource  (std::string filePath, Response *response);
+    int checkResource  (std::string filePath, Response *response);
     std::string  findBestApproximationString(std::string url, std::vector<std::string> dictionary);
     unsigned int levenshtein_distance(const std::string& s1, const std::string& s2);
-	std::map<std::string, std::vector<std::string> > getMatchingLocation(std::string url, Server *server);
+	std::string getMatchingLocation(std::string url, Server *server);
     Parser();
     ~Parser();
 
