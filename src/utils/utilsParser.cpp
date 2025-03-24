@@ -289,3 +289,12 @@ bool Parser::isQueryParamValid(const std::string& url, const std::string& paramN
     
     return defaultValue;
 }
+
+
+std::string Parser::getQueryString(const std::string &url) {
+    size_t queryPos = url.find('?');
+    if (queryPos == std::string::npos) {
+        return "";
+    }
+    return url.substr(queryPos + 1);
+}

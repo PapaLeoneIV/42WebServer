@@ -22,11 +22,12 @@ public:
     void print_Request();
 
     void  printHeaders  (void);
-    std::string &getMethod  (void);
-    std::string &getUrl (void);
-    std::string &getVersion (void);
-    std::map<std::string, std::string>  &getHeaders (void);
-	std::string getHeader(const std::string& headerName);
+    std::string 						&getMethod  (void);
+    std::string 						&getUrl 	(void);
+    std::string 						&getVersion (void);
+    std::map<std::string, std::string>	&getHeaders (void);
+	std::string 						getHeader	(const std::string& headerName);
+	std::string 						&getBody 	(void);
 
     bool  &hasBody  (void);
     void  setMethod (std::string& method);

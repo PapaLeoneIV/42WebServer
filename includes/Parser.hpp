@@ -20,19 +20,27 @@ class Parser{
     
     //void    parseMultipart(Request *request, std::istringstream &iss, std::string boundary);
     
-    void    validateResource    (Client *client, Server *server);
+    void		validateResource    (Client *client, Server *server);
 
     std::string readFile    (std::string filePath, Response *response);
 
-    int     checkResource  (std::string filePath, Response *response, int accessMode = R_OK);
+    int			checkResource  (std::string filePath, Response *response, int accessMode = R_OK);
     
-    int     deleteResource  (std::string filePath, Response *response, bool useDetailedResponse = true);
+    int			deleteResource  (std::string filePath, Response *response, bool useDetailedResponse = true);
 
-    std::string     extractQueryParams(const std::string &url, const std::string  &paramName, const std::string &defaultValue="", const std::vector<std::string> &validValues = std::vector<std::string>());
+    std::string	extractQueryParams(const std::string &url, const std::string  &paramName, const std::string &defaultValue="", const std::vector<std::string> &validValues = std::vector<std::string>());
 
     bool        isQueryParamValid(const std::string &url, const std::string &paramName, bool defaultValue = false);
 
 	void		handlePostRequest(Client *client, Server *server, const std::string &uploadDir);
+
+	void		executeCgi(Client *client, Server *server, const std::string &requestBody);
+
+	void		executeCgiScript(int inputPipe[2], int outputPipe[2], Request *request, const std::string &scriptPath, const std::string &requestBody);
+
+	void		setCgiEnv(Request *request, const std::string &scriptPath, const std::string &requestBody);
+
+	std::string	getQueryString(const std::string &url);
     
     Parser();
     ~Parser();

@@ -634,3 +634,6 @@ Request::Request()
     this->methods[DELETE] = "DELETE";
     
 };
+
+
+std::string &Request::getBody() {return this->body;}

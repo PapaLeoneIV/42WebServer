@@ -103,28 +103,112 @@ int Parser::deleteResource(std::string filePath, Response *response, bool useDet
     return SUCCESS;
 }
 
-void Parser::handlePostRequest(Client *client, Server *server, const std::string &uploadDir) {
+void Parser::setCgiEnv(Request *request, const std::string &scriptPath, const std::string &requestBody)
+{
+    std::string url = request->getUrl();
+	std::string queryString = getQueryString(url);
+
+	// variabili d'ambiente minime richieste
+	setenv("REQUEST_METHOD", request->getMethod().c_str(), 1);
+	setenv("CONTENT_LENGTH", std::to_string(requestBody.length()).c_str(), 1);
+	setenv("CONTENT_TYPE", request->getHeader("Content-Type").c_str(), 1);
+	setenv("QUERY_STRING", queryString.c_str(), 1);
+	setenv("SCRIPT_FILENAME", scriptPath.c_str(), 1);
+	setenv("SCRIPT_NAME", url.c_str(), 1);
+	setenv("SERVER_PROTOCOL", "HTTP/1.1", 1);
+	setenv("GATEWAY_INTERFACE", "CGI/1.1", 1);
+	//forse da aggiungere altre variabili d'ambiente
+}
+
+void Parser::executeCgiScript(int inputPipe[2], int outputPipe[2], Request *request, const std::string &scriptPath, const std::string &requestBody)
+{
+	
+	close(STDIN_FILENO);
+	dup2(inputPipe[0], STDIN_FILENO);
+	close(STDOUT_FILENO);
+	dup2(outputPipe[1], STDOUT_FILENO);
+	close(inputPipe[0]);
+	close(inputPipe[1]);
+	close(outputPipe[0]);
+	close(outputPipe[1]);
+
+	setCgiEnv(request, scriptPath, requestBody);
+
+	execl(scriptPath.c_str(), scriptPath.c_str(), NULL); //execl invece di execve perche' usa la variabile d'ambiente con setenv
+
+	Logger::error("Parser", "Failed to execute CGI script: " + std::string(strerror(errno)));
+	exit(EXIT_FAILURE);
+}
+
+void Parser::executeCgi(Client *client, Server *server, const std::string &requestBody)
+{
+	Request *request = client->getRequest();
+    Response *response = client->getResponse();
+
+    std::string url = request->getUrl();
+    std::string scriptPath = server->getRoot() + url;
+
+	//check se eseguibile oppure se il file esiste ma NON ha il permesso di esecuzione per l'utente proprietario
+	struct stat st;
+    if (stat(scriptPath.c_str(), &st) == -1 || !(st.st_mode & S_IXUSR)) {
+        response->setStatusCode(404);
+        response->setBody(getErrorPage(404, server));
+        Logger::error("Parser", "CGI script not found or not executable: " + scriptPath);
+        return;
+    }
+	
+	// pipe processo CGI
+    int inputPipe[2];
+    int outputPipe[2];
+    
+    if (pipe(inputPipe) < 0 || pipe(outputPipe) < 0) {
+        response->setStatusCode(500);
+        response->setBody(getErrorPage(500, server));
+        Logger::error("Parser", "Failed to create pipes for CGI");
+        return;
+    }
+    
+    pid_t pid = fork();
+    
+    if (pid < 0) {
+        close(inputPipe[0]);
+        close(inputPipe[1]);
+        close(outputPipe[0]);
+        close(outputPipe[1]);
+        
+        response->setStatusCode(500);
+        response->setBody(getErrorPage(500, server));
+        Logger::error("Parser", "Failed to fork for CGI execution");
+        return;
+    }
+    
+    if (pid == 0) { 
+		executeCgiScript(inputPipe, outputPipe, request, scriptPath, requestBody);
+	}
+	//da implementare la gestione del processo padre
+
+}
+
+void Parser::handlePostRequest(Client *client, Server *server, const std::string &uploadDir)
+{
 	Logger::info("Credevi la POST fosse gia' implementata.... cor cazzo");
-
-	//parsing
-	//upload
-	//cgi
-
-	/* Request *request = client->getRequest();
+	
+	Request *request = client->getRequest();
     Response *response = client->getResponse();
     
     // Ottieni Content-Type e Content-Length
-    std::string contentType = request->getHeaders("Content-Type");
-    std::string contentLengthStr = request->getHeader("Content-Length");
+    std::string contentType = request->getHeader("Content-Type");
+    std::string contentLength = request->getHeader("Content-Length");
     
     // Verifica che Content-Length sia presente
-    if (contentLengthStr.empty()) {
+    if (contentLength.empty()) {
         response->setStatusCode(411); // Length Required
         response->setBody(getErrorPage(411, server));
         Logger::error("Parser", "Missing Content-Length header in POST request");
         return;
 	}
- */
+	std::string body = request->getBody();
+   	executeCgi(client, server, body);
 }
 
 void Parser::validateResource(Client *client, Server *server)
