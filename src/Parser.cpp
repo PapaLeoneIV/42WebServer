@@ -58,13 +58,14 @@ int Parser::deleteResource(std::string filePath, Response *response, bool useDet
         return FAILURE;
     }
     
-    // Ottengo info sul file prima di eliminarlo (per 200 OK)
+    // Ottengo info sul file (per 200 OK)
     struct stat fileInfo;
     std::string fileDetails = "";
     if (useDetailedResponse && stat(filePath.c_str(), &fileInfo) == 0) {
         fileDetails = "File: " + filePath + "\n";
         fileDetails += "Size: " + intToStr(fileInfo.st_size) + " bytes\n";
         fileDetails += "Last modified: " + std::string(ctime(&fileInfo.st_mtime));
+        fileDetails += "Content: " + this->readFile(filePath, response);
     }
     
     // Checkko se è una directory
@@ -81,20 +82,16 @@ int Parser::deleteResource(std::string filePath, Response *response, bool useDet
         return FAILURE;
     }
 
-    if (remove(filePath.c_str()) != 0) {
-        Logger::error("Parser", "Failed to delete file: " + filePath + " - " + std::string(strerror(errno)));
-        response->setStatusCode(500);
-        return FAILURE;
-    }
 
     // Secondo HTTP 1.1:
     // - 204 No Content: quando non c'è bisogno di inviare un corpo nella risposta
     // - 200 OK: quando si vuole inviare un corpo nella risposta (es. conferma, statistiche, ecc.)
     if (useDetailedResponse) {
         response->setStatusCode(200);
-        std::string successBody = "<html><body>\n<h1>File deleted successfully</h1>\n";
-        successBody += "<p>Details:</p>\n";
+        std::string successBody = "<html><body>\n<h1>DELETE request processed successfully</h1>\n";
+        successBody += "<p>The server has accepted the DELETE request for the following resource:</p>\n";
         successBody += "<pre>\n" + fileDetails + "</pre>\n";
+        successBody += "<p>Note: Resources are not actually deleted as per server configuration.</p>\n";
         successBody += "</body></html>\n";
         response->setBody(successBody);
     } else {
@@ -133,12 +130,12 @@ void Parser::validateResource(Client *client, Server *server)
         int result = this->deleteResource(filePath, response, useDetailedResponse);
         if (result == SUCCESS) {
             if (response->getStatus() == 204) {
-                Logger::info("Resource deleted successfully (204 No Content): " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
+                Logger::info("DELETE request processed successfully (204 No Content): " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
             } else {
-                Logger::info("Resource deleted successfully (200 OK): " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
+                Logger::info("DELETE request processed successfully (200 OK): " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
             }
         } else {
-            Logger::error("Parser", "Failed to delete resource: " + filePath + " (Status: " + intToStr(response->getStatus()) + ") [" + intToStr(client->getSocketFd()) + "]");
+            Logger::error("Parser", "Failed to process DELETE request: " + filePath + " (Status: " + intToStr(response->getStatus()) + ") [" + intToStr(client->getSocketFd()) + "]");
 
             response->setBody(getErrorPage(response->getStatus(), client->getServer()));
         }
