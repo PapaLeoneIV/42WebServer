@@ -5,6 +5,8 @@
 #include <string>
 #include <sys/unistd.h>
 #include <vector>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 class Server;
 class Client;
@@ -39,6 +41,10 @@ class Parser{
 	void		executeCgiScript(int inputPipe[2], int outputPipe[2], Request *request, const std::string &scriptPath, const std::string &requestBody);
 
 	void		setCgiEnv(Request *request, const std::string &scriptPath, const std::string &requestBody);
+
+	std::string	getCgiResponse(const std::string &requestBody, int outputPipe[2], int inputPipe[2]);
+
+	void		parseCgiResponse(const std::string &cgiOutput, Response *response);
 
 	std::string	getQueryString(const std::string &url);
     

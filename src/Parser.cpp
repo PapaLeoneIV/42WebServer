@@ -103,6 +103,83 @@ int Parser::deleteResource(std::string filePath, Response *response, bool useDet
     return SUCCESS;
 }
 
+void Parser::parseCgiResponse(const std::string &cgiOutput, Response *response) 
+{
+    // Trova il separatore tra intestazioni e corpo
+    std::string::size_type headerEndPos = cgiOutput.find("\r\n\r\n");
+    if (headerEndPos == std::string::npos) {
+        response->setStatusCode(502);
+        response->setBody("Bad Gateway");
+        return;
+    }
+    
+    // Estrai headers e body
+    std::string headers = cgiOutput.substr(0, headerEndPos);
+    std::string body = cgiOutput.substr(headerEndPos + 4);
+    
+    // Imposta codice di stato predefinito
+    response->setStatusCode(200);
+    
+    // Parser le intestazioni
+    std::istringstream headerStream(headers);
+    std::string line;
+    while (std::getline(headerStream, line)) {
+        if (line.empty() || line == "\r") continue;
+        
+        // Rimuovi CR finale
+        if (!line.empty() && line[line.length() - 1] == '\r') {
+            line = line.substr(0, line.length() - 1);
+        }
+        
+        std::string::size_type colonPos = line.find(':');
+        if (colonPos != std::string::npos) {
+            std::string headerName = line.substr(0, colonPos);
+            std::string headerValue = line.substr(colonPos + 1);
+            
+            // Rimuovi spazi iniziali
+            while (!headerValue.empty() && headerValue[0] == ' ') {
+                headerValue = headerValue.substr(1);
+            }
+            
+            // Gestisci intestazioni speciali
+            if (headerName == "Status") {
+                response->setStatusCode(atoi(headerValue.c_str()));
+            } else {
+                response->setHeaders(headerName, headerValue);
+            }
+        }
+    }
+    
+    // Imposta il corpo della risposta
+    response->setBody(body);
+}
+
+std::string Parser::getCgiResponse(const std::string &requestBody, int outputPipe[2], int inputPipe[2])
+{
+	close(inputPipe[0]);
+	close(outputPipe[1]);
+
+	if (!requestBody.empty()) {
+		write(inputPipe[1], requestBody.c_str(), requestBody.length());
+	}
+	close(inputPipe[1]); // Segnala EOF allo script
+
+	// Leggi la risposta dal CGI
+	std::string cgiOutput;
+	char buffer[4096];
+	ssize_t bytesRead;
+	while ((bytesRead = read(outputPipe[0], buffer, sizeof(buffer) - 1)) > 0) {
+	    buffer[bytesRead] = '\0';
+	    cgiOutput += buffer;
+	}
+	close(outputPipe[0]);
+	if (bytesRead == -1) {
+		Logger::error("Parser", "Failed to read CGI output: " + std::string(strerror(errno)));
+		return "";
+	}
+	return cgiOutput;
+}
+
 void Parser::setCgiEnv(Request *request, const std::string &scriptPath, const std::string &requestBody)
 {
     std::string url = request->getUrl();
@@ -110,7 +187,7 @@ void Parser::setCgiEnv(Request *request, const std::string &scriptPath, const st
 
 	// variabili d'ambiente minime richieste
 	setenv("REQUEST_METHOD", request->getMethod().c_str(), 1);
-	setenv("CONTENT_LENGTH", std::to_string(requestBody.length()).c_str(), 1);
+	setenv("CONTENT_LENGTH", intToStr(requestBody.length()).c_str(), 1);
 	setenv("CONTENT_TYPE", request->getHeader("Content-Type").c_str(), 1);
 	setenv("QUERY_STRING", queryString.c_str(), 1);
 	setenv("SCRIPT_FILENAME", scriptPath.c_str(), 1);
@@ -122,10 +199,7 @@ void Parser::setCgiEnv(Request *request, const std::string &scriptPath, const st
 
 void Parser::executeCgiScript(int inputPipe[2], int outputPipe[2], Request *request, const std::string &scriptPath, const std::string &requestBody)
 {
-	
-	close(STDIN_FILENO);
 	dup2(inputPipe[0], STDIN_FILENO);
-	close(STDOUT_FILENO);
 	dup2(outputPipe[1], STDOUT_FILENO);
 	close(inputPipe[0]);
 	close(inputPipe[1]);
@@ -182,17 +256,40 @@ void Parser::executeCgi(Client *client, Server *server, const std::string &reque
         return;
     }
     
-    if (pid == 0) { 
+    if (pid == 0)
 		executeCgiScript(inputPipe, outputPipe, request, scriptPath, requestBody);
+	std::string cgiOutput;
+	cgiOutput = getCgiResponse(requestBody, outputPipe, inputPipe);
+	if (cgiOutput.empty()) {
+		response->setStatusCode(500);
+		response->setBody(getErrorPage(500, server));
+		Logger::error("Parser", "Failed to read CGI output");
+		return;
 	}
-	//da implementare la gestione del processo padre
+	int status;
+	waitpid(pid, &status, 0);
 
+	parseCgiResponse(cgiOutput, response);
+
+	if (WIFEXITED(status)) {
+    	int exitStatus = WEXITSTATUS(status);
+    	if (exitStatus != 0) {
+    	    Logger::error("Parser", "CGI script exited with status: " + intToStr(exitStatus));
+    	    response->setStatusCode(502);
+    	    response->setBody(getErrorPage(502, server));
+    	    return;
+    }
+}
+
+}
+
+void Parser::handleUploadRequest(Client *client, Server *server, const std::string &uploadDir)
+{
+	//da implementare
 }
 
 void Parser::handlePostRequest(Client *client, Server *server, const std::string &uploadDir)
 {
-	Logger::info("Credevi la POST fosse gia' implementata.... cor cazzo");
-	
 	Request *request = client->getRequest();
     Response *response = client->getResponse();
     
@@ -207,8 +304,12 @@ void Parser::handlePostRequest(Client *client, Server *server, const std::string
         Logger::error("Parser", "Missing Content-Length header in POST request");
         return;
 	}
-	std::string body = request->getBody();
-   	executeCgi(client, server, body);
+	if (contentType.find("multipart/form-data") != std::string::npos)
+		handleUploadRequest(client, server, uploadDir);
+	else {
+		std::string body = request->getBody();
+		executeCgi(client, server, body);
+	}
 }
 
 void Parser::validateResource(Client *client, Server *server)
