@@ -32,7 +32,7 @@ launch_test: tester
 	@echo "--------------------------------------------------"
 	@echo "Running tests for all config files..."
 	@echo "--------------------------------------------------"
-	@for config_file in ./config/*.conf; do \
+	@for config_file in ./config/invalid/*.conf; do \
 		echo "Testing $$config_file..."; \
 		./tester $$config_file; \
 		echo "--------------------------------------------------"; \

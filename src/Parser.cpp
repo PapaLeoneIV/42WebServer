@@ -1,3 +1,4 @@
+#include "../includes/Logger.hpp"
 #include "../includes/Parser.hpp"
 #include "../includes/Request.hpp"
 #include "../includes/Client.hpp"
@@ -5,50 +6,58 @@
 #include "../includes/Response.hpp"
 #include "../includes/Utils.hpp"
 #include "../includes/Logger.hpp"
+#define URL_MATCHING_ERROR_ALLOWANCE 3
+
+unsigned int Parser::levenshteinDistance(const std::string& s1, const std::string& s2)
+{
+	const std::size_t len1 = s1.size(), len2 = s2.size();
+	std::vector<std::vector<unsigned int> > d(len1 + 1, std::vector<unsigned int>(len2 + 1));
+
+	d[0][0] = 0;
+	for(unsigned int i = 1; i <= len1; ++i) d[i][0] = i;
+	for(unsigned int i = 1; i <= len2; ++i) d[0][i] = i;
+
+	for(unsigned int i = 1; i <= len1; ++i)
+		for(unsigned int j = 1; j <= len2; ++j)
+                      d[i][j] = std::min(std::min(  d[i - 1][j] + 1,
+                                                    d[i][j - 1] + 1),
+                                                    d[i - 1][j - 1] + (s1[i - 1] == s2[j - 1] ? 0 : 1));  
+	return d[len1][len2];
+}
+
+std::string Parser::findBestApproximationString(std::string url, std::vector<std::string> dictionary) {
+
+    int min_distance = INT_MAX;
+    std::string best_match = "";
+    size_t i;
+
+    for (i = 0; i < dictionary.size(); i++) {
+        int distance = levenshteinDistance(url, dictionary[i]);
+        if (distance < URL_MATCHING_ERROR_ALLOWANCE && distance < min_distance) {
+            min_distance = distance;
+            best_match = dictionary[i];
+        }
+    }
+
+    return best_match;
+}
+
+std::string  Parser::getMatchingLocation(std::string url, Server *server){
+    std::vector<std::string> dictionary;
 
 
-/**
- * Questa funzione serve ad estrarre tutte le informazioni dalla request, 
- * viene scomposta la prima linea in (METHOD, URL, VERSION), successivamente 
- * vengono insertiti gli HEADERS all interno di una mappa, ed infine il BODY
- * viene estratto in base al tipo di trasferimento presente negl headers(TEXT/PLAIN, TRANSFER-ENCODING, MULTIPART-FORMDATA).
- */
-// Request* Parser::extract(std::string headerData, std::string bodyData, Client *client) {
-    
-//     Response *response = client->getResponse();
-//     Request *request = new Request();
-    
-//     std::string line;
+    std::map<std::string, std::map<std::string, std::vector<std::string> > >::iterator it = server->getLocationDir().begin();
+    for(; it != server->getLocationDir().end(); it++){
+        dictionary.push_back(it->first);
+    }
+    if(url.find_last_of("?") != std::string::npos)
+        url = url.substr(0, url.find_last_of("?"));
+    if(url.find_last_of("/") != std::string::npos)
+        url = url.substr(0, url.find_last_of("/"));
 
-//     std::istringstream headerStream(headerData);
-//     std::istringstream bodyStream(bodyData);
+    return findBestApproximationString(url, dictionary);
 
-//     std::string dataStr(headerData + bodyData);
-
-//     //controlla che la richiesta sia terminata in modo corretto con \r\n\r\n
-//     if (dataStr.find("\r\n\r\n") == std::string::npos) {
-//         response->setStatusCode(400);
-//         return NULL;
-//     }
-
-//     //controlla che la richiesta abbia un body oppure no
-//     if(!bodyData.empty())
-//         request->setHasBody(true);
-   
-//     if (std::getline(headerStream, line) && this->extractFirstLine(request, response, line) != SUCCESS){
-//         response->setStatusCode(400);
-//         return NULL;
-//     }   
-    
-//     this->extractHeaders(request, headerStream);
-
-//     if(this->extractBody(request, bodyStream) != SUCCESS){
-//         response->setStatusCode(400);
-//         return NULL;
-//     }
-    
-//     return request;
-// }
+}
 
 
 int Parser::deleteResource(std::string filePath, Response *response, bool useDetailedResponse) {
@@ -111,6 +120,21 @@ void Parser::validateResource(Client *client, Server *server)
     if(!request || !response)
         return;
 
+
+    //Al momento viene soltanto scelto il configuration block ma non viene eseguito nessun altro check
+    std::string bestMatch = this->getMatchingLocation(client->getRequest()->getUrl(), client->getServer());
+    if(bestMatch.empty()){
+        response->setStatusCode(404);
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        request->state = StateParsingError;
+        return;
+    }
+
+    //da qui in poi (credo) che vadano fatti dei check sulla risorsa richiesta basandoci sul location block
+    std::map<std::string, std::vector<std::string> > locationConfig = server->getLocationDir()[bestMatch];
+    
+    
+    
     // TODO: atm is hardcoded to the root directory
     // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/6
 
