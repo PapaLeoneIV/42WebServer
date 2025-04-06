@@ -70,6 +70,8 @@ void Parser::validateResource(Client *client, Server *server)
     if(!request || !response)
         return;
 
+
+    //Al momento viene soltanto scelto il configuration block ma non viene eseguito nessun altro check
     std::string bestMatch = this->getMatchingLocation(client->getRequest()->getUrl(), client->getServer());
     if(bestMatch.empty()){
         response->setStatusCode(404);
@@ -77,7 +79,12 @@ void Parser::validateResource(Client *client, Server *server)
         request->state = StateParsingError;
         return;
     }
+
+    //da qui in poi (credo) che vadano fatti dei check sulla risorsa richiesta basandoci sul location block
     std::map<std::string, std::vector<std::string> > locationConfig = server->getLocationDir()[bestMatch];
+    
+    
+    
     // TODO: atm is hardcoded to the root directory
     // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/6
     std::string filePath = server->getCwd() +  server->getRoot() + request->getUrl();
