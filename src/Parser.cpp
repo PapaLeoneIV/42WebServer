@@ -157,7 +157,35 @@ void Parser::validateResource(Client *client, Server *server)
             filePath += "/";
         }
         
-        std::string indexFileName = server->getIndex();
+        std::string indexFileName;
+        bool indexFound = false;
+        
+        std::map<std::string, std::map<std::string, std::vector<std::string> > > locationDir = server->getLocationDir();
+        for (std::map<std::string, std::map<std::string, std::vector<std::string> > >::iterator it = locationDir.begin(); 
+             it != locationDir.end(); ++it) {
+            std::string locationPath = it->first;
+            
+            if (request->getUrl().find(locationPath) == 0) {
+                if (!it->second["index"].empty()) {
+                    indexFileName = it->second["index"][0];
+                    indexFound = true;
+                    Logger::info("validateResource: trovato index nella location: " + indexFileName);
+                    break;
+                }
+            }
+        }
+        
+        if (!indexFound && !server->getServerDir()["index"].empty()) {
+            indexFileName = server->getServerDir()["index"][0];
+            indexFound = true;
+            Logger::info("validateResource: usando index globale: " + indexFileName);
+        }
+        
+        if (!indexFound) {
+            indexFileName = "index.html";
+            Logger::info("validateResource: usando index di default: " + indexFileName);
+        }
+        
         Logger::info("validateResource: nome file index configurato: " + indexFileName);
         std::string indexPath = filePath + indexFileName;
         Logger::info("validateResource: verifico esistenza file index: " + indexPath);
@@ -185,7 +213,6 @@ void Parser::validateResource(Client *client, Server *server)
         bool autoindexEnabled = false;
         
         std::string requestUrl = request->getUrl();
-        std::map<std::string, std::map<std::string, std::vector<std::string> > > locationDir = server->getLocationDir();
         bool locationMatch = false;
         
         Logger::info("validateResource: verifica autoindex nelle location");

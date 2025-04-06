@@ -810,13 +810,7 @@ int setUpDefaultDirectiveValues(Server *server)
         tmp.push_back("127.0.0.1");
         server->setServerDir("host", tmp);
     }
-    // default page when requesting a directory, index.html by default
-    if (server->getServerDir()["index"].empty())
-    {
-        std::vector<std::string> tmp;
-        tmp.push_back("index.html");
-        server->setServerDir("index", tmp);
-    }
+    
     // allowed methods in location, GET only by default
     std::map<std::string, std::map<std::string, std::vector<std::string> > > locationDirectives = server->getLocationDir();
     for (std::map<std::string, std::map<std::string, std::vector<std::string> > >::iterator it = locationDirectives.begin(); it != locationDirectives.end(); ++it)
@@ -825,23 +819,11 @@ int setUpDefaultDirectiveValues(Server *server)
         {
             it->second["allow_methods"].push_back("GET");
         }
-    }
-    // root folder of the location, if not specified, taken from the server.
-    for (std::map<std::string, std::map<std::string, std::vector<std::string> > >::iterator it = locationDirectives.begin(); it != locationDirectives.end(); ++it)
-    {
+        
+        // root folder of the location, if not specified, taken from the server.
+        if (it->second["root"].empty())
         {
-            if (it->second["root"].empty())
-            {
-                it->second["root"].push_back(server->getServerDir()["root"][0]);
-            }
-        }
-        // default page when requesting a directory, copies root index by default
-        for (std::map<std::string, std::map<std::string, std::vector<std::string> > >::iterator it = locationDirectives.begin(); it != locationDirectives.end(); ++it)
-        {
-            if (it->second["index"].empty())
-            {
-                it->second["index"].push_back(server->getServerDir()["index"][0]);
-            }
+            it->second["root"].push_back(server->getServerDir()["root"][0]);
         }
     }
     return 0;
