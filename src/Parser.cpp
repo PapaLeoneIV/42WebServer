@@ -150,20 +150,110 @@ void Parser::validateResource(Client *client, Server *server)
     }
     
     if(S_ISDIR(fileType)){
+        Logger::info("validateResource: la risorsa è una directory");
         if(*(filePath.rbegin()) != '/'){
             std::string newUrl = cleanUrl + "/";
             request->setUrl(newUrl);
             filePath += "/";
         }
-        // TODO:  implement the directory listing feature based on the config file
-        // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/5
-        std::string dirBody = fromDIRtoHTML(filePath, request->getUrl());
         
-        if(dirBody.empty()){
-            response->setStatusCode(500);
+        std::string indexFileName = server->getIndex();
+        Logger::info("validateResource: nome file index configurato: " + indexFileName);
+        std::string indexPath = filePath + indexFileName;
+        Logger::info("validateResource: verifico esistenza file index: " + indexPath);
+
+        struct stat indexStat;
+        bool indexExists = (stat(indexPath.c_str(), &indexStat) == 0 && S_ISREG(indexStat.st_mode));
+        if (indexExists) {
+            Logger::info("validateResource: trovato file index, reindirizzo a " + request->getUrl() + indexFileName);
+            fileContent = this->readFile(indexPath, response);
+            response->setStatusCode(301);
+            std::string redirectUrl = request->getUrl() + indexFileName;
+            response->setHeaders("Location", redirectUrl);
+
+            std::string redirectBody = "<html><head><title>Redirect</title></head><body>Redirecting to <a href=\"" + redirectUrl + "\">" + redirectUrl + "</a></body></html>";
+            response->setBody(redirectBody);
+
+            response->setHeaders("Content-Type", "text/html");
+            response->setHeaders("Content-Length", intToStr(redirectBody.size()));
+            Logger::info("validateResource: file index inviato con successo");
             return;
+        } else {
+            Logger::info("validateResource: file index non trovato");
         }
-        response->setBody(dirBody);
+
+        bool autoindexEnabled = false;
+        
+        std::string requestUrl = request->getUrl();
+        std::map<std::string, std::map<std::string, std::vector<std::string> > > locationDir = server->getLocationDir();
+        bool locationMatch = false;
+        
+        Logger::info("validateResource: verifica autoindex nelle location");
+        for (std::map<std::string, std::map<std::string, std::vector<std::string> > >::iterator it = locationDir.begin(); 
+             it != locationDir.end(); ++it) {
+            std::string locationPath = it->first;
+            
+            Logger::info("validateResource: controllo location: " + locationPath);
+            if (requestUrl.find(locationPath) == 0) {
+                locationMatch = true;
+                Logger::info("validateResource: match trovato per location: " + locationPath);
+                
+                // Cerchiamo il valore di autoindex in questa location
+                if (it->second.find("autoindex") != it->second.end() && !it->second["autoindex"].empty()) {
+                    std::string autoindexValue = it->second["autoindex"][0];
+                    Logger::info("validateResource: valore autoindex nella location: " + autoindexValue);
+                    if (autoindexValue == "on") {
+                        autoindexEnabled = true;
+                        Logger::info("Directory listing enabled by location directive for: " + locationPath);
+                    }
+                } else {
+                    Logger::info("validateResource: autoindex non trovato nella location");
+                }
+                break;
+            }
+        }
+        
+        // se non è stato trovato alcun valore nelle location, controlliamo a livello di server
+        if (!locationMatch) {
+            Logger::info("validateResource: nessuna location corrispondente, controllo a livello di server");
+            std::map<std::string, std::vector<std::string> > serverDir = server->getServerDir();
+            
+            if (serverDir.find("autoindex") != serverDir.end() && !serverDir["autoindex"].empty()) {
+                std::string autoindexValue = serverDir["autoindex"][0];
+                Logger::info("validateResource: valore autoindex nel server: " + autoindexValue);
+                if (autoindexValue == "on") {
+                    autoindexEnabled = true;
+                    Logger::info("Directory listing enabled by server directive");
+                }
+            } else {
+                Logger::info("validateResource: autoindex non trovato nel server");
+            }
+        }
+        
+        Logger::info("validateResource: autoindex abilitato: " + std::string(autoindexEnabled ? "true" : "false"));
+        if (autoindexEnabled) {
+            Logger::info("validateResource: genero listing della directory: " + filePath);
+            std::string dirBody = fromDIRtoHTML(filePath, request->getUrl());
+            
+            if(dirBody.empty()){
+                Logger::error("Parser", "Errore nella generazione del listing della directory");
+                response->setStatusCode(500);
+                response->setBody(getErrorPage(500, client->getServer()));
+                return;
+            }
+            Logger::info("validateResource: listing della directory generato con successo");
+            response->setBody(dirBody);
+
+            response->setHeaders("Content-Type", "text/html");
+            response->setHeaders("Content-Length", intToStr(dirBody.size()));
+        } else {
+            Logger::info("Directory listing disabled for: " + filePath);
+            response->setStatusCode(403);
+             std::string errorBody = getErrorPage(403, client->getServer());
+            response->setBody(errorBody);
+            response->setHeaders("Content-Type", "text/html");
+            response->setHeaders("Content-Length", intToStr(errorBody.size()));
+        }
         return;
     } else {
         //read the content of the requested resource

@@ -28,6 +28,11 @@ int main(int argc, char **argv)
         std::string msg = "Server started on " + std::string(host) + ":" + std::string(port);
         Logger::info(msg);
         
+        if (!server->getServerDir()["index"].empty()) {
+            server->setIndex(server->getServerDir()["index"][0]);
+            Logger::info("Server index file configurato: " + server->getIndex());
+        }
+        
         booter.bootServer(server, host.c_str(), port.c_str());
         serverManager.addServer(server);
     }
