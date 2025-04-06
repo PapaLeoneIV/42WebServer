@@ -34,7 +34,6 @@ class Parser{
 
     bool        isQueryParamValid(const std::string &url, const std::string &paramName, bool defaultValue = false);
     
-    int checkResource  (std::string filePath, Response *response);
     std::string  findBestApproximationString(std::string url, std::vector<std::string> dictionary);
     unsigned int levenshteinDistance(const std::string& s1, const std::string& s2);
 	std::string getMatchingLocation(std::string url, Server *server);
