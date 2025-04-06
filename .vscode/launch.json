@@ -6,7 +6,7 @@
       "request": "launch",
       "program": "${workspaceFolder}/webserver",
       "args": [
-        "config/nginx.conf"
+        "config/valid/nginx.conf"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
