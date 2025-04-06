@@ -126,9 +126,9 @@ void ServerManager::processRequest(Client *client)
         Logger::info("Received " + intToStr(bytesRecv) + " bytes [" + intToStr(fd) + "]");
 
         int result = client->getRequest()->consume(buffer);
-        Logger::info("Request parsing result: " + intToStr(result) + ", state: " + intToStr(client->getRequest()->state) + " [" + intToStr(fd) + "]");
+        Logger::info("Request parsing result: " + intToStr(result) + ", state: " + intToStr(client->getRequest()->getState()) + " [" + intToStr(fd) + "]");
 
-        if(client->getRequest()->state == StateParsingError) {
+        if(client->getRequest()->getState() == StateParsingError) {
             Logger::info("Parsing error detected, sending error response [" + intToStr(fd) + "]");
             client->getResponse()->setStatusCode(400);
             this->sendErrorResponse(client->getResponse(), fd, client);
@@ -137,7 +137,7 @@ void ServerManager::processRequest(Client *client)
     }
 
 
-    if(client->getRequest()->state == StateParsingComplete){
+    if(client->getRequest()->getState() == StateParsingComplete){
         Logger::info("Request parsing complete, method: " + client->getRequest()->getMethod() + ", URL: " + client->getRequest()->getUrl() + " [" + intToStr(fd) + "]");
         
         // TODO: based on the value from the config file, we need to decide if it is a valid request
@@ -204,8 +204,8 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     Response *response = client->getResponse();
     client->updateLastActivity();
 
-    if (!request || !response || request->state != StateParsingComplete) {
-        if (request && request->state == StateParsingError) { //gestione errori di parsing
+    if (!request || !response || request->getState() != StateParsingComplete) {
+        if (request && request->getState() == StateParsingError) { //gestione errori di parsing
             this->sendErrorResponse(response, fd, client);
             return ;
         }
@@ -283,7 +283,7 @@ void ServerManager::initFdSets()
         this->addToSet(clientSocket, &this->_masterPool);
         
         // se la richiesta è completa, aggiungo il socket alla write pool
-        if (client->getRequest() && client->getRequest()->state == StateParsingComplete) {
+        if (client->getRequest() && client->getRequest()->getState() == StateParsingComplete) {
             this->addToSet(clientSocket, &this->_writePool);
         } else {
             //aggiungo il socket alla read pool per ricevere nuovi dati

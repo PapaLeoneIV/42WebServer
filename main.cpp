@@ -1,8 +1,9 @@
 #include "ServerManager.hpp"
-#include "Booter.hpp"
 #include "ConfigParser.hpp"
 #include "Exception.hpp"
+#include "Booter.hpp"
 #include "Logger.hpp"
+
 int main(int argc, char **argv)
 {
     if (handle_arguments(argc, argv))
@@ -18,20 +19,19 @@ int main(int argc, char **argv)
     }
     Logger::info("Configuration file loaded successfully");
 
-    Booter booter;
     Logger::info("Starting servers...");
     for(size_t i = 0; i < configParser.getTmpServer().size(); i++){
         Server *server = configParser.getTmpServer()[i];
 
         std::string host = server->getServerDir()["host"][0];
         std::string port = server->getServerDir()["listen"][0];
-        std::string msg = "Server started on " + std::string(host) + ":" + std::string(port);
+        std::string msg = "Server started on " + host + ":" + port;
         Logger::info(msg);
         
-        booter.bootServer(server, host.c_str(), port.c_str());
+        Booter::bootServer(server, host, port);
         serverManager.addServer(server);
     }
-    Logger::info("Servers started successfully");
+    Logger::info("Server/s started successfully");
 
     serverManager.eventLoop();
 

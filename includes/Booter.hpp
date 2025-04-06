@@ -7,11 +7,7 @@ typedef int SOCKET;
 
 class Booter {
     public:
-
-    Booter();
-    ~Booter();
-
-    void                       bootServer    (Server *server, const char *host, const char *port);
+    static void    bootServer    (Server *server,  std::string host,  std::string port);
 };
 
 
