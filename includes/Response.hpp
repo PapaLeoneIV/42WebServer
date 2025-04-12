@@ -5,8 +5,6 @@
 #include <map>
 
 typedef int SOCKET;
-typedef int ERROR;
-
 class Response{
     
     public:
@@ -16,28 +14,28 @@ class Response{
     Response(int status, std::string status_message);
     ~Response();
 
-    void                                print                 (void);
-    void                                prepareResponse       (void);
-
-    void                                fillStatusLine        (void);
-    void                                fillHeader            (std::string headerKey, std::string headerValue);
+    void print();
+    void prepareResponse();
+    void fillStatusLine();
+    void fillHeader  (std::string headerKey, std::string headerValue);
     
-    std::string                         &getResponse          (void);
-    std::string                         &getBody              (void);
-    std::string                         &getContentType       (void);
-    std::string                         &getStatusMessage     (void);
-    int                                 &getStatus            (void);
-    std::map<std::string, std::string>  &getHeaders           (void);
+    //GETTERS
+    std::string &getResponse();
+    std::string &getBody();
+    std::string &getContentType();
+    std::string &getStatusMessage();
+    int  &getStatus();
+    std::map<std::string, std::string>  &getHeaders();
     
-
-    void                                setResponse           (char *response);
-    void                                setBody               (std::string body);
-    void                                setContentType        (std::string content_type);
-    void                                setStatusMessage      (std::string status_message);
-    void                                setStatusCode         (int status);
-    void                                setHeaders            (std::string key, std::string value);
-    void                                reset                 (void);
-    void                                flush                 (void);
+    //SETTERS
+    void setResponse (char *response);
+    void setBody (std::string body);
+    void setContentType(std::string content_type);
+    void setStatusMessage(std::string status_message);
+    void setStatusCode (int status);
+    void setHeaders(std::string key, std::string value);
+    void reset();
+    void flush();
 
     private:
 

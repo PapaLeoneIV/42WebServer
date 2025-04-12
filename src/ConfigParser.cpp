@@ -2,6 +2,8 @@
 #include "../includes/Booter.hpp"
 #include "../includes/Exception.hpp"
 #include "../includes/Logger.hpp"
+#include "../includes/Treenode.hpp"
+
 #include <sstream>
 
 #define push_back_next_token(token, tokenIdx) \
@@ -10,7 +12,7 @@
     tokenIdx++;
 
 #define add_block_to_Tree(node, token, value, tokenIdx, s) \
-    TreeNode *node = new TreeNode(token, value);           \
+    Treenode *node = new Treenode(token, value);           \
     s.top()->add(node);                                    \
     tokenIdx++;
 
@@ -28,6 +30,153 @@
         return NULL;                                             \
     }
 
+int ConfigParser::fromConfigFileToServers(char *file)
+    {
+    
+        std::vector<Server *> servers;
+    
+        Treenode *root = this->createConfigTree(std::string(file));
+    
+        if (root == NULL){
+            return 1;
+        }
+    
+        for (std::vector<Treenode *>::iterator currentNode = root->getChildren().begin(); currentNode != root->getChildren().end(); ++currentNode)
+        {
+            if ((*currentNode)->getDirective() == "server")
+            {
+                Server *server = new Server();
+    
+                if(this->extractDirectives(server, *currentNode)){
+                    return 1;
+                }
+    
+                if (this->checkMandatoryDirectives(server)){
+                    return 1;
+                }
+    
+                setUpDefaultDirectiveValues(server);
+    
+                if (this->verifyDirectives(server)){
+                    return 1;
+                }
+                servers.push_back(server); 
+            }
+        }
+        this->setTmpServer(servers);
+        return 0;
+    }
+    
+    /// @brief This function takes a path to a config file, and transforms the nested directives into a tree that will later on be parsed into a Server Class  
+    /// @param path 
+    /// @return the tree node head
+    Treenode *ConfigParser::createConfigTree(std::string path)
+    {
+    
+        std::ifstream file(path.c_str());
+        if (!file)
+        {
+            Logger::error(path, "The file could not be opened.");
+            return NULL;
+        }
+    
+        std::string noComments, trimmed;
+        std::string v = removeEmptyLines(trimmed = trimm(noComments = removeComments(file)));
+        std::istringstream lineStream(v);
+    
+        Treenode *root = new Treenode("root", (std::vector<std::string>)0);
+        std::stack<Treenode *> s;
+        s.push(root);
+    
+        std::vector<std::string> tokens;
+        std::string token;
+    
+        int tokenIdx = 0;
+        while (lineStream >> token)
+        {
+    
+            tokens.push_back(token);
+    
+            if (tokens[tokenIdx] != token)
+                return NULL;
+    
+            // direttive
+            if (isValidDirective(tokens[tokenIdx]))
+            {
+                std::string value;
+                std::getline(lineStream, value);
+                std::istringstream valueStream(value);
+    
+                directiveValueVector valueTokens;
+                std::string valueToken;
+                while (valueStream >> valueToken)
+                {
+                    valueToken = trimLeftRight(valueToken);
+                    valueTokens.push_back(valueToken);
+                    tokens.push_back(valueToken);
+                    tokenIdx++;
+                }
+                std::string &lastValue = valueTokens[valueTokens.size() - 1];
+                check_directive_semicolom(lastValue, tokenIdx);
+                lastValue = lastValue.substr(0, lastValue.size() - 1);
+                add_block_to_Tree(directive, token, valueTokens, tokenIdx, s);
+                continue;
+            }
+            // inizio blocco
+            if (token == "server")
+            {
+                std::string openblock;
+                push_back_next_token(openblock, tokenIdx);
+                check_open_block(openblock, tokenIdx);
+    
+                if (s.top()->getDirective() != "root")
+                    break; // server allowed only inside root node
+    
+                add_block_to_Tree(configBlock, token, (std::vector<std::string>)0, tokenIdx, s);
+                s.push(configBlock);
+                continue;
+            }
+            // inzio location block
+            if (token == "location")
+            {
+                std::vector<std::string> locationPathV;
+                std::string locationPath;
+                push_back_next_token(locationPath, tokenIdx);
+                std::string openblock;
+                push_back_next_token(openblock, tokenIdx)
+                    check_open_block(openblock, tokenIdx);
+                if (s.top()->getDirective() != "server")
+                    break;
+                locationPathV.push_back(locationPath);
+                add_block_to_Tree(configBlock, token, locationPathV, tokenIdx, s);
+                s.push(configBlock);
+                continue;
+            }
+    
+            // fine blocco
+            if (token == "}")
+            {
+                if (s.size() <= 1)
+                {
+                    Logger::error(path, "Error during the parsing");
+                    return NULL;
+                }
+                else
+                    s.pop();
+                tokenIdx++;
+                continue;
+            }
+            Logger::error(path, "invalid token found '" + token + "'");
+        }
+    
+        if (s.size() > 1)
+        {
+            Logger::error(path, "Error during the parsing");
+            return (NULL);
+        }
+        return root;
+    }
+    
 /** This function uses fnToParseDirectives, its a map of string and functions.
     The associated functions are used to parse the values of the directives.
     ex:
@@ -123,13 +272,9 @@ std::string removeEmptyLines(const std::string &input)
     {
         size_t i = 0;
         while (i < line.size() && (line[i] == ' ' || line[i] == '\t'))
-        {
             ++i;
-        }
         if (i < line.size())
-        {
             resultStream << line << "\n";
-        }
     }
     return resultStream.str();
 }
@@ -143,12 +288,9 @@ std::string removeEmptyLines(const std::string &input)
 int ConfigParser::isValidDirective(std::string token)
 {
     std::vector<std::string>::iterator it;
-    for (it = this->directives.begin(); it != this->directives.end(); ++it)
-    {
+    for (it = this->directives.begin(); it != this->directives.end(); ++it){
         if (token == *it)
-        {
             return 1;
-        }
     }
     return 0;
 }
@@ -156,198 +298,43 @@ int ConfigParser::isValidDirective(std::string token)
 int ConfigParser::validatePath(std::string path)
 {
     this->setFileName(path);
-    if (path.empty())
-    {
+    if (path.empty()){
         Logger::error(path, "Path is empty.");
         return 1;
     }
 
 
     struct stat fileInfo;
-    if (stat(path.c_str(), &fileInfo) != 0 || !(fileInfo.st_mode & S_IFREG))
-    {
+    if (stat(path.c_str(), &fileInfo) != 0 || !(fileInfo.st_mode & S_IFREG)){
         Logger::error(path, "The file does not exist or is not a regular file.");
         return 1;
     }
 
-    if (access(path.c_str(), R_OK) != 0)
-    {
+    if (access(path.c_str(), R_OK) != 0){
         Logger::error(path, "The file is not readable.");
         return 1;
     }
 
     std::ifstream file(path.c_str());
-    if (!file.is_open())
-    {
+    if (!file.is_open()){
         Logger::error(path, "The file could not be opened.");
         return 1;
     }
 
     size_t dotIdx = path.find_last_of(".");
-    if (dotIdx == std::string::npos)
-    {
+    if (dotIdx == std::string::npos){
         Logger::error(path, "The file must have a '.' to indicate the file extension.");
         return 1;
     }
     std::string fileExtension = path.substr(dotIdx, path.size());
-    if (fileExtension != ".conf")
-    {
+    if (fileExtension != ".conf"){
         Logger::error(path, "The file must have a .conf extension.");
         return 1;
     }
-
-
+    
     return 0;
 }
 
-int ConfigParser::fromConfigFileToServers(char *file)
-{
-
-    Booter booter;
-    std::vector<Server *> servers;
-
-    TreeNode *root = this->createConfigTree(std::string(file));
-
-    if (root == NULL){
-        Logger::error("", "invalid configuration file");
-        return 1;
-    }
-
-    for (std::vector<TreeNode *>::iterator currentNode = root->getChildren().begin(); currentNode != root->getChildren().end(); ++currentNode)
-    {
-        if ((*currentNode)->getDirective() == "server")
-        {
-            Server *server = new Server();
-
-            if(this->extractDirectives(server, *currentNode)){
-                Logger::error(this->getFileName(), "duplicate directive error");
-                return 1;
-            }
-
-            if (this->checkMandatoryDirectives(server)){
-                Logger::error(this->getFileName(), "missing mandatory directives");
-                return 1;
-            }
-
-            setUpDefaultDirectiveValues(server);
-
-            if (this->verifyDirectives(server)){
-                Logger::error(this->getFileName(), "invalid directive value");
-                return 1;
-            }
-            servers.push_back(server); 
-        }
-    }
-    this->setTmpServer(servers);
-    return 0;
-}
-
-TreeNode *ConfigParser::createConfigTree(std::string path)
-{
-
-    std::ifstream file(path.c_str());
-    if (!file)
-    {
-        Logger::error(path, "The file could not be opened.");
-        return NULL;
-    }
-
-    std::string noComments, trimmed;
-    std::string v = removeEmptyLines(trimmed = trimm(noComments = removeComments(file)));
-    std::istringstream lineStream(v);
-
-    TreeNode *root = new TreeNode("root", (std::vector<std::string>)0);
-    std::stack<TreeNode *> s;
-    s.push(root);
-
-    std::vector<std::string> tokens;
-    std::string token;
-
-    int tokenIdx = 0;
-    while (lineStream >> token)
-    {
-
-        tokens.push_back(token);
-
-        if (tokens[tokenIdx] != token)
-            return NULL;
-
-        // direttive
-        if (isValidDirective(tokens[tokenIdx]))
-        {
-            std::string value;
-            std::getline(lineStream, value);
-            std::istringstream valueStream(value);
-
-            std::vector<std::string> valueTokens;
-            std::string valueToken;
-            while (valueStream >> valueToken)
-            {
-                valueToken = trimLeftRight(valueToken);
-                valueTokens.push_back(valueToken);
-                tokens.push_back(valueToken);
-                tokenIdx++;
-            }
-            std::string &lastValue = valueTokens[valueTokens.size() - 1];
-            check_directive_semicolom(lastValue, tokenIdx);
-            lastValue = lastValue.substr(0, lastValue.size() - 1);
-            add_block_to_Tree(directive, token, valueTokens, tokenIdx, s);
-            continue;
-        }
-        // inizio blocco
-        if (token == "server")
-        {
-            std::string openblock;
-            push_back_next_token(openblock, tokenIdx);
-            check_open_block(openblock, tokenIdx);
-
-            if (s.top()->getDirective() != "root")
-                break; // server allowed only inside root node
-
-            add_block_to_Tree(configBlock, token, (std::vector<std::string>)0, tokenIdx, s);
-            s.push(configBlock);
-            continue;
-        }
-        // inzio location block
-        if (token == "location")
-        {
-            std::vector<std::string> locationPathV;
-            std::string locationPath;
-            push_back_next_token(locationPath, tokenIdx);
-            std::string openblock;
-            push_back_next_token(openblock, tokenIdx)
-                check_open_block(openblock, tokenIdx);
-            if (s.top()->getDirective() != "server")
-                break;
-            locationPathV.push_back(locationPath);
-            add_block_to_Tree(configBlock, token, locationPathV, tokenIdx, s);
-            s.push(configBlock);
-            continue;
-        }
-
-        // fine blocco
-        if (token == "}")
-        {
-            if (s.size() <= 1)
-            {
-                Logger::error(path, "Error during the parsing");
-                return NULL;
-            }
-            else
-                s.pop();
-            tokenIdx++;
-            continue;
-        }
-        Logger::error(path, "invalid token found '" + token + "'");
-    }
-
-    if (s.size() > 1)
-    {
-        Logger::error(path, "Error during the parsing");
-        return (NULL);
-    }
-    return root;
-}
 
 /**
  * [address]?:[port]
@@ -355,7 +342,7 @@ TreeNode *ConfigParser::createConfigTree(std::string path)
  * 'address' might not be specified
  */
 
-int ConfigParser::parseListenValues(std::vector<std::string> v)
+int ConfigParser::parseListenValues(directiveValueVector v)
 {
     if (v.size() > 1)
     {
@@ -431,7 +418,7 @@ int ConfigParser::parseListenValues(std::vector<std::string> v)
     }
     return 0;
 }
-int ConfigParser::parseHostValues(std::vector<std::string> v)
+int ConfigParser::parseHostValues(directiveValueVector v)
 {
     if (v.size() > 1)
     {
@@ -472,7 +459,7 @@ int ConfigParser::parseHostValues(std::vector<std::string> v)
     return 0;
 }
 
-int ConfigParser::parseServerNameValues(std::vector<std::string> v)
+int ConfigParser::parseServerNameValues(directiveValueVector v)
 {
     size_t i = 0;
     while (i < v.size())
@@ -487,7 +474,7 @@ int ConfigParser::parseServerNameValues(std::vector<std::string> v)
     return 0;
 }
 
-int ConfigParser::parseErrorPageValues(std::vector<std::string> v)
+int ConfigParser::parseErrorPageValues(directiveValueVector v)
 {
     if (v.size() != 1)
     {
@@ -506,7 +493,7 @@ int ConfigParser::parseErrorPageValues(std::vector<std::string> v)
     return 0;
 }
 
-int ConfigParser::parseClientMaxBodyValues(std::vector<std::string> v)
+int ConfigParser::parseClientMaxBodyValues(directiveValueVector v)
 {
     if (v.size() != 1)
     {
@@ -538,7 +525,7 @@ int ConfigParser::parseClientMaxBodyValues(std::vector<std::string> v)
     return 0;
 }
 // Syntax:	root path;
-int ConfigParser::parseRootValues(std::vector<std::string> v)
+int ConfigParser::parseRootValues(directiveValueVector v)
 {
     if (v.size() != 1)
     {
@@ -560,7 +547,7 @@ int ConfigParser::parseRootValues(std::vector<std::string> v)
 }
 
 // Syntax:	index file [file ...];
-int ConfigParser::parseIndexValues(std::vector<std::string> v)
+int ConfigParser::parseIndexValues(directiveValueVector v)
 {
     size_t i = 0;
     while (i < v.size())
@@ -594,7 +581,7 @@ int ConfigParser::parseIndexValues(std::vector<std::string> v)
 }
 
 // Syntax:	autoindex on | off;
-int ConfigParser::parseAutoIndexValues(std::vector<std::string> v)
+int ConfigParser::parseAutoIndexValues(directiveValueVector v)
 {
     if (v.size() != 1)
     {
@@ -617,7 +604,7 @@ int ConfigParser::parseAutoIndexValues(std::vector<std::string> v)
     return 0;
 }
 
-int ConfigParser::parseAllowMethodsValues(std::vector<std::string> v)
+int ConfigParser::parseAllowMethodsValues(directiveValueVector v)
 {
     if (v.empty() || v.size() > 6)
     {
@@ -639,7 +626,7 @@ int ConfigParser::parseAllowMethodsValues(std::vector<std::string> v)
 }
 
 //'return' code [text];
-int ConfigParser::parseReturnValues(std::vector<std::string> v)
+int ConfigParser::parseReturnValues(directiveValueVector v)
 {
     if (v.empty() || v.size() > 2)
     {
@@ -681,7 +668,7 @@ int ConfigParser::parseReturnValues(std::vector<std::string> v)
 }
 
 // Syntax: alias path;
-int ConfigParser::parseAliasValues(std::vector<std::string> v)
+int ConfigParser::parseAliasValues(directiveValueVector v)
 {
     if (v.size() != 1)
     {
@@ -697,7 +684,7 @@ int ConfigParser::parseAliasValues(std::vector<std::string> v)
     return 0;
 }
 
-int ConfigParser::parseCgiExtValues(std::vector<std::string> v)
+int ConfigParser::parseCgiExtValues(directiveValueVector v)
 {
     std::vector<std::string> extensionsAllowd;
     extensionsAllowd.push_back(".py");   // pyhton
@@ -743,7 +730,7 @@ int ConfigParser::parseCgiExtValues(std::vector<std::string> v)
     return 0;
 }
 
-int ConfigParser::parseCGIPathValues(std::vector<std::string> v)
+int ConfigParser::parseCGIPathValues(directiveValueVector v)
 {
     if (v.size() < 1)
     {
@@ -773,7 +760,7 @@ int ConfigParser::parseCGIPathValues(std::vector<std::string> v)
 }
 
 // Syntax: proxy_pass URL;
-int ConfigParser::parseProxyPassValues(std::vector<std::string> v)
+int ConfigParser::parseProxyPassValues(directiveValueVector v)
 {
     if (v.size() != 1)
     {
@@ -861,12 +848,12 @@ int ConfigParser::checkForAllowdMultipleDirectives(std::string directive)
 }
 
 
-int ConfigParser::extractDirectives(Server *server, TreeNode *node)
+int ConfigParser::extractDirectives(Server *server, Treenode *node)
 {
     if (node == NULL)
         return 1;
-    std::vector<TreeNode *> children = node->getChildren();
-    std::vector<TreeNode *>::iterator currentNode;
+    std::vector<Treenode *> children = node->getChildren();
+    std::vector<Treenode *>::iterator currentNode;
 
     for (currentNode = children.begin(); currentNode != children.end(); ++currentNode)
     {

@@ -17,12 +17,13 @@ SRCS = 	main.cpp \
 		src/Exception.cpp \
 		src/Logger.cpp \
 		src/utils/utilsServerManager.cpp \
-		src/utils/utilsParser.cpp
+		src/utils/utilsParser.cpp \
+		src/Treenode.cpp
 
 
 all: $(TARGET)
 
-testfile: $(SRCS)
+tester: $(SRCS)
 	@echo "--------------------------------------------------"
 	@echo "Compiling tester..."
 	@echo "--------------------------------------------------"

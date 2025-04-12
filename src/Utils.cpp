@@ -16,7 +16,7 @@ int handle_arguments(int argc, char **argv)
             }
             // version command
             if (std::string(argv[1]) == "-v"){
-                Logger::info("webserver version: webserver/1.0.0");
+                Logger::info("webserver version: webserver/" VERSION);
                 return(1);
             }
             // testing config file command
@@ -60,55 +60,21 @@ std::string fromDIRtoHTML(std::string dirPath, std::string url)
                        "<body>";
     DIR *dir;
     struct dirent *ent;
-    if ((dir = opendir(dirPath.c_str())) != NULL)
-    {
-        while ((ent = readdir(dir)) != NULL)
-        {
+    if ((dir = opendir(dirPath.c_str())) != NULL){
+        while ((ent = readdir(dir)) != NULL){
             if (url != "/")
-            {
                 html += "<li><a href=\"" + url + std::string(ent->d_name) + "\">" + std::string(ent->d_name) + "</a></li>";
-            }
             else
-            {
                 html += "<li><a href=\"" + std::string(ent->d_name) + "\">" + std::string(ent->d_name) + "</a></li>";
-            }
         }
         closedir(dir);
     }
     else
-    {
         return "Error: could not open directory";
-    }
     html += "</ul></body></html>";
     return html;
 }
 
-std::string readTextFile(std::string filePath)
-{
-    std::string fileContent;
-    std::ifstream file(filePath.c_str(), std::ios::in);
-    std::string line;
-    while (std::getline(file, line))
-    {
-        fileContent += line + "\n";
-    }
-    file.close();
-    return fileContent;
-}
-
-std::string readFileBinary(std::string filePath)
-{
-    std::string fileContent;
-    std::ifstream file(filePath.c_str(), std::ios::in | std::ios::binary);
-    std::vector<char> buffer((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    file.close();
-    for (std::vector<char>::iterator it = buffer.begin(); it != buffer.end(); ++it)
-    {
-        fileContent.push_back(*it);
-    }
-
-    return fileContent;
-}
 
 std::string ErrToStr(int error)
 {
@@ -162,17 +128,6 @@ std::string ErrToStr(int error)
         return "Unknown Error";
     }
 }
-static char hexToAsciiChar(const std::string &hex)
-{
-    if (hex.length() != 2)
-    {
-        throw std::invalid_argument("Hex string must be exactly 2 characters long.");
-    }
-
-    int decimalValue;
-    std::istringstream(hex) >> std::hex >> decimalValue;
-    return static_cast<char>(decimalValue);
-}
 
 std::string getContentType(std::string &url, int status)
 {
@@ -190,61 +145,33 @@ std::string getContentType(std::string &url, int status)
         return "text/plain";
     std::string urlC = &extension[0];
     if (urlC == ".css")
-    {
         return "text/css";
-    }
     if (urlC == ".csv")
-    {
         return "text/csv";
-    }
     if (urlC == ".gif")
-    {
         return "image/gif";
-    }
     if (urlC == ".htm")
-    {
         return "text/html";
-    }
     if (urlC == ".html")
-    {
         return "text/html";
-    }
     if (urlC == ".ico")
-    {
         return "image/x-icon";
-    }
     if (urlC == ".jpeg")
-    {
         return "image/jpeg";
-    }
     if (urlC == ".jpg")
-    {
         return "image/jpeg";
-    }
     if (urlC == ".js")
-    {
         return "application/javascript";
-    }
     if (urlC == ".json")
-    {
         return "application/json";
-    }
     if (urlC == ".png")
-    {
         return "image/png";
-    }
     if (urlC == ".pdf")
-    {
         return "application/pdf";
-    }
     if (urlC == ".svg")
-    {
         return "image/svg+xml";
-    }
     if (urlC == ".txt")
-    {
         return "text/plain";
-    }
     // TODO: add support for error 415 unsupported media type
     return "text/plain";
 }
@@ -292,11 +219,9 @@ std::string getErrorPage(int status, Server *server) {
         std::map<std::string, std::vector<std::string> > serverDir = server->getServerDir();
         std::map<std::string, std::vector<std::string> >::iterator it = serverDir.begin();
         for(; it != serverDir.end(); it++) {
-            if (it->first == "error_page_" + intToStr(status)) {
-                if (it->second.size() > 0) {
+            if (it->first == ("error_page_" + intToStr(status)) && it->second.size() > 0) {
                     Logger::info("Found error_page directive for status: " + intToStr(status) + ", path: " + it->second[0]);
                     return readTextFile(it->second[0]);
-                }
             }
         }
         Logger::info("No error_page directive found for status: " + intToStr(status) + ", using default");
@@ -323,41 +248,7 @@ std::string getErrorPage(int status, Server *server) {
     return readTextFile(errorPath);
 }
 
-std::string sanitizeDots(std::string string)
-{
-    size_t pos;
-    while ((pos = string.find("..")) != std::string::npos)
-    {
-        string.erase(pos, 2);
-    }
-    while ((pos = string.find("../")) != std::string::npos)
-    {
-        string.erase(pos, 3);
-    }
-    return string;
-}
-
-std::string removeHexChars(std::string &url)
-{
-    std::string result;
-    for (std::size_t i = 0; i < url.length(); ++i)
-    {
-        if (url[i] == '%' && i + 2 < url.length())
-        {
-            std::string hex = url.substr(i + 1, 2);
-            result += hexToAsciiChar(hex);
-            i += 2;
-        }
-        else
-        {
-            result += url[i];
-        }
-    }
-    result = sanitizeDots(result);
-    return result;
-}
-
-ERROR checkPermissions(std::string fullPath, int mode)
+int checkPermissions(std::string fullPath, int mode)
 {
     ERROR error = 0;
     if ((error = access(fullPath.c_str(), mode)))
@@ -401,110 +292,15 @@ std::string to_lower(const std::string &input)
     return result;
 }
 
-std::string trim(const std::string &str)
+std::string readTextFile(std::string filePath)
 {
-    size_t first = str.find_first_not_of(" \t\r\n");
-    size_t last = str.find_last_not_of(" \t\r\n");
-    if (first == std::string::npos || last == std::string::npos)
-        return "";
-    return str.substr(first, last - first + 1);
-}
-
-std::string readBinaryStream(std::istringstream &stream, int size)
-{
-    int i = 0;
     std::string fileContent;
-    while (i < size)
+    std::ifstream file(filePath.c_str(), std::ios::in);
+    std::string line;
+    while (std::getline(file, line))
     {
-        char ch;
-        stream.get(ch);
-        fileContent += ch;
-        i++;
+        fileContent += line + "\n";
     }
+    file.close();
     return fileContent;
 }
-// TODO questi venivano usati nel vecchio parsing della request, non buttare via perche alcuni pezzi di codice
-// Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/17
-// sono riutilizzabili
-
-// std::string extractBodyFromStream(std::istringstream &iss, const std::string &boundary) {
-//     std::string line;
-//     std::string content;
-//     bool withinBoundary = false;
-
-//     while (std::getline(iss, line)) {
-//         if (line == "--" + boundary + "\r") {
-//             withinBoundary = true;
-//             continue;
-//         }
-//         if (withinBoundary && line == "--" + boundary + "--\r") {
-//             withinBoundary = false;
-//             break;
-//         }
-//         if (withinBoundary) {
-//             content += line + "\n";
-//         }
-//     }
-//     return content;
-// }
-// std::vector<std::string> splitIntoSections(std::istringstream &iss) {
-//     std::vector<std::string> sections;
-//     std::string line;
-//     std::string currentSection;
-
-//     while (std::getline(iss, line, '\n')) {
-//         if (line.find("Content-Disposition: form-data;") != std::string::npos) {
-//             if (!currentSection.empty()) {
-//                 sections.push_back(currentSection);
-//                 currentSection = "";
-//             }
-//         }
-//         currentSection += line + "\n";
-//     }
-//     if (!currentSection.empty()) {
-//         sections.push_back(currentSection);
-//     }
-
-//     return sections;
-// }
-// std::map<std::string, std::string> extractSection(const std::string &section) {
-//     std::map<std::string, std::string> extractedData;
-//     std::istringstream sectionStream(section);
-//     std::string line;
-//     bool isBody = false;
-//     std::string body;
-
-//     while (std::getline(sectionStream, line)) {
-//         if (isBody) {
-//             body += line + "\n";
-//         } else if (line.find("Content-Disposition:") != std::string::npos) {
-//             std::string::size_type namePos = line.find("name=\"");
-
-//             if (namePos != std::string::npos) {
-//                 namePos += 6;
-//                 std::string::size_type endPos = line.find("\"", namePos);
-//                 if (endPos != std::string::npos) {
-//                     extractedData["name"] = line.substr(namePos, endPos - namePos);
-//                 }
-//             }
-
-//             std::string::size_type filenamePos = line.find("filename=\"");
-
-//             if (filenamePos != std::string::npos) {
-//                 filenamePos += 10;
-//                 std::string::size_type endPos = line.find("\"", filenamePos);
-//                 if (endPos != std::string::npos) {
-//                     extractedData["filename"] = line.substr(filenamePos, endPos - filenamePos);
-//                 }
-//             }
-//         } else if (line.find("Content-Type:") != std::string::npos) {
-//             extractedData["contentType"] = line.substr(14);
-//         } else if (line == "\r") {
-//             isBody = true;
-//         }
-//     }
-
-//     extractedData["body"] = body;
-
-//     return extractedData;
-// }

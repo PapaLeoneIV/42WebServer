@@ -28,60 +28,56 @@ class Server{
     ~Server();
 
     // GETTERS
-    SOCKET  getServerSocket    (void);
-    fd_set  getFdsSet  (void);
-    addrinfo    &getHints   (void);
-    addrinfo    *getBindAddrss  (void);
-    std::string &getHost    (void);
-    std::string &getServerName  (void);
-    std::string &getPort    (void);
-    std::string &getRoot    (void);
-    std::string &getIndex   (void);
-    size_t      &getMaxRequestSize (void);
-    std::string &getCwd (void);
-    std::map<std::string, std::vector<std::string> > getServerDir(void);
-    std::map<std::string, std::map<std::string, std::vector<std::string> > > &getLocationDir(void); 
+    SOCKET      getServerSocket();
+    fd_set      getFdsSet();
+    addrinfo    &getHints();
+    addrinfo    *getBindAddrss();
+    std::string &getHost();
+    std::string &getServerName();
+    std::string &getPort();
+    std::string &getRoot();
+    std::string &getIndex();
+    size_t      &getMaxRequestSize();
+    std::string &getCwd();
+    std::map<std::string, std::vector<std::string> > getServerDir();
+    std::map<std::string, std::map<std::string, std::vector<std::string> > > &getLocationDir(); 
 
     //SETTERS
     void    setServerDir(std::string key, std::vector<std::string> value);
     void    setLocationDir(std::string locationPath, std::string key,  std::vector<std::string> value);
 
-    void    setServerSocket (SOCKET server_socket);
-    void    setFds  (fd_set fds);
-    void    setHints    (addrinfo hints);
-    void    setBindAddress  (addrinfo *bind_address);
-    void    setHost (std::string host);
-    void    setServerName   (std::string server_name);
-    void    setPort (std::string port);
-    void    setRoot (std::string root);
-    void    setIndex    (std::string index);
-    void    setMaxRequestSize   (size_t max_request_size);
-    void    setCwd  (std::string cwd);
+    void    setServerSocket(SOCKET server_socket);
+    void    setFds(fd_set fds);
+    void    setHints(addrinfo hints);
+    void    setBindAddress(addrinfo *bind_address);
+    void    setHost(std::string host);
+    void    setServerName(std::string server_name);
+    void    setPort(std::string port);
+    void    setRoot(std::string root);
+    void    setIndex(std::string index);
+    void    setMaxRequestSize(size_t max_request_size);
+    void    setCwd(std::string cwd);
 
     void printServerDir(void);
     void printLocationDir(void);
 
     private:
 
-
     std::map<std::string, std::vector<std::string> > serverDir;
     std::map<std::string, std::map<std::string, std::vector<std::string> > > locationDir;
     
-    //Server configuration taken from config file
-    std::string                     _cwd;
-    std::string                     _host;
-    std::string                     _server_name;
-    std::string                     _port;
-    std::string                     _root;
-    std::string                     _index;
-    size_t                          _max_request_size;
+    std::string _cwd;
+    std::string _host;
+    std::string _server_name;
+    std::string _port;
+    std::string _root;
+    std::string _index;
+
     //Location configuration
-
-
-    addrinfo                        _hints;
-    SOCKET                          _server_socket;
-    fd_set                          _fds;
-    addrinfo                        *_bind_address;
+    addrinfo    _hints;
+    SOCKET  _server_socket;
+    fd_set  _fds;
+    addrinfo    *_bind_address;
 
 };
 

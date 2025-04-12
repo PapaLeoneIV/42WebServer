@@ -23,21 +23,13 @@
 #include <vector>
 #include <set>
 
-
-typedef int SOCKET;
-typedef int ERROR;
-
 class Server;
 
 #define MAX_REQUEST_SIZE 10*1024*1024 //2MB
 
 #define TIMEOUT_SEC 5
 
-#define SERVER_NAME "UrMom"
-
-#define ALLOWED_CHARS "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~:/?#[]@!$&'()*+,;=%"
-
-#define VERSION "1.0.0"
+#define VERSION "4.2.0"
 
 //List of possible error in the program, used to return a string error message
 //to check the actual error message, checkout functionn ErrToStr in Utlis.cpp
@@ -126,6 +118,7 @@ enum RequestStates {
     POST,
     DELETE,
   };
+
 int handle_arguments(int argc , char **argv);
 
 std::string to_lower(const std::string& input);
@@ -136,13 +129,9 @@ std::string fromDIRtoHTML(std::string dirPath, std::string url);
 
 std::string readTextFile(std::string filePath);
 
-std::string readFileBinary(std::string filePath);
-
 std::string getMessageFromStatusCode(int status);
 
 std::string getContentType(std::string& url, int status);
-
-std::string removeHexChars(std::string& url);
 
 std::string ErrToStr(int error);
 
@@ -150,20 +139,7 @@ std::string intToStr(int number);
 
 int strToInt(std::string str);
 
-std::string to_lowercase(const std::string& str);
-
-std::string trim(const std::string& str);
-
-ERROR checkPermissions(std::string fullPath,int mode);
-
-std::string readBinaryStream(std::istringstream &stream, int size);
-
-std::string extractBodyFromStream(std::istringstream &iss, const std::string &boundary);
-
-std::vector<std::string> splitIntoSections(std::istringstream &iss);
-
-std::map<std::string, std::string> extractSection(const std::string &section);
-
+int checkPermissions(std::string fullPath,int mode);
 
 std::string getErrorPage(int status, Server *server);
 #endif

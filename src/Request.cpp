@@ -551,6 +551,8 @@ void Request::reset(void) {
     this->headers_key.clear();
 }
 
+int Request::getState() {return this->state;};
+
 std::string &Request::getUrl()  {return this->url;}
 
 std::string &Request::getMethod()  {return this->method;}
@@ -560,6 +562,8 @@ std::string &Request::getVersion()  {return this->version;}
 std::map<std::string, std::string> &Request::getHeaders()   {return this->headers;}
 
 bool &Request::hasBody()    {return this->has_body;}
+
+void Request::setState(int state) {this->state = state;};
 
 void Request::setHasBody(bool hasBody)  {this->has_body = hasBody;}
 

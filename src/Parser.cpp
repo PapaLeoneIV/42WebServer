@@ -126,7 +126,7 @@ void Parser::validateResource(Client *client, Server *server)
     if(bestMatch.empty()){
         response->setStatusCode(404);
         response->setBody(getErrorPage(response->getStatus(), client->getServer()));
-        request->state = StateParsingError;
+        request->setState(StateParsingError);
         return;
     }
 
@@ -206,34 +206,6 @@ void Parser::validateResource(Client *client, Server *server)
 }
 
 
-Parser::Parser() {
-
-    this->_allowd_versions.insert("HTTP/1.1 ");
-    this->_allowd_versions.insert("undefined");
-
-    
-    this->_implemnted_methods.insert("GET");
-    this->_implemnted_methods.insert("POST");
-    this->_implemnted_methods.insert("DELETE");
-
-
-    this->_allowd_methods.insert("GET");
-    this->_allowd_methods.insert("POST");
-    this->_allowd_methods.insert("DELETE");
-    
-    //this->_allowd_methods.insert("PUT");
-    //this->_allowd_methods.insert("HEAD");
-    this->_allowd_headers.insert("content-length");
-    this->_allowd_headers.insert("content-type");
-    this->_allowd_headers.insert("date");
-    this->_allowd_headers.insert("connection");
-    this->_allowd_headers.insert("host");
-    this->_allowd_headers.insert("accept");
-    this->_allowd_headers.insert("accept-language");
-    this->_allowd_headers.insert("alt-used");
-    this->_allowd_headers.insert("accept-encoding");
-    this->_allowd_headers.insert("from");
-    this->_allowd_headers.insert("user-agent");
-}
+Parser::Parser() {}
 
 Parser::~Parser(){}
