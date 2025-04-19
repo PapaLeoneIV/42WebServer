@@ -113,6 +113,7 @@ int Request::consume(std::string buffer){
                 }
                 if(character == '?'){
                     // TODO: create state to handle and register query params                    
+                    // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/39
                     this->content += character;
                     continue;
                 }
