@@ -1,7 +1,59 @@
 {
   "configurations": [
     {
-      "name": "(gdb) Launch",
+      "name": "(gdb) Multiple Servers",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/webserver",
+      "args": [
+        "config/valid/multiple_servers.conf"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
+        }
+      ]
+    },
+    {
+      "name": "(gdb) empty_location.conf",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/webserver",
+      "args": [
+        "config/invalid/empty_location.conf"
+      ],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
+        }
+      ]
+    },
+    {
+      "name": "(gdb) nginx.conf",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/webserver",

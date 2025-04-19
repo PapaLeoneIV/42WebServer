@@ -39,7 +39,7 @@ class Server{
     std::string &getIndex();
     size_t      &getMaxRequestSize();
     std::string &getCwd();
-    std::map<std::string, std::vector<std::string> > getServerDir();
+    std::map<std::string, std::vector<std::string> > &getServerDir();
     std::map<std::string, std::map<std::string, std::vector<std::string> > > &getLocationDir(); 
 
     //SETTERS

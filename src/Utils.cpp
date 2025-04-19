@@ -216,9 +216,8 @@ std::string getErrorPage(int status, Server *server) {
     Logger::info("Trying to get error page for status: " + intToStr(status));
     
     if (server != NULL) {
-        std::map<std::string, std::vector<std::string> > serverDir = server->getServerDir();
-        std::map<std::string, std::vector<std::string> >::iterator it = serverDir.begin();
-        for(; it != serverDir.end(); it++) {
+        std::map<std::string, std::vector<std::string> >::iterator it = server->getServerDir().begin();
+        for(; it != server->getServerDir().end(); it++) {
             if (it->first == ("error_page_" + intToStr(status)) && it->second.size() > 0) {
                     Logger::info("Found error_page directive for status: " + intToStr(status) + ", path: " + it->second[0]);
                     return readTextFile(it->second[0]);
@@ -285,7 +284,7 @@ std::string intToStr(int number)
 std::string to_lower(const std::string &input)
 {
     std::string result = input;
-    for (std::string::size_type i = 0; i < result.size(); ++i)
+    for (size_t i = 0; i < result.size(); i++)
     {
         result[i] = std::tolower(static_cast<unsigned char>(result[i]));
     }

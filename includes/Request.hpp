@@ -20,6 +20,7 @@ public:
     
     //GETTERS
     std::string &getMethod();
+    std::string &getBody();
     int getState();
     std::string &getUrl();
     std::string &getVersion();

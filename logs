@@ -1,17 +1,0 @@
-*   Trying 127.0.0.1:8001...
-  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-                                 Dload  Upload   Total   Spent    Left  Speed
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0* Connected to localhost (127.0.0.1) port 8001 (#0)
-> GET /asdoaks HTTP/1.1
-> Host: localhost:8001
-> User-Agent: curl/7.81.0
-> Accept: */*
-> 
-* Mark bundle as not supporting multiuse
-< HTTP/1.1 404 Not Found
-< Connection: close
-< Host: localhost
-< 
-{ [0 bytes data]
-  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
-* Closing connection 0

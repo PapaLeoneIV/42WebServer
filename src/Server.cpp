@@ -12,7 +12,7 @@ std::string &Server::getPort()	{return this->_port;};
 std::string &Server::getRoot()	{return this->_root;};
 std::string &Server::getIndex()	{return this->_index;};
 std::string &Server::getCwd()	{return this->_cwd;};
-std::map<std::string, std::vector<std::string> > Server::getServerDir(void) {return this->serverDir;}
+std::map<std::string, std::vector<std::string> > &Server::getServerDir(void) {return this->serverDir;}
 std::map<std::string, std::map<std::string, std::vector<std::string> > > &Server::getLocationDir(void) {return this->locationDir;} 
 
 

@@ -125,8 +125,7 @@ void ServerManager::processRequest(Client *client)
     if(bytesRecv > 0){
         Logger::info("Received " + intToStr(bytesRecv) + " bytes [" + intToStr(fd) + "]");
 
-        int result = client->getRequest()->consume(buffer);
-        Logger::info("Request parsing result: " + intToStr(result) + ", state: " + intToStr(client->getRequest()->getState()) + " [" + intToStr(fd) + "]");
+        client->getRequest()->consume(buffer);
 
         if(client->getRequest()->getState() == StateParsingError) {
             Logger::info("Parsing error detected, sending error response [" + intToStr(fd) + "]");
@@ -139,14 +138,6 @@ void ServerManager::processRequest(Client *client)
 
     if(client->getRequest()->getState() == StateParsingComplete){
         Logger::info("Request parsing complete, method: " + client->getRequest()->getMethod() + ", URL: " + client->getRequest()->getUrl() + " [" + intToStr(fd) + "]");
-        
-        // TODO: based on the value from the config file, we need to decide if it is a valid request
-        // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/16
-        // eg: if the method is in the allowed methods(direttiva del config-file)
-        // eg: if proxy_pass is set, i think, not sure, we need to make a send() with the request to the proxy_pass server
-
-        // TODO: based on the URL (credo), we need to decide if we need to pass the request to CGI
-        // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/15
         
         parser.validateResource(client, client->getServer());
         

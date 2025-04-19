@@ -1,0 +1,18 @@
+[1;32m[INFO][0m : webserver: starting...
+[1;32m[INFO][0m : Configuration file loaded successfully
+[1;32m[INFO][0m : Starting servers...
+[1;32m[INFO][0m : Server started on 127.0.0.1:8001
+[1;32m[INFO][0m : Server started on 127.0.0.1:8002
+[1;32m[INFO][0m : Server/s started successfully
+[1;32m[INFO][0m : New connection from 127.0.0.1 [5]
+[1;32m[INFO][0m : Received 83 bytes [5]
+[1;32m[INFO][0m : Request parsing result: 1, state: 36 [5]
+[1;32m[INFO][0m : Request parsing complete, method: GET, URL: /dasda [5]
+[1;32m[INFO][0m : Trying to get error page for status: 404
+[1;32m[INFO][0m : Found error_page directive for status: 404, path: static/errorPage/404.html
+[1;32m[INFO][0m : Preparing response for GET /dasda (Status: 404) [5]
+[1;32m[INFO][0m : Response sent successfully (469 bytes) [5]
+[1;32m[INFO][0m : Client state reset for keep-alive connection [5]
+[1;32m[INFO][0m : Connection kept alive for next request [5]
+[1;32m[INFO][0m : Client closed connection [5]
+[1;32m[INFO][0m : Connection closed from 127.0.0.1 [5]

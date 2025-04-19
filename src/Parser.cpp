@@ -111,46 +111,93 @@ int Parser::deleteResource(std::string filePath, Response *response, bool useDet
 
 void Parser::validateResource(Client *client, Server *server)
 {
-    int fileType;
-    std::string fileContent;
-
     Request *request = client->getRequest();
     Response *response = client->getResponse();
 
     if(!request || !response)
         return;
+    
+    if(server->getServerDir().find("client_max_body_size") != server->getServerDir().end() 
+        && (size_t)strToInt(server->getServerDir()["client_max_body_size"][0]) < request->getBody().size()) {
+            response->setStatusCode(404);
+            response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+            request->setState(StateParsingError);
+            return;    
+        }
 
-
-    //Al momento viene soltanto scelto il configuration block ma non viene eseguito nessun altro check
-    std::string bestMatch = this->getMatchingLocation(client->getRequest()->getUrl(), client->getServer());
-    if(bestMatch.empty()){
+    std::string bestMatchingLocation = this->getMatchingLocation(client->getRequest()->getUrl(), client->getServer());
+    if(bestMatchingLocation.empty()){
         response->setStatusCode(404);
         response->setBody(getErrorPage(response->getStatus(), client->getServer()));
         request->setState(StateParsingError);
         return;
     }
-
-    //da qui in poi (credo) che vadano fatti dei check sulla risorsa richiesta basandoci sul location block
-    std::map<std::string, std::vector<std::string> > locationConfig = server->getLocationDir()[bestMatch];
+    std::map<std::string, std::vector<std::string> > locationConfig = server->getLocationDir()[bestMatchingLocation];
     
-    
-    
-    // TODO: atm is hardcoded to the root directory
-    // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/6
-
-    std::string url = request->getUrl();
-    // rimuovo i parametri di query dall'URL per ottenere il percorso del file
-    std::string cleanUrl = url;
-    size_t queryPos = url.find('?');
-    if (queryPos != std::string::npos) {
-        cleanUrl = url.substr(0, queryPos);
+    //controllare che l host sia lo stesso nel file di config
+    if(request->getHeaders().find("host") == request->getHeaders().end()){
+        response->setStatusCode(400);
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        request->setState(StateParsingError);
+        return;
     }
-    std::string filePath = server->getCwd() + server->getRoot() + cleanUrl;
     
+    std::string reqHost =  request->getHeaders()["host"].substr(0, request->getHeaders()["host"].find_last_of(":"));
+
+    //normalize url, i m doing the same for the configuration file in int ConfigParser::parseHostValues(directiveValueVector v)
+    if(reqHost == "localhost"){ reqHost = "127.0.0.1";}
+    
+    if(reqHost != server->getServerDir()["host"][0]){
+        response->setStatusCode(400);
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        request->setState(StateParsingError);
+        return;
+    }
+    
+    std::string reqPort = request->getHeaders()["host"].substr(request->getHeaders()["host"].find_last_of(":") + 1, request->getHeaders()["host"].size());
+    if(reqPort != server->getServerDir()["listen"][0]){
+        response->setStatusCode(400);
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        request->setState(StateParsingError);
+        return;
+    }
+
+    bool foundMethod = false;
+    //controllare che il METHOD richiesto sia permesso nel location config
+    for(size_t i = 0; i < locationConfig["allow_methods"].size(); i++){
+        if(request->getMethod() == locationConfig["allow_methods"][i]){
+            foundMethod = true;
+        }
+    }
+    if(!foundMethod){
+        response->setStatusCode(400);
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        request->setState(StateParsingError);
+        return;
+    }
+
+
+    //choose between location root or server root
+    bool isRootInLocationDirective = locationConfig["root"].size(); 
+    std::string rootPath = isRootInLocationDirective  ? locationConfig["root"][0] : server->getServerDir()["root"][0];
+
+
+    //extract path and file requested
+    std::string urlPath = request->getUrl().substr(0, request->getUrl().find_last_of("/"));
+    std::string urlFile = request->getUrl().substr(request->getUrl().find_last_of("/") + 1, request->getUrl().size());
+
+    if(locationConfig.find("alias") != locationConfig.end()){
+        urlPath = locationConfig["alias"][0]; 
+    }
+
+
+    //if 'root' is present i need to attach root to location path
+    std::string filePath =  rootPath + urlPath + urlFile; 
+
     if (request->getMethod() == "DELETE") {
         Logger::info("DELETE request for: " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
         
-        bool useDetailedResponse = isQueryParamValid(url, "details", false);
+        bool useDetailedResponse = isQueryParamValid(request->getUrl(), "details", false);
         int result = this->deleteResource(filePath, response, useDetailedResponse);
         if (result == SUCCESS) {
             if (response->getStatus() == 204) {
@@ -166,6 +213,13 @@ void Parser::validateResource(Client *client, Server *server)
         return;
     }
 
+    
+
+
+
+    int fileType;
+    std::string fileContent;
+
     //checcko se la risorsa richiesta è accessibile
     fileType = this->checkResource(filePath, response);
     if(fileType == FAILURE){
@@ -175,7 +229,7 @@ void Parser::validateResource(Client *client, Server *server)
     
     if(S_ISDIR(fileType)){
         if(*(filePath.rbegin()) != '/'){
-            std::string newUrl = cleanUrl + "/";
+            std::string newUrl = request->getUrl() + "/";
             request->setUrl(newUrl);
             filePath += "/";
         }

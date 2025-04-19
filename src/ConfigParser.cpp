@@ -132,8 +132,8 @@ int ConfigParser::fromConfigFileToServers(char *file)
                 if (s.top()->getDirective() != "root")
                     break; // server allowed only inside root node
     
-                add_block_to_Tree(configBlock, token, (std::vector<std::string>)0, tokenIdx, s);
-                s.push(configBlock);
+                add_block_to_Tree(newConfigBlockNode, token, (std::vector<std::string>)0, tokenIdx, s);
+                s.push(newConfigBlockNode);
                 continue;
             }
             // inzio location block
@@ -148,8 +148,8 @@ int ConfigParser::fromConfigFileToServers(char *file)
                 if (s.top()->getDirective() != "server")
                     break;
                 locationPathV.push_back(locationPath);
-                add_block_to_Tree(configBlock, token, locationPathV, tokenIdx, s);
-                s.push(configBlock);
+                add_block_to_Tree(newConfigBlockNode, token, locationPathV, tokenIdx, s);
+                s.push(newConfigBlockNode);
                 continue;
             }
     
@@ -187,10 +187,13 @@ int ConfigParser::fromConfigFileToServers(char *file)
 bool ConfigParser::verifyDirectives(Server *server)
 {
     ConfigDirectiveMap serverDir = server->getServerDir();
-    for (ConfigDirectiveMap::iterator serverDirIt = serverDir.begin(); serverDirIt != serverDir.end(); ++serverDirIt)
-    {
-        std::string nginxDir = (*serverDirIt).first;
-        std::vector<std::string> nginxDirValue = (*serverDirIt).second;
+    for (ConfigDirectiveMap::iterator serverDirIt = serverDir.begin(); serverDirIt != serverDir.end(); ++serverDirIt){
+        std::string nginxDir = serverDirIt->first;
+        std::vector<std::string> nginxDirValue = serverDirIt->second;
+    
+        if(nginxDir == "error_page" && nginxDirValue.size() > 0){
+                nginxDir = nginxDir + "_" + nginxDirValue[0];            
+        }
         if(this->fnToParseDirectives.find(nginxDir) == this->fnToParseDirectives.end()){
             return 1;
         }
@@ -424,6 +427,11 @@ int ConfigParser::parseHostValues(directiveValueVector v)
     {
         Logger::error(this->getFileName(), "'host' directive can't have more than one value");
         return 1;
+    }
+
+    if(v[0] == "localhost"){
+        v[0] = "127.0.0.1";
+        return 0;
     }
 
     std::string value = v[0];
@@ -862,7 +870,7 @@ int ConfigParser::extractDirectives(Server *server, Treenode *node)
         {
             if (node->getDirective() == "server")
             {
-                if (server->getServerDir()[DirectiveKey].size() > 0  && checkForAllowdMultipleDirectives(DirectiveKey))
+                if (server->getServerDir().count(DirectiveKey) > 0  && checkForAllowdMultipleDirectives(DirectiveKey))
                 {
                     Logger::error(this->getFileName(), "directive " + DirectiveKey + " already set");
                     return(1);

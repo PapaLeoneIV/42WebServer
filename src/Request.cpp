@@ -77,17 +77,18 @@ int Request::consume(std::string buffer){
                 return 1;   
             }
             case StateSpaceAfterMethod: {
+                this->raw += character;
                 if(character != ' ')
                 {
                     this->error = 400; //request not valid
 					this->state = StateParsingError;
                     return 1;
                 }
-                this->raw += character;
                 this->state =  StateUrlBegin;
                 continue;
             }
             case StateUrlBegin:{
+                this->raw += character;
                 if(character != '/')
                 {
                     this->error = 400; //request not valid
@@ -95,12 +96,12 @@ int Request::consume(std::string buffer){
                     return 1;
                 }
                 this->content.clear();
-                this->raw += character;
                 this->content += character;
                 this->state =  StateUrlString;
                 continue;
             }
             case StateUrlString:{
+                this->raw += character;
                 // https://datatracker.ietf.org/doc/html/rfc1738#section-2.1
                 if((character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z')  
                 || (character >= '0' && character <= '9') || (character == '+') || (character == '.')
@@ -108,18 +109,16 @@ int Request::consume(std::string buffer){
                 || (character == '*') || (character == '\'') || (character == '(') || (character == ')')
                 || (character == '/') || (character == '=') || (character == '&')){
                     this->content += character;
-                    this->raw += character;
                     continue;
                 }
                 if(character == '?'){
+                    // TODO: create state to handle and register query params                    
                     this->content += character;
-                    this->raw += character;
                     continue;
                 }
 
                 //% https://datatracker.ietf.org/doc/html/rfc3986#section-2.1 HTTP/1.1
                 if(character == '%'){
-                    this->raw += character;
                     this->state = StateEncodedSep;
                     //switch to state "encoded percent"
                     continue;
@@ -127,7 +126,6 @@ int Request::consume(std::string buffer){
                 
                 if(character == ' ')
                 {
-                    this->raw += character;
                     this->state = StateSpaceAfterUrl;
                     continue;
                 } 
@@ -138,10 +136,11 @@ int Request::consume(std::string buffer){
                 return 1;
             }
             case StateEncodedSep:{
+                this->raw += character;
+
                 if(this->encoded_counter == 1)
                 {
                     this->encoded_char += character;
-                    this->raw += character;
 
                     int hex = strToHex(this->encoded_char);
                     this->encoded_char = static_cast<char>(hex);
@@ -154,12 +153,12 @@ int Request::consume(std::string buffer){
                     continue;
                 }
                 this->encoded_char += character;
-                this->raw += character;
                 this->encoded_counter++;
                 continue;
             }
 
             case StateSpaceAfterUrl: {
+                this->raw += character;
                 if(character != 'H'){
                     this->error = 400; //request not valid
 					this->state = StateParsingError;
@@ -173,74 +172,82 @@ int Request::consume(std::string buffer){
                 }
                 this->content.clear();
                 this->state =  StateVersion_H;
-                break;
+                continue;
             }
             //"HTTP/1.1 only version admitted
             case StateVersion_H:{
+                this->raw += character;
                 if(character != 'T'){
                     this->error = 505; //HTTP Version Not Supported
 					this->state = StateParsingError;
                     return 1;
                 }
                 this->state = StateVersion_HT;
-                break;
+                continue;
             }
             case StateVersion_HT:{
+                this->raw += character;
                 if(character != 'T'){
                     this->error = 505;
 					this->state = StateParsingError;
                     return 1;
                 }
                 this->state = StateVersion_HTT;
-                break;
+                continue;
             }
             case StateVersion_HTT:{
+                this->raw += character;
                 if(character != 'P'){
                     this->error = 505;
 					this->state = StateParsingError;
                     return 1;
                 }
                 this->state = StateVersion_HTTP;
-                break;
+                continue;
             }
             case StateVersion_HTTP:{
+                this->raw += character;
                 if(character != '/'){
                     this->error = 505;
 					this->state = StateParsingError;
                     return 1;
                 }
                 this->state = StateVersion_HTTPSlash;
-                break;
+                continue;
             }
             case StateVersion_HTTPSlash:{
+                this->raw += character;
                 if(character != '1'){
                     this->error = 505;
 					this->state = StateParsingError;
                     return 1;
                 }
                 this->state = StateVersion_HTTPSlashOne;
-                break;
+                continue;
             }
             case StateVersion_HTTPSlashOne:{
+                this->raw += character;
                 if(character != '.'){
                     this->error = 505;
 					this->state = StateParsingError;
                     return 1;
                 }
                 this->state = StateVersion_HTTPSlashOneDot;
-                break;
+                continue;
                 
             }
             case StateVersion_HTTPSlashOneDot:{
+                this->raw += character;
                 if(character != '1'){   
                     this->error = 505;
 					this->state = StateParsingError;
                     return 1;
                 }
                 this->state = StateVersion_HTTPSlashOneDotOne;
-                break;
+                continue;
             }
             case StateVersion_HTTPSlashOneDotOne:{
+                this->raw += character;
                 if(character != '\r'){
                     this->error = 400; //Bad Request
 					this->state = StateParsingError;
@@ -249,9 +256,10 @@ int Request::consume(std::string buffer){
                 this->version = this->content;
                 this->content.clear();
                 this->state = StateFirstLine_CR;
-                break;
+                continue;
             }
             case StateFirstLine_CR:{
+                this->raw += character;
                 if(character != '\n'){
                     this->error = 400;
 					this->state = StateParsingError;
@@ -259,19 +267,19 @@ int Request::consume(std::string buffer){
                 }
                 this->content.clear();
                 this->state = StateHeaderKey;
-                this->raw += character;
-                continue;
+                continue; 
             }
             //HTTP headers are structured such that each header field consists of a case-insensitive field name followed by a colon (:),
             // optional leading whitespace, the field value, and optional trailing whitespace.They are serialized into a single string where 
             // individual header fields are separated by CRLF (carriage return 1 and line feed, represented by \r\n in many programming languages).
             case StateHeaderKey: {
+                this->raw += character;
                 if(character == ':')
                 {
                     this->headers_key = this->content;
                     this->content.clear();
                     this->state = StateHeadersTrailingSpaceStart;
-                    break;
+                    continue;
                 }
                 if(character == ' ') //no spaces allowed between header key and column
                 {
@@ -281,7 +289,8 @@ int Request::consume(std::string buffer){
                 }
                 if((character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z')  
                 || (character >= '0' && character <= '9') || (character == '_') || (character == '-')){
-                    break;
+                    this->content += character;
+                    continue;
                 }
                 std::cout << "this->error: character not allowed" << std::endl;
                 this->error = 400; //Bad Request
@@ -289,28 +298,29 @@ int Request::consume(std::string buffer){
                 return 1;
             }
             case StateHeadersTrailingSpaceStart: {
+                this->raw += character;
                 if(character == ' ')
                 {
-                    break;
+                    continue;
                 }
                 this->content.clear();
+                this->content += character;
                 this->state = StateHeaderValue;
-                break;
+                continue;
             }
             case StateHeaderValue: {
-                
+                this->raw += character;
                 if(character == ' ')
                 {
                     this->headers[to_lower(this->headers_key)] = to_lower(this->content);
                     this->content.clear();
                     this->state = StateHeadersTrailingSpaceEnd;
-                    break;
+                    continue;
                 }
                 if(character == '\r')
                 {
                     this->headers[to_lower(this->headers_key)] = to_lower(this->content);
                     this->content.clear();
-                    this->raw += character;
                     this->state = StateHeaders_CR;
                     continue;
                 }
@@ -320,24 +330,27 @@ int Request::consume(std::string buffer){
 					this->state = StateParsingError;
                     return 1;
                 }
-                break;
+                this->content += character;
+                continue;
             
             }
             case StateHeadersTrailingSpaceEnd: {
+                this->raw += character;
+
                 if(character == ' '){
-                    break;
+                    continue;
                 }
                 if(character == '\r'){
                     this->state = StateHeaders_CR;
-                    break;
+                    continue;
                 }
                 this->state = StateHeaderValue;
-                break;
+                continue;
             }
             case StateHeaders_CR:{
+                this->raw += character;
                 if(character == '\n'){
                     this->state = StateHeaders_LF;
-                    this->raw += character;
                     continue;
                 }
                 this->error = 400; //Bad Request
@@ -345,16 +358,19 @@ int Request::consume(std::string buffer){
                 return 1;
             }
             case StateHeaders_LF:{
+                this->raw += character;
                 if(character == '\r')
                 {
                     this->state = StateHeadersEnd_CR;
                     this->raw += character;
                     continue;
                 }
+                this->content += character;
                 this->state = StateHeaderKey;
-                break;
+                continue;
             }
             case StateHeadersEnd_CR:{
+                this->raw += character;
                 if(character != '\n')
                 {
                     this->error= 400; //Bad Request
@@ -376,21 +392,19 @@ int Request::consume(std::string buffer){
                         this->state = StateBodyChunkedNumber;
                     else
                         this->state = StateBodyPlainText;
-                    this->raw += character;
                     this->content.clear();
                     continue;
                 }
-                this->raw += character;
                 this->content.clear();
                 this->state = StateParsingComplete;
                 continue;
             }
             case StateBodyPlainText:{
+                this->raw += character;
                 if(this->body_counter < strToInt(this->headers["content-length"]))
                 {
                     this->body_counter++;
                     this->body += character;
-                    this->raw+=character;
                     continue;
                 }
                 if(this->body_counter == strToInt(this->headers["content-length"]))
@@ -398,9 +412,10 @@ int Request::consume(std::string buffer){
                     this->state = StateParsingComplete;
                     continue;
                 }
-                break;
+                continue;
             }
             case StateBodyChunkedNumber:{
+                this->raw+=character;
                 if(character == '\r')
                 {
                     std::stringstream ss;
@@ -419,7 +434,6 @@ int Request::consume(std::string buffer){
                         continue;
                     }
                     this->content.clear();
-                    this->raw += character;
                     this->state = StateChunkedNumber_LF;
                     continue;
                 }
@@ -429,9 +443,10 @@ int Request::consume(std::string buffer){
                     return 1;
                 }
                 this->content += character;
-                break;
+                continue;
             }
             case StateChunkedNumber_CR : {
+                this->raw += character;
                 if(character != '\r')
                 {
                     this->error= -1;
@@ -442,6 +457,7 @@ int Request::consume(std::string buffer){
                 continue;
             }
             case StateChunkedNumber_LF : {
+                this->raw += character;
                 if(character != '\n'){
                     this->error= -1;
                     return 1;
@@ -450,24 +466,24 @@ int Request::consume(std::string buffer){
                 this->state = StateChunkedChunk;
                 continue;
             }
-            case StateChunkedChunk : {  
+            case StateChunkedChunk : { 
+                this->raw += character; 
                 if(this->content.size() < this->number)
                 {
                     this->content += character;
-                    this->raw += character;
                     continue;
                 }
                 if(character == '\r')
                 {
                     this->body += this->content;
-                    this->raw += character;
                     this->content.clear();
                     this->state = StateChunkedChunk_LF;
                     continue;
                 }
-                break;
+                continue;
             }
             case StateChunkedChunk_LF : {  
+                this->raw += character;
                 if(character != '\n')
                 {
                     this->error = -1;
@@ -479,14 +495,14 @@ int Request::consume(std::string buffer){
                 continue;
             }
             case StateChunkedEnd_LF:{
+                this->raw += character;
                 if(character != '\n')
                 {
                     this->error = -1;
                     return 1;
                 }
-                this->raw += character;
                 this->state = StateParsingComplete;
-                break;
+                continue;
             }
         
             case StateParsingComplete:{
@@ -558,6 +574,8 @@ std::string &Request::getUrl()  {return this->url;}
 std::string &Request::getMethod()  {return this->method;}
 
 std::string &Request::getVersion()  {return this->version;}
+
+std::string &Request::getBody() {return this->body;};
 
 std::map<std::string, std::string> &Request::getHeaders()   {return this->headers;}
 
