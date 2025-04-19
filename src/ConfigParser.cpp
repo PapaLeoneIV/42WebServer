@@ -736,6 +736,7 @@ int ConfigParser::parseReturnValues(directiveValueVector v)
     // ConfigParser::parse text/url if present
 
     // TODO: need to check that the resource is available, maybe create a function that i can re use
+    // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/46
     if (v.size() == 2)
     {
         std::string text = v[1];
