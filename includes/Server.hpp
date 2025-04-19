@@ -38,7 +38,6 @@ class Server{
     std::string &getRoot();
     std::string &getIndex();
     size_t      &getMaxRequestSize();
-    std::string &getCwd();
     std::map<std::string, std::vector<std::string> > &getServerDir();
     std::map<std::string, std::map<std::string, std::vector<std::string> > > &getLocationDir(); 
 
@@ -56,7 +55,6 @@ class Server{
     void    setRoot(std::string root);
     void    setIndex(std::string index);
     void    setMaxRequestSize(size_t max_request_size);
-    void    setCwd(std::string cwd);
 
     void printServerDir(void);
     void printLocationDir(void);
@@ -66,7 +64,6 @@ class Server{
     std::map<std::string, std::vector<std::string> > serverDir;
     std::map<std::string, std::map<std::string, std::vector<std::string> > > locationDir;
     
-    std::string _cwd;
     std::string _host;
     std::string _server_name;
     std::string _port;

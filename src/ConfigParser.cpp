@@ -30,6 +30,61 @@
         return NULL;                                             \
     }
 
+int ConfigParser::checkPortDuplicate(std::vector<Server *> servers){
+    std::map<std::string, std::vector<Server *> > portMap;
+    for (std::vector<Server *>::iterator it = servers.begin(); it != servers.end(); ++it){
+        std::string port = (*it)->getServerDir()["listen"][0];
+        if (portMap.find(port) == portMap.end()){
+            portMap[port] = std::vector<Server *>();
+        }
+        portMap[port].push_back(*it);
+    }
+    for (std::map<std::string, std::vector<Server *> >::iterator it = portMap.begin(); it != portMap.end(); ++it){
+        if (it->second.size() > 1){
+            Logger::error(this->getFileName(), "Port " + it->first + " is already in use");
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int ConfigParser::checkHostsDuplicate(std::vector<Server *> servers){
+    std::map<std::string, std::vector<Server *> > hostMap;
+    for (std::vector<Server *>::iterator it = servers.begin(); it != servers.end(); ++it){
+        std::string host = (*it)->getServerDir()["host"][0];
+        if (hostMap.find(host) == hostMap.end()){
+            hostMap[host] = std::vector<Server *>();
+        }
+        hostMap[host].push_back(*it);
+    }
+    for (std::map<std::string, std::vector<Server *> >::iterator it = hostMap.begin(); it != hostMap.end(); ++it){
+        if (it->second.size() > 1){
+            Logger::error(this->getFileName(), "Host " + it->first + " is already in use");
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int ConfigParser::setEtcHostFile(std::vector<>Server *> servers){
+    std::ifstream file("/etc/hosts");
+    if (!file.is_open()){
+        Logger::error(this->getFileName(), "Could not open /etc/hosts file");
+        return 1;
+    }
+    std::string line;
+    while (std::getline(file, line)){
+        for (std::vector<Server *>::iterator it = servers.begin(); it != servers.end(); ++it){
+            std::string host = (*it)->getServerDir()["host"][0];
+            if (line.find(host) != std::string::npos){
+                Logger::error(this->getFileName(), "Host " + host + " is already in use in /etc/hosts");
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 int ConfigParser::fromConfigFileToServers(char *file)
     {
     
@@ -48,20 +103,38 @@ int ConfigParser::fromConfigFileToServers(char *file)
                 Server *server = new Server();
     
                 if(this->extractDirectives(server, *currentNode)){
+                    delete server;
                     return 1;
                 }
     
                 if (this->checkMandatoryDirectives(server)){
+                    delete server;
                     return 1;
+
                 }
     
                 setUpDefaultDirectiveValues(server);
     
                 if (this->verifyDirectives(server)){
+                    delete server;
                     return 1;
                 }
                 servers.push_back(server); 
             }
+        }
+        if(checkPortDuplicate(servers) || checkHostsDuplicate(servers)){
+            for (std::vector<Server *>::iterator it = servers.begin(); it != servers.end(); ++it){
+                delete *it;
+            }
+            servers.clear();
+            return 1;
+        }
+        if(setEtcHostsFile(servers)){
+            for (std::vector<Server *>::iterator it = servers.begin(); it != servers.end(); ++it){
+                delete *it;
+            }
+            servers.clear();
+            return 1;
         }
         this->setTmpServer(servers);
         return 0;
@@ -195,6 +268,7 @@ bool ConfigParser::verifyDirectives(Server *server)
                 nginxDir = nginxDir + "_" + nginxDirValue[0];            
         }
         if(this->fnToParseDirectives.find(nginxDir) == this->fnToParseDirectives.end()){
+            Logger::error(this->getFileName(), "directive " + nginxDir + " is not a valid server directive");
             return 1;
         }
         if ((this->*fnToParseDirectives[nginxDir])(nginxDirValue))
@@ -490,12 +564,9 @@ int ConfigParser::parseErrorPageValues(directiveValueVector v)
         return 1;
     }
     std::string path = v[0];
-    std::string rootFolder = getcwd(NULL, 0);
-    rootFolder = rootFolder.append("/");
-    rootFolder = rootFolder.append(path);
-    if (access(rootFolder.c_str(), R_OK) != 0)
+    if (access(path.c_str(), R_OK) != 0)
     {
-        Logger::error(this->getFileName(), "'error_page' [path] is not readable " + rootFolder);
+        Logger::error(this->getFileName(), "'error_page' [path] is not readable " + path);
         return 1;
     }
     return 0;
@@ -663,6 +734,8 @@ int ConfigParser::parseReturnValues(directiveValueVector v)
     }
 
     // ConfigParser::parse text/url if present
+
+    // TODO: need to check that the resource is available, maybe create a function that i can re use
     if (v.size() == 2)
     {
         std::string text = v[1];

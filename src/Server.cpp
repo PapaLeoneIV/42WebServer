@@ -11,7 +11,6 @@ std::string &Server::getServerName()	{return this->_server_name;};
 std::string &Server::getPort()	{return this->_port;};
 std::string &Server::getRoot()	{return this->_root;};
 std::string &Server::getIndex()	{return this->_index;};
-std::string &Server::getCwd()	{return this->_cwd;};
 std::map<std::string, std::vector<std::string> > &Server::getServerDir(void) {return this->serverDir;}
 std::map<std::string, std::map<std::string, std::vector<std::string> > > &Server::getLocationDir(void) {return this->locationDir;} 
 
@@ -26,7 +25,6 @@ void    Server::setServerName(std::string server_name)  {this->_server_name = se
 void    Server::setPort(std::string port) {this->_port = port;};
 void    Server::setRoot(std::string root) {this->_root = root;};
 void    Server::setIndex(std::string index) {this->_index = index;};
-void    Server::setCwd(std::string cwd) {this->_cwd = cwd;};
 
 void	Server::setServerDir(std::string key, std::vector<std::string> value) {
 	if(key == "error_page" && value.size() > 1)
@@ -73,7 +71,6 @@ void Server::printLocationDir() {
 
 Server::Server(): _hints(), _server_socket(-1), _bind_address(NULL) {
 
-	this->_cwd = getcwd(NULL, 0);
 	this->_hints.ai_family = AF_INET;      
 	this->_hints.ai_socktype = SOCK_STREAM;
 	this->_hints.ai_flags = AI_PASSIVE;

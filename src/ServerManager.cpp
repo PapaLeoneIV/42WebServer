@@ -7,7 +7,6 @@
 #include "../includes/ServerManager.hpp"
 #include "../includes/Utils.hpp"
 #include "../includes/Logger.hpp"
-#include <cstdlib>
 
 
 /**
@@ -17,7 +16,7 @@
 */
 void ServerManager::eventLoop()
 {
-    while(4.20){
+    while(420){
         int fds_changed = 0;
         
         //bisogna resettare gli fd ad ogni nuovo ciclo
@@ -37,7 +36,6 @@ void ServerManager::eventLoop()
 
         if ((fds_changed = select(this->_maxSocket + 1, &this->_readPool, &this->_writePool, 0, &timeout)) < 0)
             throw std::runtime_error(ErrToStr(ERR_SELECT));
-        
         if(fds_changed == 0) continue;
 
         for (SOCKET fd = 0; fd <= this->_maxSocket + 1; ++fd){
@@ -90,24 +88,19 @@ void ServerManager::registerNewConnections(SOCKET serverFd, Server *server)
     client->updateLastActivity();
     
     this->_clients_map[new_socket] = client;
-
 }
-
-#define BUFFER_SIZE 4*1024 //4KB
-
 
 void ServerManager::processRequest(Client *client)
 {
-    Parser parser;
-    SOCKET fd = client->getSocketFd();
+    Request *request = client->getRequest();
+    Response *response = client->getResponse();
     
-    // this->debugPools("Prima di processRequest", fd);
-
     client->updateLastActivity();
-
+    
     char buffer[BUFFER_SIZE + 1];
     memset(buffer, 0, sizeof(buffer));
-
+    
+    SOCKET fd = client->getSocketFd();
     int bytesRecv = recv(fd, buffer, BUFFER_SIZE, 0); //O_NONBLOCK
 
     if(bytesRecv == -1){
@@ -124,68 +117,30 @@ void ServerManager::processRequest(Client *client)
     
     if(bytesRecv > 0){
         Logger::info("Received " + intToStr(bytesRecv) + " bytes [" + intToStr(fd) + "]");
-
-        client->getRequest()->consume(buffer);
-
-        if(client->getRequest()->getState() == StateParsingError) {
-            Logger::info("Parsing error detected, sending error response [" + intToStr(fd) + "]");
-            client->getResponse()->setStatusCode(400);
-            this->sendErrorResponse(client->getResponse(), fd, client);
-            return;
-        }
+        request->consume(buffer);
     }
 
-
-    if(client->getRequest()->getState() == StateParsingComplete){
-        Logger::info("Request parsing complete, method: " + client->getRequest()->getMethod() + ", URL: " + client->getRequest()->getUrl() + " [" + intToStr(fd) + "]");
-        
-        parser.validateResource(client, client->getServer());
-        
-        this->removeFromSet(fd, &this->_readPool);
-        this->addToSet(fd, &this->_writePool);
-        
-        // this->debugPools("Dopo processRequest", fd);
-    }
-}
-
-
-void ServerManager::sendErrorResponse(Response *response, SOCKET fd, Client *client) 
-{
-    std::string errorPage = getErrorPage(response->getStatus(), client->getServer());
-    if (errorPage.empty()) {
-		Logger::error("ServerManager", "Error page not found [" + intToStr(fd) + "]");
+    //da testare
+    if(request->getBodyCounter() > MAX_REQUEST_SIZE){
+        Logger::error("ServerManager", "Request body too large [" + intToStr(fd) + "]");
+        response->setStatusCode(413);
+        request->setState(StateParsingError);
         return;
     }
-    response->setBody(errorPage);
-
-    //TODO: da aggiungere il settaggio degli header (fatto a caso quello sotto però worka)
-    //Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/37
-    response->setHeaders("Host", "localhost");
-    response->setHeaders("Content-Type", "text/html");
-    response->setHeaders("Content-Length", intToStr(errorPage.size()));
-   
-    std::string connectionHeader = to_lower(client->getRequest()->getHeaders()["connection"]);
-    if (connectionHeader == "close") {
-        response->setHeaders("Connection", "close");
-    } else {
-        response->setHeaders("Connection", "keep-alive");
-    }
-
-    response->prepareResponse();
-
-	Logger::info("Sending ERROR response [" + intToStr(fd) + "]");    
-    int bytes_sent = send(fd, response->getResponse().c_str(), response->getResponse().size(), 0);
-
-    if (bytes_sent == -1) {
-		Logger::error("ServerManager", "Send failed: " + std::string(strerror(errno)) + " [" + intToStr(fd) + "]");
-		return;
-    }
-	Logger::info("ERROR response sent successfully (" + intToStr(bytes_sent) + " bytes) [" + intToStr(fd) + "]");
     
-    // std::cout << "[" << fd << "] INFO: Closing connection as demand by ERROR" << std::endl;
-    // this->closeClientConnection(fd, client);
-    return;
+    if(request->getState() == StateParsingComplete || request->getState() == StateParsingError){
+        if(request->getState() == StateParsingError) {
+            response->setStatusCode(request->getError());
+            response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        } else {
+            Parser parser;
+            parser.validateResource(client, client->getServer());
+        }
+        this->removeFromSet(fd, &this->_readPool);
+        this->addToSet(fd, &this->_writePool);
+    }
 }
+
 
 void ServerManager::sendResponse(SOCKET fd, Client *client)
 {
@@ -195,16 +150,11 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     Response *response = client->getResponse();
     client->updateLastActivity();
 
-    if (!request || !response || request->getState() != StateParsingComplete) {
-        if (request && request->getState() == StateParsingError) { //gestione errori di parsing
-            this->sendErrorResponse(response, fd, client);
-            return ;
-        }
-        Logger::error("ServerManager", "Cannot send response, invalid request or response state [" + intToStr(fd) + "]");
+    if (!request || !response) {
+        Logger::error("ServerManager", "Invalid request or response state [" + intToStr(fd) + "]");
         return;
     }
 
-    Logger::info("Preparing response for " + request->getMethod() + " " + request->getUrl() + " (Status: " + intToStr(response->getStatus()) + ") [" + intToStr(fd) + "]");
 
     // setta gli headers della response
     response->setHeaders("Host", "localhost");
@@ -220,6 +170,9 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
     if (!response->getBody().empty()) {
         response->setHeaders("Content-Type", getContentType(request->getUrl(), response->getStatus()));
         response->setHeaders("Content-Length", intToStr(response->getBody().size()));
+    }else {
+        response->setHeaders("Content-Type", "text/html");
+        response->setHeaders("Content-Length", "0");
     }
 
     response->prepareResponse();
@@ -299,7 +252,14 @@ ServerManager::ServerManager()
 
 }
 
-ServerManager::~ServerManager(){}
+ServerManager::~ServerManager(){
+    for (std::map<SOCKET, Client*>::iterator it = this->_clients_map.begin(); it != this->_clients_map.end(); ++it){
+        delete it->second;
+    }
+    for (std::map<SOCKET, Server*>::iterator it = this->_servers_map.begin(); it != this->_servers_map.end(); ++it){
+        delete it->second;
+    }
+}
 
 
 

@@ -1,9 +1,12 @@
-#include "Treenode.hpp"
+#include "../includes/Treenode.hpp"
 
 Treenode::Treenode(std::string directive, std::vector<std::string> value)
 {
   this->directive = directive;
   this->value = value;
+}
+Treenode::~Treenode()
+{
 }
 void Treenode::add(Treenode *node) { children.push_back(node); }
 // void Treenode::print(int level = 0)

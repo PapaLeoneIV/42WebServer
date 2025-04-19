@@ -55,7 +55,10 @@ class Client{
     private:
     Request *_Request;
     Response    *_Response;
+
+
     Server  *_server;
+    
     sockaddr_storage    _address;
     socklen_t   _address_length;
     SOCKET  _socket;

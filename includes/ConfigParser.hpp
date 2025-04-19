@@ -38,6 +38,7 @@ public:
   int checkMandatoryDirectives(Server *server);
   int extractDirectives(Server *server, Treenode *node);
   int checkForAllowdMultipleDirectives(std::string directive);
+  int checkPortDuplicate(std::vector<Server *> servers);
 
   int parseListenValues(directiveValueVector v);
   int parseHostValues(directiveValueVector v);

@@ -144,8 +144,13 @@ int Request::consume(std::string buffer){
                     this->encoded_char += character;
 
                     int hex = strToHex(this->encoded_char);
+                    if(hex == 0x0){
+                        this->error = 400; //request not valid
+                        this->state = StateParsingError;
+                        return 1;
+                    }
                     this->encoded_char = static_cast<char>(hex);
-                   
+                    
                     this->content += this->encoded_char;
 
                     this->encoded_counter = 0;
@@ -507,6 +512,11 @@ int Request::consume(std::string buffer){
             }
         
             case StateParsingComplete:{
+                {
+                    this->state = StateParsingError;
+                    this->error = 400; //Bad Request
+                    return 1;
+                }
                 Logger::info("Parser: Parsing complete. Method: " + this->method + ", URL: " + this->url);
                 return 0;
             }
@@ -568,9 +578,15 @@ void Request::reset(void) {
     this->headers_key.clear();
 }
 
+int Request::getBodyCounter() { return this->body_counter;}
+
+void Request::setBodyCounter(int bodyCounter) { this->body_counter = bodyCounter;}
+
 int Request::getState() {return this->state;};
 
 std::string &Request::getUrl()  {return this->url;}
+
+int Request::getError() {return this->error;};
 
 std::string &Request::getMethod()  {return this->method;}
 
@@ -581,6 +597,8 @@ std::string &Request::getBody() {return this->body;};
 std::map<std::string, std::string> &Request::getHeaders()   {return this->headers;}
 
 bool &Request::hasBody()    {return this->has_body;}
+
+void Request::setError(int error) {this->error = error;};
 
 void Request::setState(int state) {this->state = state;};
 

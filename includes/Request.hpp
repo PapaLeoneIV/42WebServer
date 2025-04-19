@@ -24,16 +24,19 @@ public:
     int getState();
     std::string &getUrl();
     std::string &getVersion();
+    int getError();
     std::map<std::string, std::string>  &getHeaders();
+    int getBodyCounter();
 
     //SETTERS
+    void  setError(int error);
     void  setUrl(std::string& url);
     void  setVersion(std::string& version);
     void  setHeaders(std::map<std::string, std::string>& headers);
     void  setBody(std::string& body);
     void  setHasBody(bool hasBody);
     void  setState(int state);
-    
+    void setBodyCounter(int bodyCounter);
     void  flush();
     bool  &hasBody();
     void reset();

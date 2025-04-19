@@ -184,6 +184,16 @@ std::string getMessageFromStatusCode(int status)
         return "OK";
     case 204:
         return "No Content";
+    case 301:
+        return "Moved Permanently";
+    case 302:
+        return "Found";
+    case 303:
+        return "See Other";
+    case 304:
+        return "Not Modified";
+    case 307:
+        return "Temporary Redirect";
     case 400:
         return "Bad Request";
     case 403:
@@ -229,15 +239,15 @@ std::string getErrorPage(int status, Server *server) {
     }
     std::string errorPath;
     switch (status) {
-        case 400: errorPath = "./static/errorPage/400.html"; break;
-        case 403: errorPath = "./static/errorPage/403.html"; break;
-        case 404: errorPath = "./static/errorPage/404.html"; break;
-        case 405: errorPath = "./static/errorPage/405.html"; break;
-        case 411: errorPath = "./static/errorPage/411.html"; break;
-        case 414: errorPath = "./static/errorPage/414.html"; break;
-        case 500: errorPath = "./static/errorPage/500.html"; break;
-        case 501: errorPath = "./static/errorPage/501.html"; break;
-        case 505: errorPath = "./static/errorPage/505.html"; break;
+        case 400: errorPath = "./static/default-error-page/400.html"; break;
+        case 403: errorPath = "./static/default-error-page/403.html"; break;
+        case 404: errorPath = "./static/default-error-page/404.html"; break;
+        case 405: errorPath = "./static/default-error-page/405.html"; break;
+        case 411: errorPath = "./static/default-error-page/411.html"; break;
+        case 414: errorPath = "./static/default-error-page/414.html"; break;
+        case 500: errorPath = "./static/default-error-page/500.html"; break;
+        case 501: errorPath = "./static/default-error-page/501.html"; break;
+        case 505: errorPath = "./static/default-error-page/505.html"; break;
         default: 
             Logger::error("Utils", "No default error page for status: " + intToStr(status));
             return "<html><body><h1>Errore " + intToStr(status) + "</h1><p>" + getMessageFromStatusCode(status) + "</p></body></html>";

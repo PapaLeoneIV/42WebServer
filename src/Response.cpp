@@ -28,7 +28,7 @@ void Response::prepareResponse(){
     }
     this->_finalResponse.append("\r\n");
     
-
+    
     this->_finalResponse.append(this->_body);
 }
 

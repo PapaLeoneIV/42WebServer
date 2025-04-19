@@ -8,7 +8,7 @@
 class Treenode{
 public:
   Treenode(std::string directive, std::vector<std::string> value);
-
+  ~Treenode();
   void add(Treenode *node);
   std::string &getDirective();
   std::vector<std::string> &getValue();

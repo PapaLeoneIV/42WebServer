@@ -52,7 +52,7 @@ std::string  Parser::getMatchingLocation(std::string url, Server *server){
     }
     if(url.find_last_of("?") != std::string::npos)
         url = url.substr(0, url.find_last_of("?"));
-    if(url.find_last_of("/") != std::string::npos)
+    if(url.find_last_of("/") != std::string::npos )
         url = url.substr(0, url.find_last_of("/"));
 
     return findBestApproximationString(url, dictionary);
@@ -123,7 +123,7 @@ void Parser::validateResource(Client *client, Server *server)
             response->setBody(getErrorPage(response->getStatus(), client->getServer()));
             request->setState(StateParsingError);
             return;    
-        }
+    }
 
     std::string bestMatchingLocation = this->getMatchingLocation(client->getRequest()->getUrl(), client->getServer());
     if(bestMatchingLocation.empty()){
@@ -162,6 +162,14 @@ void Parser::validateResource(Client *client, Server *server)
         return;
     }
 
+    //check for redirection
+    if(locationConfig.find("return") != locationConfig.end()){
+        response->setStatusCode(strToInt(locationConfig["return"][0]));
+        if(locationConfig["return"].size() > 1) //if a path is present
+            response->setHeaders("Location", locationConfig["return"][1]);
+        return;
+    }
+
     bool foundMethod = false;
     //controllare che il METHOD richiesto sia permesso nel location config
     for(size_t i = 0; i < locationConfig["allow_methods"].size(); i++){
@@ -170,7 +178,7 @@ void Parser::validateResource(Client *client, Server *server)
         }
     }
     if(!foundMethod){
-        response->setStatusCode(400);
+        response->setStatusCode(405);
         response->setBody(getErrorPage(response->getStatus(), client->getServer()));
         request->setState(StateParsingError);
         return;
@@ -186,13 +194,32 @@ void Parser::validateResource(Client *client, Server *server)
     std::string urlPath = request->getUrl().substr(0, request->getUrl().find_last_of("/"));
     std::string urlFile = request->getUrl().substr(request->getUrl().find_last_of("/") + 1, request->getUrl().size());
 
+    //alias substitution
     if(locationConfig.find("alias") != locationConfig.end()){
         urlPath = locationConfig["alias"][0]; 
     }
 
-
     //if 'root' is present i need to attach root to location path
-    std::string filePath =  rootPath + urlPath + urlFile; 
+    std::string filePath =  rootPath + urlPath + urlFile;
+    Logger::info("File path: " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
+
+    //check if the user is requesting a directory 
+    std::string indexFile = locationConfig.find("index") != locationConfig.end() ? locationConfig["index"][0] : server->getServerDir()["index"][0];
+    bool isAutoIndexOn = locationConfig.find("autoindex") != locationConfig.end() ? locationConfig["autoindex"][0] == "on" : false; 
+    //attach index file to the path if the user is requesting a directory
+    //and autoindex is off
+    if (filePath[filePath.size() - 1] == '/' && !isAutoIndexOn) {
+        filePath += indexFile;
+    }
+
+
+
+
+
+
+
+
+
 
     if (request->getMethod() == "DELETE") {
         Logger::info("DELETE request for: " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
@@ -227,14 +254,12 @@ void Parser::validateResource(Client *client, Server *server)
         return;
     }
     
-    if(S_ISDIR(fileType)){
-        if(*(filePath.rbegin()) != '/'){
+    if(S_ISDIR(fileType) && isAutoIndexOn){
+        if(filePath[filePath.size() - 1] != '/'){
             std::string newUrl = request->getUrl() + "/";
             request->setUrl(newUrl);
             filePath += "/";
         }
-        // TODO:  implement the directory listing feature based on the config file
-        // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/5
         std::string dirBody = fromDIRtoHTML(filePath, request->getUrl());
         
         if(dirBody.empty()){
@@ -245,6 +270,7 @@ void Parser::validateResource(Client *client, Server *server)
         return;
     } else {
         //read the content of the requested resource
+        Logger::info("Reading file: " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
         fileContent = this->readFile(filePath, response);
     }
    
@@ -257,9 +283,9 @@ void Parser::validateResource(Client *client, Server *server)
     response->setBody(fileContent);
 
     return ;
+    }
+
+Parser::Parser() {
 }
-
-
-Parser::Parser() {}
 
 Parser::~Parser(){}

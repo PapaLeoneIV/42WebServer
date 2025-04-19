@@ -1,15 +1,21 @@
-#include "ServerManager.hpp"
-#include "ConfigParser.hpp"
-#include "Exception.hpp"
-#include "Booter.hpp"
-#include "Logger.hpp"
+#include "./includes/ServerManager.hpp"
+#include "./includes/ConfigParser.hpp"
+#include "./includes/Exception.hpp"
+#include "./includes/Booter.hpp"
+#include "./includes/Logger.hpp"
 
+
+//TODO: - The first server for a host:port will be the default for this host:port (meaning it will respond to all requests that do not belong to another server).
+//TODO: - upload some file to the server and get it back
+//TODO: - be able to have server on the same port and url
+//TODO: - Set up the server_names or not.
+//TODO: - setup multiple servers with different hostname (use something like: curl --resolve example.com:80:127.0.0.1http://example.com/)
+//TODO: - handle cgi fd from fork into select
 int main(int argc, char **argv)
 {
     if (handle_arguments(argc, argv))
         return (1);
 
-    Logger::info("webserver: starting...");
     ServerManager serverManager;
     ConfigParser configParser;
  
@@ -32,7 +38,6 @@ int main(int argc, char **argv)
         serverManager.addServer(server);
     }
     Logger::info("Server/s started successfully");
-
     serverManager.eventLoop();
 
     return 0;
