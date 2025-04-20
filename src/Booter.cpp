@@ -24,7 +24,7 @@ void Booter::bootServer(Server *server, std::string host, std::string port){
     }
 
     server->setServerSocket(socket_fd); 
-    
+
     if (setsockopt(server->getServerSocket(), SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0){
         Logger::error(__FILE__, ErrToStr(ERR_SOCKET_NBLOCK));
         exit(ERR_SOCKET_NBLOCK);

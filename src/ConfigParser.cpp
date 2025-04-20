@@ -30,58 +30,73 @@
         return NULL;                                             \
     }
 
-int ConfigParser::checkPortDuplicate(std::vector<Server *> servers){
-    std::map<std::string, std::vector<Server *> > portMap;
-    for (std::vector<Server *>::iterator it = servers.begin(); it != servers.end(); ++it){
-        std::string port = (*it)->getServerDir()["listen"][0];
-        if (portMap.find(port) == portMap.end()){
-            portMap[port] = std::vector<Server *>();
-        }
-        portMap[port].push_back(*it);
-    }
-    for (std::map<std::string, std::vector<Server *> >::iterator it = portMap.begin(); it != portMap.end(); ++it){
-        if (it->second.size() > 1){
-            Logger::error(this->getFileName(), "Port " + it->first + " is already in use");
-            return 1;
-        }
-    }
-    return 0;
-}
+// int ConfigParser::checkPortDuplicate(std::vector<Server *> servers){
+//     std::map<std::string, std::vector<Server *> > portMap;
+//     for (std::vector<Server *>::iterator it = servers.begin(); it != servers.end(); ++it){
+//         std::string port = (*it)->getServerDir()["listen"][0];
+//         if (portMap.find(port) == portMap.end()){
+//             portMap[port] = std::vector<Server *>();
+//         }
+//         portMap[port].push_back(*it);
+//     }
+//     for (std::map<std::string, std::vector<Server *> >::iterator it = portMap.begin(); it != portMap.end(); ++it){
+//         if (it->second.size() > 1){
+//             Logger::error(this->getFileName(), "Port " + it->first + " is already in use");
+//             return 1;
+//         }
+//     }
+//     return 0;
+// }
+//
+// int ConfigParser::checkHostsDuplicate(std::vector<Server *> servers){
+//     std::map<std::string, std::vector<Server *> > hostMap;
+//     for (std::vector<Server *>::iterator it = servers.begin(); it != servers.end(); ++it){
+//         std::string host = (*it)->getServerDir()["host"][0];
+//         if (hostMap.find(host) == hostMap.end()){
+//             hostMap[host] = std::vector<Server *>();
+//         }
+//         hostMap[host].push_back(*it);
+//     }
+//     for (std::map<std::string, std::vector<Server *> >::iterator it = hostMap.begin(); it != hostMap.end(); ++it){
+//         if (it->second.size() > 1){
+//             Logger::error(this->getFileName(), "Host " + it->first + " is already in use");
+//             return 1;
+//         }
+//     }
+//     return 0;
+// }
 
-int ConfigParser::checkHostsDuplicate(std::vector<Server *> servers){
-    std::map<std::string, std::vector<Server *> > hostMap;
-    for (std::vector<Server *>::iterator it = servers.begin(); it != servers.end(); ++it){
-        std::string host = (*it)->getServerDir()["host"][0];
-        if (hostMap.find(host) == hostMap.end()){
-            hostMap[host] = std::vector<Server *>();
-        }
-        hostMap[host].push_back(*it);
-    }
-    for (std::map<std::string, std::vector<Server *> >::iterator it = hostMap.begin(); it != hostMap.end(); ++it){
-        if (it->second.size() > 1){
-            Logger::error(this->getFileName(), "Host " + it->first + " is already in use");
-            return 1;
-        }
-    }
-    return 0;
-}
-
-int ConfigParser::setEtcHostFile(std::vector<>Server *> servers){
+int ConfigParser::setEtcHostFile(std::vector<Server *> servers){
     std::ifstream file("/etc/hosts");
     if (!file.is_open()){
         Logger::error(this->getFileName(), "Could not open /etc/hosts file");
         return 1;
     }
-    std::string line;
-    while (std::getline(file, line)){
-        for (std::vector<Server *>::iterator it = servers.begin(); it != servers.end(); ++it){
-            std::string host = (*it)->getServerDir()["host"][0];
-            if (line.find(host) != std::string::npos){
-                Logger::error(this->getFileName(), "Host " + host + " is already in use in /etc/hosts");
-                return 1;
-            }
-        }
-    }
+    (void)servers;
+
+
+    // for(size_t i = 0; i < servers.size(); i++){
+        
+    //     if(servers[i]->getServerDir().find("server_name") != servers[i]->getServerDir().end()
+    //     && servers[i]->getServerDir().find("host")        != servers[i]->getServerDir().end() 
+    //     && servers[i]->getServerDir().find("listen")      != servers[i]->getServerDir().end())
+    //     {
+    //         std::string serverName = servers[i]->getServerDir()["server_name"][0]; 
+    //         std::string hostPort = servers[i]->getServerDir()["host"][0] + ":" +servers[i]->getServerDir()["listen"][0];   
+            
+    //     }
+    // }
+
+    // std::string line;
+    // while (std::getline(file, line)){
+    //     for (std::vector<Server *>::iterator it = servers.begin(); it != servers.end(); ++it){
+    //         std::string host = (*it)->getServerDir()["host"][0];
+    //         if (line.find(host) != std::string::npos){
+    //             Logger::error(this->getFileName(), "Host " + host + " is already in use in /etc/hosts");
+    //             return 1;
+    //         }
+    //     }
+    // }
     return 0;
 }
 
@@ -122,20 +137,20 @@ int ConfigParser::fromConfigFileToServers(char *file)
                 servers.push_back(server); 
             }
         }
-        if(checkPortDuplicate(servers) || checkHostsDuplicate(servers)){
-            for (std::vector<Server *>::iterator it = servers.begin(); it != servers.end(); ++it){
-                delete *it;
-            }
-            servers.clear();
-            return 1;
-        }
-        if(setEtcHostsFile(servers)){
-            for (std::vector<Server *>::iterator it = servers.begin(); it != servers.end(); ++it){
-                delete *it;
-            }
-            servers.clear();
-            return 1;
-        }
+        // if(checkPortDuplicate(servers) || checkHostsDuplicate(servers)){
+        //     for (std::vector<Server *>::iterator it = servers.begin(); it != servers.end(); ++it){
+        //         delete *it;
+        //     }
+        //     servers.clear();
+        //     return 1;
+        // }
+        // if(setEtcHostFile(servers)){
+        //     for (std::vector<Server *>::iterator it = servers.begin(); it != servers.end(); ++it){
+        //         delete *it;
+        //     }
+        //     servers.clear();
+        //     return 1;
+        // }
         this->setTmpServer(servers);
         return 0;
     }
