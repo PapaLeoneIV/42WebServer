@@ -5,8 +5,6 @@
 
 //TODO: - upload some file to the server and get it back
 //Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/44
-//TODO: - Set up the server_names or not.
-//Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/42
 //TODO: - setup multiple servers with different hostname (use something like: curl --resolve example.com:80:127.0.0.1http://example.com/)
 //Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/41
 //TODO: - handle cgi fd from fork into select
@@ -25,15 +23,29 @@ int main(int argc, char **argv)
     }
     Logger::info("Configuration file loaded successfully");
     Logger::info("Starting servers...");
+    std::vector<std::string> hostPortKeys;
+    std::vector<Server *> servers;
     for(size_t i = 0; i < configParser.getTmpServer().size(); i++){
-        Server *server = configParser.getTmpServer()[i];
+    
 
+        Server *server = configParser.getTmpServer()[i];
         std::string host = server->getServerDir()["host"][0];
         std::string port = server->getServerDir()["listen"][0];
         std::string msg = "Server started on " + host + ":" + port;
+        server->setHostPortKey(host + ":" + port);
         Logger::info(msg);
+        bool shouldBoot = true;
+        for(size_t i = 0; i < hostPortKeys.size(); i++){
+            if(server->getHostPortKey() == hostPortKeys[i]){
+                server->setServerSocket(servers[i]->getServerSocket());
+                shouldBoot = false;
+            }
+        }
         
-        Booter::bootServer(server, host, port);
+        hostPortKeys.push_back(server->getHostPortKey());
+        servers.push_back(server);
+        if(shouldBoot)
+            Booter::bootServer(server, host, port);
         serverManager.addServer(server);
     }
     Logger::info("Server/s started successfully");

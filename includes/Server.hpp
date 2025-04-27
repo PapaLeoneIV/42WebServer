@@ -37,6 +37,7 @@ class Server{
     std::string &getPort();
     std::string &getRoot();
     std::string &getIndex();
+    std::string &getHostPortKey();
     size_t      &getMaxRequestSize();
     std::map<std::string, std::vector<std::string> > &getServerDir();
     std::map<std::string, std::map<std::string, std::vector<std::string> > > &getLocationDir(); 
@@ -54,6 +55,7 @@ class Server{
     void    setPort(std::string port);
     void    setRoot(std::string root);
     void    setIndex(std::string index);
+    void    setHostPortKey(std::string hostPortKey);
     void    setMaxRequestSize(size_t max_request_size);
 
     void printServerDir(void);
@@ -70,10 +72,12 @@ class Server{
     std::string _root;
     std::string _index;
 
+    std::string hostPortKey;
     //Location configuration
+
     addrinfo    _hints;
-    SOCKET  _server_socket;
-    fd_set  _fds;
+    SOCKET      _server_socket;
+    fd_set      _fds;
     addrinfo    *_bind_address;
 
 };

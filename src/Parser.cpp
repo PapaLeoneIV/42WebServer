@@ -145,7 +145,8 @@ void Parser::validateResource(Client *client, Server *server)
     std::string reqHost =  request->getHeaders()["host"].substr(0, request->getHeaders()["host"].find_last_of(":"));
 
     //normalize url, i m doing the same for the configuration file in int ConfigParser::parseHostValues(directiveValueVector v)
-    if(reqHost == "localhost"){ reqHost = "127.0.0.1";}
+    if(reqHost == "localhost" && server->getServerDir()["host"][0] == "127.0.0.1"){ reqHost = "127.0.0.1";}
+    else if(reqHost == "127.0.0.1" && server->getServerDir()["host"][0] == "localhost"){ reqHost = "localhost";}
     
     if(reqHost != server->getServerDir()["host"][0]){
         response->setStatusCode(400);
@@ -170,7 +171,7 @@ void Parser::validateResource(Client *client, Server *server)
         return;
     }
 
-    bool foundMethod = false;
+    bool foundMethod = locationConfig["allow_methods"].size() ? false  : true;
     //controllare che il METHOD richiesto sia permesso nel location config
     for(size_t i = 0; i < locationConfig["allow_methods"].size(); i++){
         if(request->getMethod() == locationConfig["allow_methods"][i]){

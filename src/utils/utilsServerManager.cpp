@@ -32,8 +32,7 @@ void ServerManager::removeClient(SOCKET fd){
 }
 
 void ServerManager::addServer(Server *server){
-    SOCKET serverSocket = server->getServerSocket();
-    this->_servers_map[serverSocket] = server;
+    this->_servers_map.push_back(server);
 }
 
 void ServerManager::addToSet(SOCKET fd, fd_set *fdSet){
