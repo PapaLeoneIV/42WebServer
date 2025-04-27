@@ -74,6 +74,8 @@ enum RequestStates {
     StateSpaceAfterMethod,
     StateUrlBegin,
     StateUrlString,
+    StateUrlQuery,
+    StateEncodedSep,
     StateSpaceAfterUrl,
 
     StateVersion,
@@ -96,7 +98,6 @@ enum RequestStates {
     StateHeaders_LF,
     StateHeadersEnd_CR,
     
-    StateEncodedSep,
     
     StateBodyStart,
     StateBodyPlainText,

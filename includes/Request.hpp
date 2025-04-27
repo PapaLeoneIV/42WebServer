@@ -27,8 +27,10 @@ public:
     int getError();
     std::map<std::string, std::string>  &getHeaders();
     int getBodyCounter();
+    std::string &getQueryParam();
 
     //SETTERS
+    void setQueryParam(std::string& query_param);
     void  setError(int error);
     void  setUrl(std::string& url);
     void  setVersion(std::string& version);
@@ -47,6 +49,7 @@ public:
     std::string version;
     std::string method;
     std::map<std::string, std::string> headers;
+    std::string query_param;
     std::string raw;
     int state;
     

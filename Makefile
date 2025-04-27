@@ -18,7 +18,8 @@ SRCS = 	main.cpp \
 		src/Logger.cpp \
 		src/utils/utilsServerManager.cpp \
 		src/utils/utilsParser.cpp \
-		src/Treenode.cpp
+		src/Treenode.cpp \
+		src/Cgi.cpp 
 
 
 all: $(TARGET)

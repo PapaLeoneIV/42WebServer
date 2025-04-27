@@ -4,6 +4,8 @@
 #include "../includes/Client.hpp"
 #include "../includes/Server.hpp"
 #include "../includes/Response.hpp"
+#include "../includes/Cgi.hpp"
+
 #include "../includes/Utils.hpp"
 #include "../includes/Logger.hpp"
 #include <sys/types.h>
@@ -169,7 +171,6 @@ void Parser::handleGET(Client *client, std::string filePath, bool isAutoIndexOn)
     if(S_ISDIR(fileType) && isAutoIndexOn){
         if(filePath[filePath.size() - 1] != '/'){
             std::string newUrl = request->getUrl() + "/";
-            request->setUrl(newUrl);
             filePath += "/";
         }
         std::string dirBody = fromDIRtoHTML(filePath, request->getUrl());
@@ -317,7 +318,7 @@ void Parser::validateResource(Client *client, Server *server)
 
     //TODO: HANDLE CGI
     if(bestMatchingLocation.find("/cgi-bin") != std::string::npos){
-        return this->handleCGI(client,locationConfig, rootPath + urlPath + urlFile);
+        return this->handleCGI(client, rootPath + urlPath + urlFile);
     }
 
     //check for redirection
@@ -370,7 +371,7 @@ Parser::~Parser(){}
 
 
 
-void Parser::handleCGI(Client *client,std::map<std::string, std::vector<std::string> > locationConfig, std::string target){
+void Parser::handleCGI(Client *client, std::string target){
     
     Request *request = client->getRequest();
     Response *response = client->getResponse();
@@ -400,8 +401,7 @@ void Parser::handleCGI(Client *client,std::map<std::string, std::vector<std::str
     
     // _cgi_obj.setCgiPath(path);
     // _cgi = 1;
-   
-    _cgi_obj.initEnvCgi(request, _server.getLocationKey(location_key)); // + URI
-    _cgi_obj.execute(this->_code);
-    return (0);
+    client->getCgiObj()->setEnv(client, target); 
+    // _cgi_obj.execute(this->_code);
+    return ;
 }

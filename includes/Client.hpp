@@ -11,6 +11,7 @@
 class Server;
 class Request;
 class Response;
+class Cgi;
 
 typedef int SOCKET;
 
@@ -22,8 +23,9 @@ class Client{
     Client(SOCKET fd);
 
     ~Client();
-
+    
     //GETTERS
+    Cgi *getCgiObj();
     Response    *getResponse();
     Request *getRequest();
     sockaddr_storage    &getAddr();
@@ -38,6 +40,7 @@ class Client{
     time_t  getLastActivity();
 
     //SETTERS
+    void setCgiObj(Cgi *cgi_obj);
     void    set_Request(Request *request);
     void    set_Response(Response *response);
     void    setAddr(sockaddr_storage addr); 
@@ -55,7 +58,7 @@ class Client{
     private:
     Request *_Request;
     Response    *_Response;
-
+    Cgi *_cgi_obj;
 
     Server  *_server;
     

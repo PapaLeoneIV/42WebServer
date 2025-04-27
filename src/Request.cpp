@@ -112,16 +112,22 @@ int Request::consume(std::string buffer){
                     continue;
                 }
                 if(character == '?'){
-                    // TODO: create state to handle and register query params                    
+                    this->setUrl(this->content);
+                    if(this->getUrl().size() > 4 * 1024){ //url cannot be longer than 4MB 
+                        this->error = 414; //URI too long
+                        this->state = StateParsingError;   
+                        return 1;
+                    }
+                    this->content.clear();
+                    this->state = StateUrlQuery;
+                    // TODO: create state to handle and register query params
                     // Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/39
-                    this->content += character;
                     continue;
                 }
 
                 //% https://datatracker.ietf.org/doc/html/rfc3986#section-2.1 HTTP/1.1
                 if(character == '%'){
                     this->state = StateEncodedSep;
-                    //switch to state "encoded percent"
                     continue;
                 }
                 
@@ -135,6 +141,18 @@ int Request::consume(std::string buffer){
                 this->error = 400;
                 this->state = StateParsingError;
                 return 1;
+            }
+            case StateUrlQuery:{
+                this->raw += character;
+                if(character == ' ')
+                {
+                    this->setQueryParam(this->content);
+                    this->content += character;
+                    this->state = StateSpaceAfterUrl;
+                    continue;
+                }
+                this->content += character;
+                continue;
             }
             case StateEncodedSep:{
                 this->raw += character;
@@ -170,8 +188,8 @@ int Request::consume(std::string buffer){
 					this->state = StateParsingError;
                     return 1;
                 }
-                this->url = this->content;
-                if(this->url.size() > 4 * 1024){ //url cannot be longer than 4MB 
+                this->setUrl(this->content);
+                if(this->getUrl().size() > 4 * 1024){ //url cannot be longer than 4MB 
                     this->error = 414; //URI too long
 					this->state = StateParsingError;
                     return 1;
@@ -611,6 +629,10 @@ void Request::setVersion(std::string& version)  {this->version = version;}
 void Request::setHeaders(std::map<std::string, std::string>& headers)   {this->headers = headers;}
 
 void Request::setBody(std::string& body)    {this->body = body;}
+
+void Request::setQueryParam(std::string& query_param) {this->query_param = query_param;};
+
+std::string &Request::getQueryParam() {return this->query_param;};
 
 void Request::flush() {
   //sempliocity for the moment

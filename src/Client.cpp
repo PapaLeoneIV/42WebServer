@@ -3,9 +3,10 @@
 #include "../includes/Request.hpp"
 #include "../includes/Response.hpp"
 #include "../includes/Utils.hpp"
+#include "../includes/Cgi.hpp"
 #include "../includes/Logger.hpp"
 
-
+Cgi *Client::getCgiObj() {return this->_cgi_obj;}
 sockaddr_storage &Client::getAddr(){return this->_address;};
 socklen_t   &Client::getAddrLen() {return this->_address_length;};
 SOCKET  &Client::getSocketFd() {return this->_socket;};
@@ -18,6 +19,7 @@ std::string Client::getHeadersData() {return this->_headersData;}
 std::string Client::getBodyData() {return this->_bodyData;}
 int Client::getContentLength() {return this->_content_length;}
 
+void Client::setCgiObj(Cgi *cgi_obj) {this->_cgi_obj = cgi_obj;}
 void    Client::setHeadersData(std::string headersData) {this->_headersData = headersData;}
 void    Client::setBodyData(std::string bodyData) {this->_bodyData = bodyData;}
 void    Client::setAddr(sockaddr_storage addr) {this->_address = addr;}
@@ -33,6 +35,7 @@ void    Client::setContentLength(int content_length) {this->_content_length = co
 Client::Client() {
     this->_Request = new Request();
     this->_Response = new Response();
+    this->_cgi_obj = new Cgi();
     this->_server = NULL;
     memset(&this->_address, 0, sizeof(this->_address));
     this->_address_length = sizeof(this->_address);
@@ -46,6 +49,7 @@ Client::Client() {
 Client::Client(SOCKET fd) {
     this->_Request = new Request();
     this->_Response = new Response();
+    this->_cgi_obj = new Cgi();
     this->_server = NULL;
     memset(&this->_address, 0, sizeof(this->_address));
     this->_address_length = sizeof(this->_address);
@@ -69,6 +73,8 @@ Client::~Client(){
     delete this->_Request;
   if(this->_Response)
     delete this->_Response;
+  if(this->_cgi_obj)
+    delete this->_cgi_obj;
 };
 
 
@@ -79,6 +85,9 @@ void Client::reset() {
     }
     if (this->_Response) {
         this->_Response->reset();
+    }
+    if (this->_cgi_obj) {
+        this->_cgi_obj->reset();
     }
     
     this->_requestData = "";
