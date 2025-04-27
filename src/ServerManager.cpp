@@ -135,6 +135,7 @@ void ServerManager::processRequest(Client *client)
     if(request->getState() == StateParsingComplete || request->getState() == StateParsingError){
         Logger::info("Request was consumed assigning server [" + intToStr(fd) + "]");    
         //TODO: handle localhost string
+        //Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/50
         this->assignServer(client);
 
         if(request->getState() == StateParsingError) {
