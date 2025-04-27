@@ -18,10 +18,12 @@ class Parser{
     public:
     void handleGET(Client *client, std::string filePath, bool isAutoIndexOn);
     void handleDELETE(Client *client, std::string filePath);
-    void    validateResource(Client *client, Server *server);
+    void handleCGI(Client *client,std::map<std::string, std::vector<std::string> > locationConfig, std::string target);
+    bool isValidCGIExtension(std::string urlFile);
+    void validateResource(Client *client, Server *server);
     std::string readFile(std::string filePath, Response *response);
-    int checkResource  (std::string filePath, Response *response, int accessMode = R_OK);
-    int deleteResource  (std::string filePath, Response *response, bool useDetailedResponse = true);
+    int checkResource(std::string filePath, Response *response, int accessMode = R_OK);
+    int deleteResource(std::string filePath, Response *response, bool useDetailedResponse = true);
     std::string extractQueryParams(const std::string &url, const std::string  &paramName, const std::string &defaultValue="", const std::vector<std::string> &validValues = std::vector<std::string>());
     bool    isQueryParamValid(const std::string &url, const std::string &paramName, bool defaultValue = false);
     std::string  findBestApproximationString(std::string url, std::vector<std::string> dictionary);

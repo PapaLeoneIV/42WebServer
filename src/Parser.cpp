@@ -6,6 +6,7 @@
 #include "../includes/Response.hpp"
 #include "../includes/Utils.hpp"
 #include "../includes/Logger.hpp"
+#include <sys/types.h>
 #define URL_MATCHING_ERROR_ALLOWANCE 3
 
 unsigned int Parser::levenshteinDistance(const std::string& s1, const std::string& s2)
@@ -200,6 +201,23 @@ void Parser::handleGET(Client *client, std::string filePath, bool isAutoIndexOn)
     return ;
 }
 
+
+bool Parser::isValidCGIExtension(std::string urlFile){
+    std::string cgiExtensions[] = {".php", ".py", ".pl", ".rb", ".sh"};
+    unsigned long isdotpresent = urlFile.find_last_of(".");
+    if(isdotpresent == std::string::npos)
+        return false;
+    std::string extension = urlFile.substr(isdotpresent, urlFile.size());
+    for(size_t i = 0; i < sizeof(cgiExtensions) / sizeof(cgiExtensions[0]); i++){
+        if(extension == cgiExtensions[i]){
+            return true;
+        }
+    }
+    Logger::error("Parser", "Invalid CGI extension: " + extension);
+    Logger::error("Parser", "Valid CGI extensions are: .php, .py, .pl, .rb, .sh");
+    return false;
+}
+
 void Parser::validateResource(Client *client, Server *server)
 {
     Request *request = client->getRequest();
@@ -255,14 +273,6 @@ void Parser::validateResource(Client *client, Server *server)
         return;
     }
 
-    //check for redirection
-    if(locationConfig.find("return") != locationConfig.end()){
-        response->setStatusCode(strToInt(locationConfig["return"][0]));
-        if(locationConfig["return"].size() > 1) //if a path is present
-            response->setHeaders("Location", locationConfig["return"][1]);
-        return;
-    }
-
     bool foundMethod = locationConfig["allow_methods"].size() ? false  : true;
     //controllare che il METHOD richiesto sia permesso nel location config
     for(size_t i = 0; i < locationConfig["allow_methods"].size(); i++){
@@ -276,17 +286,50 @@ void Parser::validateResource(Client *client, Server *server)
         request->setState(StateParsingError);
         return;
     }
-
-
     //choose between location root or server root
     bool isRootInLocationDirective = locationConfig["root"].size(); 
     std::string rootPath = isRootInLocationDirective  ? locationConfig["root"][0] : server->getServerDir()["root"][0];
 
 
     //extract path and file requested
-    std::string urlPath = request->getUrl().substr(0, request->getUrl().find_last_of("/")) + "/";
-    std::string urlFile = request->getUrl().substr(request->getUrl().find_last_of("/") + 1, request->getUrl().size());
+    /*
+    URL	                urlPath	            urlFile
+    /images/pic.jpg	    /images/	        pic.jpg
+    /index.html	        /	                index.html
+    filename.txt	    /	                filename.txt
+    /path/to/folder/	/path/to/folder/	(empty string) 
+    */
+    // std::string urlPath = request->getUrl().substr(0, request->getUrl().find_last_of("/")) + "/";
+    // std::string urlFile = request->getUrl().substr(request->getUrl().find_last_of("/") + 1, request->getUrl().size());
+    std::string url = request->getUrl();
+    size_t lastSlashPos = url.find_last_of('/');
+    
+    std::string urlPath;
+    std::string urlFile;
+    
+    if (lastSlashPos != std::string::npos) {
+        urlPath = url.substr(0, lastSlashPos + 1);
+        urlFile = url.substr(lastSlashPos + 1);
+    } else {
+        urlPath = "/";
+        urlFile = url;
+    }
 
+    //TODO: HANDLE CGI
+    if(bestMatchingLocation.find("/cgi-bin") != std::string::npos){
+        return this->handleCGI(client,locationConfig, rootPath + urlPath + urlFile);
+    }
+
+    //check for redirection
+    if(locationConfig.find("return") != locationConfig.end()){
+        response->setStatusCode(strToInt(locationConfig["return"][0]));
+        if(locationConfig["return"].size() > 1) //if a path is present
+            response->setHeaders("Location", locationConfig["return"][1]);
+        return;
+    }
+
+
+    
     //alias substitution
     if(locationConfig.find("alias") != locationConfig.end()){
         urlPath = locationConfig["alias"][0]; 
@@ -324,3 +367,41 @@ Parser::Parser() {
 }
 
 Parser::~Parser(){}
+
+
+
+void Parser::handleCGI(Client *client,std::map<std::string, std::vector<std::string> > locationConfig, std::string target){
+    
+    Request *request = client->getRequest();
+    Response *response = client->getResponse();
+    if(!request || !response)
+        return;
+
+    //devo contrallare che il file esista e sia eseguibile
+    if (access(target.c_str(), F_OK) != 0) {
+        response->setStatusCode(404);
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        request->setState(StateParsingError);
+        return;
+    }
+    if (access(target.c_str(), X_OK) != 0) {
+        response->setStatusCode(403);
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        request->setState(StateParsingError);
+        return;
+    }
+    //check if the file is a cgi
+    if(!this->isValidCGIExtension(target)){
+        response->setStatusCode(403);
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        request->setState(StateParsingError);
+        return;
+    }
+    
+    // _cgi_obj.setCgiPath(path);
+    // _cgi = 1;
+   
+    _cgi_obj.initEnvCgi(request, _server.getLocationKey(location_key)); // + URI
+    _cgi_obj.execute(this->_code);
+    return (0);
+}

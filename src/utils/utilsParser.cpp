@@ -6,24 +6,24 @@
 int Parser::checkResource(std::string filePath, Response* response, int accessMode) {
     
     struct stat sb;
-    if (access(filePath.c_str(), F_OK) == FAILURE) {
+    if (access(filePath.c_str(), F_OK) == -1) {
         response->setStatusCode(404);
-        return FAILURE;
+        return -1;
     }
 
-    if (stat(filePath.c_str(), &sb) == FAILURE) {
+    if (stat(filePath.c_str(), &sb) == -1) {
         response->setStatusCode(500);
-        return FAILURE;
+        return -1;
     }
 
     if (S_ISREG(sb.st_mode) || S_ISDIR(sb.st_mode)) {
         if (checkPermissions(filePath, accessMode) != SUCCESS) {
             response->setStatusCode(403);
-            return FAILURE;
+            return -1;
         }
     } else {
         response->setStatusCode(403);
-        return FAILURE;
+        return -1;
     }
 
     return sb.st_mode;

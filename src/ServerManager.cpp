@@ -8,7 +8,6 @@
 #include "../includes/Utils.hpp"
 #include "../includes/Logger.hpp"
 
-
 /**
  * Event loop, il programma tramite la funzione bloccante select(), monitora
  * i sockets nelle varie pool (read/write). Se uno degl fd switcha stato(I/O) select()
@@ -48,10 +47,18 @@ void ServerManager::eventLoop()
                     clientRegistred = true;
                 }
             }
+            
+
             if(FD_ISSET(fd, &this->_readPool) && this->_clients_map.count(fd) > 0){
                 this->processRequest(this->_clients_map[fd]);
             }
             if(FD_ISSET(fd, &this->_writePool) && this->_clients_map.count(fd) > 0){
+                /** if (cgi_state == 1 && FD_ISSET(_clients_map[i].response._cgi_obj.pipe_in[1], &write_set_cpy))
+                    sendCgiBody(_clients_map[i], _clients_map[i].response._cgi_obj);
+                else if (cgi_state == 1 && FD_ISSET(_clients_map[i].response._cgi_obj.pipe_out[0], &recv_set_cpy))
+                    readCgiResponse(_clients_map[i], _clients_map[i].response._cgi_obj);
+                else if ((cgi_state == 0 || cgi_state == 2)  && FD_ISSET(i, &write_set_cpy))
+                    sendResponse(i, _clients_map[i]); */
                 this->sendResponse(fd, this->_clients_map[fd]);
             }
         }            
@@ -136,10 +143,7 @@ void ServerManager::processRequest(Client *client)
 
     if(request->getState() == StateParsingComplete || request->getState() == StateParsingError){
         Logger::info("Request was consumed assigning server [" + intToStr(fd) + "]");    
-        //TODO: handle localhost string
-        //Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/50
         this->assignServer(client);
-
         if(request->getState() == StateParsingError) {
             Logger::error("ServerManager", "Error parsing request [" + intToStr(fd) + "]");
             response->setStatusCode(request->getError());

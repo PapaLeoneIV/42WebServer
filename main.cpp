@@ -9,6 +9,27 @@
 //Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/41
 //TODO: - handle cgi fd from fork into select
 //Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/40
+
+
+
+
+
+//HANDLE CGI
+//devo leggere la request del client
+//se contiene una cgi extension riconosciuta metto lo stato ad 1
+//se non contiene una cgi extension riconosciuta metto lo stato a 0
+//una volta che ho riconosciuto che la risorsa target è una cgi
+//devo forkare il processo e creare due pipe (una per mandare e una per ricevere sempre stdin and stdout)
+//execve(script, args, env)
+//script = nome del file
+//args = argv[0] = nome del file
+//env = cgi env
+//aggiungo l fd della pipe alla write pool
+//aggiungo l fd della pipe alla read pool
+//quando lfd del fork e' pronto per essere scritto gli mando la request
+//quando lfd del fork e' pronto per essere letto leggo la risposta
+//setto cgi state a 2
+
 int main(int argc, char **argv)
 {
     if (handle_arguments(argc, argv))
