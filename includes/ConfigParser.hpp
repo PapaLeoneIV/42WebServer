@@ -39,7 +39,9 @@ public:
   int extractDirectives(Server *server, Treenode *node);
   int checkForAllowdMultipleDirectives(std::string directive);
   int checkPortDuplicate(std::vector<Server *> servers);
-
+  int checkHostsDuplicate(std::vector<Server *> servers);
+  int setEtcHostFile(std::vector<Server *> servers);
+  
   int parseListenValues(directiveValueVector v);
   int parseHostValues(directiveValueVector v);
   int parseServerNameValues(directiveValueVector v);
@@ -76,6 +78,6 @@ std::string removeComments(std::ifstream &file);
 std::string trimLeftRight(const std::string &str);
 std::string removeEmptyLines(const std::string &input);
 std::string trimm(const std::string &input);
-int setUpDefaultDirectiveValues(Server *server);
+int         setUpDefaultDirectiveValues(Server *server);
 
 #endif // CONFIGPARSER

@@ -42,22 +42,34 @@ std::string Parser::findBestApproximationString(std::string url, std::vector<std
     return best_match;
 }
 
-std::string  Parser::getMatchingLocation(std::string url, Server *server){
+std::string Parser::getMatchingLocation(std::string url, Server *server) {
     std::vector<std::string> dictionary;
 
-
     std::map<std::string, std::map<std::string, std::vector<std::string> > >::iterator it = server->getLocationDir().begin();
-    for(; it != server->getLocationDir().end(); it++){
+    for (; it != server->getLocationDir().end(); ++it) {
         dictionary.push_back(it->first);
     }
-    if(url.find_last_of("?") != std::string::npos)
-        url = url.substr(0, url.find_last_of("?"));
-    if(url.find_last_of("/") != std::string::npos )
-        url = url.substr(0, url.find_last_of("/"));
+
+    size_t pos = url.find('?');
+    if (pos != std::string::npos)
+        url = url.substr(0, pos);
+
+    if (!url.empty() && url[url.size() - 1] != '/') {
+        size_t lastSlash = url.find_last_of('/');
+        if (lastSlash != std::string::npos) {
+            std::string lastPart = url.substr(lastSlash + 1);
+
+            if (lastPart.find('.') != std::string::npos) {
+                url = url.substr(0, lastSlash);
+                if (url.empty())
+                    url = "/";
+            }
+        }
+    }
 
     return findBestApproximationString(url, dictionary);
-
 }
+
 
 
 int Parser::deleteResource(std::string filePath, Response *response, bool useDetailedResponse) {
@@ -109,140 +121,39 @@ int Parser::deleteResource(std::string filePath, Response *response, bool useDet
     return SUCCESS;
 }
 
-void Parser::validateResource(Client *client, Server *server)
-{
+
+void Parser::handleDELETE(Client *client, std::string filePath) {
+    Request *request = client->getRequest();
+    Response *response = client->getResponse();
+    if(!request || !response)
+        return;
+
+    Logger::info("DELETE request for: " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
+        
+    bool useDetailedResponse = isQueryParamValid(request->getUrl(), "details", false);
+    int result = this->deleteResource(filePath, response, useDetailedResponse);
+    if (result == SUCCESS) {
+        if (response->getStatus() == 204) {
+            Logger::info("DELETE request processed successfully (204 No Content): " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
+        } else {
+            Logger::info("DELETE request processed successfully (200 OK): " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
+        }
+    } else {
+        Logger::error("Parser", "Failed to process DELETE request: " + filePath + " (Status: " + intToStr(response->getStatus()) + ") [" + intToStr(client->getSocketFd()) + "]");
+
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+    }
+    return;
+}
+
+
+void Parser::handleGET(Client *client, std::string filePath, bool isAutoIndexOn){
+
     Request *request = client->getRequest();
     Response *response = client->getResponse();
 
     if(!request || !response)
         return;
-    
-    if(server->getServerDir().find("client_max_body_size") != server->getServerDir().end() 
-        && (size_t)strToInt(server->getServerDir()["client_max_body_size"][0]) < request->getBody().size()) {
-            response->setStatusCode(404);
-            response->setBody(getErrorPage(response->getStatus(), client->getServer()));
-            request->setState(StateParsingError);
-            return;    
-    }
-
-    std::string bestMatchingLocation = this->getMatchingLocation(client->getRequest()->getUrl(), client->getServer());
-    if(bestMatchingLocation.empty()){
-        response->setStatusCode(404);
-        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
-        request->setState(StateParsingError);
-        return;
-    }
-    std::map<std::string, std::vector<std::string> > locationConfig = server->getLocationDir()[bestMatchingLocation];
-    
-    //controllare che l host sia lo stesso nel file di config
-    if(request->getHeaders().find("host") == request->getHeaders().end()){
-        response->setStatusCode(400);
-        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
-        request->setState(StateParsingError);
-        return;
-    }
-    
-    std::string reqHost =  request->getHeaders()["host"].substr(0, request->getHeaders()["host"].find_last_of(":"));
-
-    //normalize url, i m doing the same for the configuration file in int ConfigParser::parseHostValues(directiveValueVector v)
-    if(reqHost == "localhost"){ reqHost = "127.0.0.1";}
-    
-    if(reqHost != server->getServerDir()["host"][0]){
-        response->setStatusCode(400);
-        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
-        request->setState(StateParsingError);
-        return;
-    }
-    
-    std::string reqPort = request->getHeaders()["host"].substr(request->getHeaders()["host"].find_last_of(":") + 1, request->getHeaders()["host"].size());
-    if(reqPort != server->getServerDir()["listen"][0]){
-        response->setStatusCode(400);
-        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
-        request->setState(StateParsingError);
-        return;
-    }
-
-    //check for redirection
-    if(locationConfig.find("return") != locationConfig.end()){
-        response->setStatusCode(strToInt(locationConfig["return"][0]));
-        if(locationConfig["return"].size() > 1) //if a path is present
-            response->setHeaders("Location", locationConfig["return"][1]);
-        return;
-    }
-
-    bool foundMethod = false;
-    //controllare che il METHOD richiesto sia permesso nel location config
-    for(size_t i = 0; i < locationConfig["allow_methods"].size(); i++){
-        if(request->getMethod() == locationConfig["allow_methods"][i]){
-            foundMethod = true;
-        }
-    }
-    if(!foundMethod){
-        response->setStatusCode(405);
-        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
-        request->setState(StateParsingError);
-        return;
-    }
-
-
-    //choose between location root or server root
-    bool isRootInLocationDirective = locationConfig["root"].size(); 
-    std::string rootPath = isRootInLocationDirective  ? locationConfig["root"][0] : server->getServerDir()["root"][0];
-
-
-    //extract path and file requested
-    std::string urlPath = request->getUrl().substr(0, request->getUrl().find_last_of("/"));
-    std::string urlFile = request->getUrl().substr(request->getUrl().find_last_of("/") + 1, request->getUrl().size());
-
-    //alias substitution
-    if(locationConfig.find("alias") != locationConfig.end()){
-        urlPath = locationConfig["alias"][0]; 
-    }
-
-    //if 'root' is present i need to attach root to location path
-    std::string filePath =  rootPath + urlPath + urlFile;
-    Logger::info("File path: " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
-
-    //check if the user is requesting a directory 
-    std::string indexFile = locationConfig.find("index") != locationConfig.end() ? locationConfig["index"][0] : server->getServerDir()["index"][0];
-    bool isAutoIndexOn = locationConfig.find("autoindex") != locationConfig.end() ? locationConfig["autoindex"][0] == "on" : false; 
-    //attach index file to the path if the user is requesting a directory
-    //and autoindex is off
-    if (filePath[filePath.size() - 1] == '/' && !isAutoIndexOn) {
-        filePath += indexFile;
-    }
-
-
-
-
-
-
-
-
-
-
-    if (request->getMethod() == "DELETE") {
-        Logger::info("DELETE request for: " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
-        
-        bool useDetailedResponse = isQueryParamValid(request->getUrl(), "details", false);
-        int result = this->deleteResource(filePath, response, useDetailedResponse);
-        if (result == SUCCESS) {
-            if (response->getStatus() == 204) {
-                Logger::info("DELETE request processed successfully (204 No Content): " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
-            } else {
-                Logger::info("DELETE request processed successfully (200 OK): " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
-            }
-        } else {
-            Logger::error("Parser", "Failed to process DELETE request: " + filePath + " (Status: " + intToStr(response->getStatus()) + ") [" + intToStr(client->getSocketFd()) + "]");
-
-            response->setBody(getErrorPage(response->getStatus(), client->getServer()));
-        }
-        return;
-    }
-
-    
-
-
 
     int fileType;
     std::string fileContent;
@@ -268,6 +179,10 @@ void Parser::validateResource(Client *client, Server *server)
         }
         response->setBody(dirBody);
         return;
+    } else if(S_ISDIR(fileType) && !isAutoIndexOn){
+        response->setStatusCode(403);
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        return;        
     } else {
         //read the content of the requested resource
         Logger::info("Reading file: " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
@@ -283,7 +198,130 @@ void Parser::validateResource(Client *client, Server *server)
     response->setBody(fileContent);
 
     return ;
+}
+
+void Parser::validateResource(Client *client, Server *server)
+{
+    Request *request = client->getRequest();
+    Response *response = client->getResponse();
+
+    if(!request || !response)
+        return;
+    
+    if(server->getServerDir().find("client_max_body_size") != server->getServerDir().end() 
+        && (size_t)strToInt(server->getServerDir()["client_max_body_size"][0]) < request->getBody().size()) {
+            response->setStatusCode(404);
+            response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+            request->setState(StateParsingError);
+            return;    
     }
+    Logger::info("Validating resource [" + intToStr(client->getSocketFd()) + "]");
+    Logger::info("Request URL: " + request->getUrl() + " [" + intToStr(client->getSocketFd()) + "]");
+    std::string bestMatchingLocation = this->getMatchingLocation(client->getRequest()->getUrl(), client->getServer());
+    if(bestMatchingLocation.empty()){
+        response->setStatusCode(404);
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        request->setState(StateParsingError);
+        return;
+    }
+    std::map<std::string, std::vector<std::string> > locationConfig = server->getLocationDir()[bestMatchingLocation];
+    Logger::info("Best matching location: " + bestMatchingLocation + " [" + intToStr(client->getSocketFd()) + "]");
+    //controllare che l host sia lo stesso nel file di config
+    if(request->getHeaders().find("host") == request->getHeaders().end()){
+        response->setStatusCode(400);
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        request->setState(StateParsingError);
+        return;
+    }
+    
+    std::string reqHost =  request->getHeaders()["host"].substr(0, request->getHeaders()["host"].find_last_of(":"));
+
+    //normalize url, i m doing the same for the configuration file in int ConfigParser::parseHostValues(directiveValueVector v)
+    if(reqHost == "localhost" && server->getServerDir()["host"][0] == "127.0.0.1"){ reqHost = "127.0.0.1";}
+    else if(reqHost == "127.0.0.1" && server->getServerDir()["host"][0] == "localhost"){ reqHost = "localhost";}
+    
+    if(reqHost != server->getServerDir()["host"][0]){
+        response->setStatusCode(400);
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        request->setState(StateParsingError);
+        return;
+    }
+    
+    std::string reqPort = request->getHeaders()["host"].substr(request->getHeaders()["host"].find_last_of(":") + 1, request->getHeaders()["host"].size());
+    if(reqPort != server->getServerDir()["listen"][0]){
+        response->setStatusCode(400);
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        request->setState(StateParsingError);
+        return;
+    }
+
+    //check for redirection
+    if(locationConfig.find("return") != locationConfig.end()){
+        response->setStatusCode(strToInt(locationConfig["return"][0]));
+        if(locationConfig["return"].size() > 1) //if a path is present
+            response->setHeaders("Location", locationConfig["return"][1]);
+        return;
+    }
+
+    bool foundMethod = locationConfig["allow_methods"].size() ? false  : true;
+    //controllare che il METHOD richiesto sia permesso nel location config
+    for(size_t i = 0; i < locationConfig["allow_methods"].size(); i++){
+        if(request->getMethod() == locationConfig["allow_methods"][i]){
+            foundMethod = true;
+        }
+    }
+    if(!foundMethod){
+        response->setStatusCode(405);
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        request->setState(StateParsingError);
+        return;
+    }
+
+
+    //choose between location root or server root
+    bool isRootInLocationDirective = locationConfig["root"].size(); 
+    std::string rootPath = isRootInLocationDirective  ? locationConfig["root"][0] : server->getServerDir()["root"][0];
+
+
+    //extract path and file requested
+    std::string urlPath = request->getUrl().substr(0, request->getUrl().find_last_of("/")) + "/";
+    std::string urlFile = request->getUrl().substr(request->getUrl().find_last_of("/") + 1, request->getUrl().size());
+
+    //alias substitution
+    if(locationConfig.find("alias") != locationConfig.end()){
+        urlPath = locationConfig["alias"][0]; 
+    }
+
+    //if 'root' is present i need to attach root to location path
+    std::string filePath =  rootPath + urlPath + urlFile;
+    Logger::info("File path: " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
+
+    //check if the user is requesting a directory 
+    std::string indexFile = locationConfig.find("index") != locationConfig.end() ? locationConfig["index"][0] : server->getServerDir()["index"][0];
+    bool isAutoIndexOn = locationConfig.find("autoindex") != locationConfig.end() ? locationConfig["autoindex"][0] == "on" : false; 
+    //attach index file to the path if the user is requesting a directory
+    //and autoindex is off
+    if (filePath[filePath.size() - 1] == '/' && !isAutoIndexOn) {
+        filePath += indexFile;
+    }
+
+
+    if (request->getMethod() == "GET") {
+        this->handleGET(client, filePath, isAutoIndexOn);
+    } else if (request->getMethod() == "POST") {
+        // this->handlePOST(client, filePath);
+    } else if (request->getMethod() == "DELETE") {
+        this->handleDELETE(client, filePath);
+    } else {
+        response->setStatusCode(501);
+        response->setBody(getErrorPage(501, server));
+        request->setState(StateParsingError);
+        return;
+    }
+
+
+    
+}
 
 Parser::Parser() {
 }

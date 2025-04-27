@@ -16,7 +16,8 @@ class Request;
 
 class Parser{
     public:
-    
+    void handleGET(Client *client, std::string filePath, bool isAutoIndexOn);
+    void handleDELETE(Client *client, std::string filePath);
     void    validateResource(Client *client, Server *server);
     std::string readFile(std::string filePath, Response *response);
     int checkResource  (std::string filePath, Response *response, int accessMode = R_OK);

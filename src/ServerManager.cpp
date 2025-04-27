@@ -39,9 +39,12 @@ void ServerManager::eventLoop()
         if(fds_changed == 0) continue;
 
         for (SOCKET fd = 0; fd <= this->_maxSocket + 1; ++fd){
-
-            if(FD_ISSET(fd, &this->_readPool) && this->_servers_map.count(fd) > 0){
-                this->registerNewConnections(fd, this->_servers_map[fd]);
+            bool clientRegistred = false;
+            for(size_t i = 0; i < this->_servers_map.size(); i++){
+                if(FD_ISSET(fd, &this->_readPool) && this->_servers_map[i]->getServerSocket() == fd && !clientRegistred){
+                    this->registerNewConnections(fd, this->_servers_map[i]);
+                    clientRegistred = true;
+                }
             }
             if(FD_ISSET(fd, &this->_readPool) && this->_clients_map.count(fd) > 0){
                 this->processRequest(this->_clients_map[fd]);
@@ -49,9 +52,10 @@ void ServerManager::eventLoop()
             if(FD_ISSET(fd, &this->_writePool) && this->_clients_map.count(fd) > 0){
                 this->sendResponse(fd, this->_clients_map[fd]);
             }
-        }
+        }            
     }
 }
+
 
 
 void ServerManager::registerNewConnections(SOCKET serverFd, Server *server)
@@ -127,12 +131,18 @@ void ServerManager::processRequest(Client *client)
         request->setState(StateParsingError);
         return;
     }
-    
+
     if(request->getState() == StateParsingComplete || request->getState() == StateParsingError){
+        Logger::info("Request was consumed assigning server [" + intToStr(fd) + "]");    
+        //TODO: handle localhost string
+        this->assignServer(client);
+
         if(request->getState() == StateParsingError) {
+            Logger::error("ServerManager", "Error parsing request [" + intToStr(fd) + "]");
             response->setStatusCode(request->getError());
             response->setBody(getErrorPage(response->getStatus(), client->getServer()));
         } else {
+            Logger::info("Request parsing complete, validating resource [" + intToStr(fd) + "]");
             Parser parser;
             parser.validateResource(client, client->getServer());
         }
@@ -141,6 +151,36 @@ void ServerManager::processRequest(Client *client)
     }
 }
 
+void ServerManager::assignServer(Client *client){
+    
+    Request *request = client->getRequest();
+    
+    if(request->getHeaders().find("host") != request->getHeaders().end()){
+        
+        std::string reqPort = request->getHeaders()["host"].find_last_of(":") != std::string::npos 
+        ? 
+        request->getHeaders()["host"].substr(request->getHeaders()["host"].find_last_of(":") + 1, request->getHeaders()["host"].size()) 
+        : 
+        "80";
+
+        std::string reqHost = request->getHeaders()["host"].find_last_of(":") != std::string::npos 
+        ? 
+        request->getHeaders()["host"].substr(0, request->getHeaders()["host"].find_last_of(":"))
+        :
+        request->getHeaders()["host"];
+
+        std::string reqHostPort = reqHost + ":" + reqPort;
+        for(size_t i = 0; i < this->_servers_map.size(); i++){
+            std::map<std::string, std::vector<std::string> > serverDir = this->_servers_map[i]->getServerDir();
+            if(serverDir.find("server_name") != serverDir.end()
+                && serverDir["server_name"][0] == request->getHeaders()["host"]
+                && this->_servers_map[i]->getHostPortKey() ==  reqHostPort ){
+                client->setServer(this->_servers_map[i]);
+                break;
+            }
+        }
+    }
+}
 
 void ServerManager::sendResponse(SOCKET fd, Client *client)
 {
@@ -193,7 +233,9 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
         this->closeClientConnection(fd, client);
     } else {
         client->reset();
-        this->resetPoolForNextRequest(fd);
+        this->closeClientConnection(fd, client);
+        
+        // this->resetPoolForNextRequest(fd);
         
         // this->debugPools("Dopo sendResponse (keep-alive)", fd);
         
@@ -207,8 +249,8 @@ void ServerManager::sendResponse(SOCKET fd, Client *client)
 void ServerManager::initFdSets()
 {
     // aggiungo i socket dei server alla read pool
-    for (std::map<SOCKET, Server*>::iterator server_it = this->_servers_map.begin(); server_it != this->_servers_map.end(); ++server_it){
-        SOCKET serverSocket = server_it->first;
+    for (size_t i = 0; i < this->_servers_map.size(); i++){
+        SOCKET serverSocket = this->_servers_map[i]->getServerSocket();
 
         this->addToSet(serverSocket, &this->_masterPool);
         this->addToSet(serverSocket, &this->_readPool);
@@ -237,12 +279,11 @@ void ServerManager::initFdSets()
         this->_maxSocket = std::max(this->_maxSocket, clientSocket);
     }
 }
-std::map<SOCKET, Server*>	ServerManager::getServerMap(void){return this->_servers_map;}
+std::vector<Server*>	ServerManager::getServerMap(void){return this->_servers_map;}
 
 ServerManager::ServerManager()
 {
     this->_maxSocket = 0;
-    
     FD_ZERO(&this->_readPool);
     FD_ZERO(&this->_writePool);
     FD_ZERO(&this->_masterPool);
@@ -256,8 +297,8 @@ ServerManager::~ServerManager(){
     for (std::map<SOCKET, Client*>::iterator it = this->_clients_map.begin(); it != this->_clients_map.end(); ++it){
         delete it->second;
     }
-    for (std::map<SOCKET, Server*>::iterator it = this->_servers_map.begin(); it != this->_servers_map.end(); ++it){
-        delete it->second;
+    for (size_t i  = 0; i < this->_servers_map.size(); ++i){
+        delete this->_servers_map[i];
     }
 }
 

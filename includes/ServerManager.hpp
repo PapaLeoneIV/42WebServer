@@ -22,6 +22,7 @@ class ServerManager{
 	void	sendResponse(SOCKET fd, Client *client);
 	
 	void	initFdSets();
+	void 	assignServer(Client *client);
 	void	sendErrorResponse(Response *response, SOCKET fd, Client *client);
 	void	closeClientConnection(SOCKET fd, Client* client);
 	const std::string getClientIP(Client *client);
@@ -33,7 +34,7 @@ class ServerManager{
 	void	resetPoolForNextRequest(SOCKET fd);
 	void	debugPools(const std::string& label, SOCKET fd);
 	
-	std::map<SOCKET, Server*>	getServerMap();
+	std::vector<Server*>	getServerMap();
 	Client	*getClient(SOCKET clientFd);
 	
 	private:
@@ -47,7 +48,7 @@ class ServerManager{
 	int		_maxSocket;
 
 	std::map<SOCKET, Client*>	_clients_map;
-	std::map<SOCKET, Server*>	_servers_map;
+	std::vector<Server *>	_servers_map;
 };
 
 

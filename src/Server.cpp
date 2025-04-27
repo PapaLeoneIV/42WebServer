@@ -2,6 +2,7 @@
 #include "../includes/Utils.hpp"
 
 //GETTERS
+std::string &Server::getHostPortKey() {return this->hostPortKey;};
 SOCKET      Server::getServerSocket()	{return this->_server_socket;}
 fd_set      Server::getFdsSet()	{return this->_fds;}
 addrinfo    &Server::getHints()	{return this->_hints;}
@@ -16,6 +17,7 @@ std::map<std::string, std::map<std::string, std::vector<std::string> > > &Server
 
 
 //SETTERS
+void    Server::setHostPortKey(std::string hostPortKey){this->hostPortKey = hostPortKey;};
 void    Server::setServerSocket(SOCKET server_socket)   {this->_server_socket = server_socket;};
 void    Server::setFds(fd_set fds)	{this->_fds = fds;};
 void    Server::setHints(addrinfo hints) {this->_hints = hints;};
