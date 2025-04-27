@@ -318,9 +318,6 @@ void Parser::validateResource(Client *client, Server *server)
         request->setState(StateParsingError);
         return;
     }
-
-
-    
 }
 
 Parser::Parser() {

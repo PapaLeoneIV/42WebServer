@@ -34,8 +34,10 @@ void ServerManager::eventLoop()
         time_t currentTime = time(NULL);
         this->handleClientTimeout(currentTime);
 
-        if ((fds_changed = select(this->_maxSocket + 1, &this->_readPool, &this->_writePool, 0, &timeout)) < 0)
-            throw std::runtime_error(ErrToStr(ERR_SELECT));
+        if ((fds_changed = select(this->_maxSocket + 1, &this->_readPool, &this->_writePool, 0, &timeout)) < 0){
+            Logger::error("ServerManager", "Error in select(): " + std::string(ErrToStr(ERR_SELECT)));
+            continue;
+        }
         if(fds_changed == 0) continue;
 
         for (SOCKET fd = 0; fd <= this->_maxSocket + 1; ++fd){
