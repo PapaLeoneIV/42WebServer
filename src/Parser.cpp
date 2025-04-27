@@ -42,22 +42,34 @@ std::string Parser::findBestApproximationString(std::string url, std::vector<std
     return best_match;
 }
 
-std::string  Parser::getMatchingLocation(std::string url, Server *server){
+std::string Parser::getMatchingLocation(std::string url, Server *server) {
     std::vector<std::string> dictionary;
 
-
     std::map<std::string, std::map<std::string, std::vector<std::string> > >::iterator it = server->getLocationDir().begin();
-    for(; it != server->getLocationDir().end(); it++){
+    for (; it != server->getLocationDir().end(); ++it) {
         dictionary.push_back(it->first);
     }
-    if(url.find_last_of("?") != std::string::npos)
-        url = url.substr(0, url.find_last_of("?"));
-    if(url.find_last_of("/") != std::string::npos )
-        url = url.substr(0, url.find_last_of("/"));
+
+    size_t pos = url.find('?');
+    if (pos != std::string::npos)
+        url = url.substr(0, pos);
+
+    if (!url.empty() && url[url.size() - 1] != '/') {
+        size_t lastSlash = url.find_last_of('/');
+        if (lastSlash != std::string::npos) {
+            std::string lastPart = url.substr(lastSlash + 1);
+
+            if (lastPart.find('.') != std::string::npos) {
+                url = url.substr(0, lastSlash);
+                if (url.empty())
+                    url = "/";
+            }
+        }
+    }
 
     return findBestApproximationString(url, dictionary);
-
 }
+
 
 
 int Parser::deleteResource(std::string filePath, Response *response, bool useDetailedResponse) {
@@ -109,6 +121,85 @@ int Parser::deleteResource(std::string filePath, Response *response, bool useDet
     return SUCCESS;
 }
 
+
+void Parser::handleDELETE(Client *client, std::string filePath) {
+    Request *request = client->getRequest();
+    Response *response = client->getResponse();
+    if(!request || !response)
+        return;
+
+    Logger::info("DELETE request for: " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
+        
+    bool useDetailedResponse = isQueryParamValid(request->getUrl(), "details", false);
+    int result = this->deleteResource(filePath, response, useDetailedResponse);
+    if (result == SUCCESS) {
+        if (response->getStatus() == 204) {
+            Logger::info("DELETE request processed successfully (204 No Content): " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
+        } else {
+            Logger::info("DELETE request processed successfully (200 OK): " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
+        }
+    } else {
+        Logger::error("Parser", "Failed to process DELETE request: " + filePath + " (Status: " + intToStr(response->getStatus()) + ") [" + intToStr(client->getSocketFd()) + "]");
+
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+    }
+    return;
+}
+
+
+void Parser::handleGET(Client *client, std::string filePath, bool isAutoIndexOn){
+
+    Request *request = client->getRequest();
+    Response *response = client->getResponse();
+
+    if(!request || !response)
+        return;
+
+    int fileType;
+    std::string fileContent;
+
+    //checcko se la risorsa richiesta è accessibile
+    fileType = this->checkResource(filePath, response);
+    if(fileType == FAILURE){
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        return;
+    }
+    
+    if(S_ISDIR(fileType) && isAutoIndexOn){
+        if(filePath[filePath.size() - 1] != '/'){
+            std::string newUrl = request->getUrl() + "/";
+            request->setUrl(newUrl);
+            filePath += "/";
+        }
+        std::string dirBody = fromDIRtoHTML(filePath, request->getUrl());
+        
+        if(dirBody.empty()){
+            response->setStatusCode(500);
+            return;
+        }
+        response->setBody(dirBody);
+        return;
+    } else if(S_ISDIR(fileType) && !isAutoIndexOn){
+        response->setStatusCode(403);
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        return;        
+    } else {
+        //read the content of the requested resource
+        Logger::info("Reading file: " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
+        fileContent = this->readFile(filePath, response);
+    }
+   
+    //final check to see if there has been an error
+    if(response->getStatus() != 200){
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        return;
+    }
+
+    response->setBody(fileContent);
+
+    return ;
+}
+
 void Parser::validateResource(Client *client, Server *server)
 {
     Request *request = client->getRequest();
@@ -124,7 +215,8 @@ void Parser::validateResource(Client *client, Server *server)
             request->setState(StateParsingError);
             return;    
     }
-
+    Logger::info("Validating resource [" + intToStr(client->getSocketFd()) + "]");
+    Logger::info("Request URL: " + request->getUrl() + " [" + intToStr(client->getSocketFd()) + "]");
     std::string bestMatchingLocation = this->getMatchingLocation(client->getRequest()->getUrl(), client->getServer());
     if(bestMatchingLocation.empty()){
         response->setStatusCode(404);
@@ -133,7 +225,7 @@ void Parser::validateResource(Client *client, Server *server)
         return;
     }
     std::map<std::string, std::vector<std::string> > locationConfig = server->getLocationDir()[bestMatchingLocation];
-    
+    Logger::info("Best matching location: " + bestMatchingLocation + " [" + intToStr(client->getSocketFd()) + "]");
     //controllare che l host sia lo stesso nel file di config
     if(request->getHeaders().find("host") == request->getHeaders().end()){
         response->setStatusCode(400);
@@ -192,7 +284,7 @@ void Parser::validateResource(Client *client, Server *server)
 
 
     //extract path and file requested
-    std::string urlPath = request->getUrl().substr(0, request->getUrl().find_last_of("/"));
+    std::string urlPath = request->getUrl().substr(0, request->getUrl().find_last_of("/")) + "/";
     std::string urlFile = request->getUrl().substr(request->getUrl().find_last_of("/") + 1, request->getUrl().size());
 
     //alias substitution
@@ -214,77 +306,22 @@ void Parser::validateResource(Client *client, Server *server)
     }
 
 
-
-
-
-
-
-
-
-
-    if (request->getMethod() == "DELETE") {
-        Logger::info("DELETE request for: " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
-        
-        bool useDetailedResponse = isQueryParamValid(request->getUrl(), "details", false);
-        int result = this->deleteResource(filePath, response, useDetailedResponse);
-        if (result == SUCCESS) {
-            if (response->getStatus() == 204) {
-                Logger::info("DELETE request processed successfully (204 No Content): " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
-            } else {
-                Logger::info("DELETE request processed successfully (200 OK): " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
-            }
-        } else {
-            Logger::error("Parser", "Failed to process DELETE request: " + filePath + " (Status: " + intToStr(response->getStatus()) + ") [" + intToStr(client->getSocketFd()) + "]");
-
-            response->setBody(getErrorPage(response->getStatus(), client->getServer()));
-        }
-        return;
-    }
-
-    
-
-
-
-    int fileType;
-    std::string fileContent;
-
-    //checcko se la risorsa richiesta è accessibile
-    fileType = this->checkResource(filePath, response);
-    if(fileType == FAILURE){
-        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
-        return;
-    }
-    
-    if(S_ISDIR(fileType) && isAutoIndexOn){
-        if(filePath[filePath.size() - 1] != '/'){
-            std::string newUrl = request->getUrl() + "/";
-            request->setUrl(newUrl);
-            filePath += "/";
-        }
-        std::string dirBody = fromDIRtoHTML(filePath, request->getUrl());
-        
-        if(dirBody.empty()){
-            response->setStatusCode(500);
-            return;
-        }
-        response->setBody(dirBody);
-        return;
+    if (request->getMethod() == "GET") {
+        this->handleGET(client, filePath, isAutoIndexOn);
+    } else if (request->getMethod() == "POST") {
+        // this->handlePOST(client, filePath);
+    } else if (request->getMethod() == "DELETE") {
+        this->handleDELETE(client, filePath);
     } else {
-        //read the content of the requested resource
-        Logger::info("Reading file: " + filePath + " [" + intToStr(client->getSocketFd()) + "]");
-        fileContent = this->readFile(filePath, response);
-    }
-   
-    //final check to see if there has been an error
-    if(response->getStatus() != 200){
-        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        response->setStatusCode(501);
+        response->setBody(getErrorPage(501, server));
+        request->setState(StateParsingError);
         return;
     }
 
-    response->setBody(fileContent);
 
-    return ;
-    }
+    
+}
 
 Parser::Parser() {
 }

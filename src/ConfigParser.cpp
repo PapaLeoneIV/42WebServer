@@ -199,6 +199,10 @@ int ConfigParser::fromConfigFileToServers(char *file)
                 std::string valueToken;
                 while (valueStream >> valueToken)
                 {
+                    if(valueToken == ";"){
+                        Logger::error("" + path, "directive needs to end with ';', no spaces allowed"); 
+                        return NULL;
+                    }
                     valueToken = trimLeftRight(valueToken);
                     valueTokens.push_back(valueToken);
                     tokens.push_back(valueToken);

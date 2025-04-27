@@ -131,15 +131,18 @@ void ServerManager::processRequest(Client *client)
         request->setState(StateParsingError);
         return;
     }
+
     if(request->getState() == StateParsingComplete || request->getState() == StateParsingError){
-        
+        Logger::info("Request was consumed assigning server [" + intToStr(fd) + "]");    
         //TODO: handle localhost string
         this->assignServer(client);
 
         if(request->getState() == StateParsingError) {
+            Logger::error("ServerManager", "Error parsing request [" + intToStr(fd) + "]");
             response->setStatusCode(request->getError());
             response->setBody(getErrorPage(response->getStatus(), client->getServer()));
         } else {
+            Logger::info("Request parsing complete, validating resource [" + intToStr(fd) + "]");
             Parser parser;
             parser.validateResource(client, client->getServer());
         }

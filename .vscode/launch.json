@@ -27,12 +27,12 @@
       ]
     },
     {
-      "name": "(gdb) nginx.copy.conf",
+      "name": "(gdb) personalPC.conf",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/webserver",
       "args": [
-        "config/valid/nginx.copy.conf"
+        "config/valid/personalPC.conf"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
@@ -79,12 +79,12 @@
       ]
     },
     {
-      "name": "(gdb) nginx.conf",
+      "name": "(gdb) school.conf",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/webserver",
       "args": [
-        "config/valid/nginx.conf"
+        "config/valid/school.conf"
       ],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
