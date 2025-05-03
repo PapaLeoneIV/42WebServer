@@ -18,8 +18,8 @@ class Parser{
     public:
     void handleGET(Client *client, std::string filePath, bool isAutoIndexOn);
     void handleDELETE(Client *client, std::string filePath);
-    void handleCGI(Client *client, std::string target);
-    bool isValidCGIExtension(std::string urlFile);
+    void handleCGI(Client *client, std::string target,  std::map<std::string, std::vector<std::string> > locationConfig);
+    bool isValidCGIExtension(std::map<std::string, std::vector<std::string> > locationConfig, std::string urlFile);
     void validateResource(Client *client, Server *server);
     std::string readFile(std::string filePath, Response *response);
     int checkResource(std::string filePath, Response *response, int accessMode = R_OK);

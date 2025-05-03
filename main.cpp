@@ -3,6 +3,11 @@
 #include "./includes/Booter.hpp"
 #include "./includes/Logger.hpp"
 
+
+
+
+//TODO: unwrap multipart form data to pass it to cgi
+
 //TODO: - upload some file to the server and get it back
 //Issue URL: https://github.com/PapaLeoneIV/42WebServer/issues/44
 //TODO: - setup multiple servers with different hostname (use something like: curl --resolve example.com:80:127.0.0.1http://example.com/)

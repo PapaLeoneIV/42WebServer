@@ -9,6 +9,7 @@
 #include "../includes/Utils.hpp"
 #include "../includes/Logger.hpp"
 #include <sys/types.h>
+#include <vector>
 #define URL_MATCHING_ERROR_ALLOWANCE 3
 
 unsigned int Parser::levenshteinDistance(const std::string& s1, const std::string& s2)
@@ -203,8 +204,8 @@ void Parser::handleGET(Client *client, std::string filePath, bool isAutoIndexOn)
 }
 
 
-bool Parser::isValidCGIExtension(std::string urlFile){
-    std::string cgiExtensions[] = {".php", ".py", ".pl", ".rb", ".sh"};
+bool Parser::isValidCGIExtension( std::map<std::string, std::vector<std::string> > locationConfig , std::string urlFile){
+    std::vector<std::string> cgiExtensions = locationConfig["cgi_extensions"];
     unsigned long isdotpresent = urlFile.find_last_of(".");
     if(isdotpresent == std::string::npos)
         return false;
@@ -215,7 +216,10 @@ bool Parser::isValidCGIExtension(std::string urlFile){
         }
     }
     Logger::error("Parser", "Invalid CGI extension: " + extension);
-    Logger::error("Parser", "Valid CGI extensions are: .php, .py, .pl, .rb, .sh");
+    Logger::error("Parser", "Valid CGI extensions: " + cgiExtensions[0]);
+    for(size_t i = 1; i < cgiExtensions.size(); i++){
+        Logger::error("Parser", cgiExtensions[i]);
+    }
     return false;
 }
 
@@ -231,7 +235,6 @@ void Parser::validateResource(Client *client, Server *server)
         && (size_t)strToInt(server->getServerDir()["client_max_body_size"][0]) < request->getBody().size()) {
             response->setStatusCode(404);
             response->setBody(getErrorPage(response->getStatus(), client->getServer()));
-            request->setState(StateParsingError);
             return;    
     }
     Logger::info("Validating resource [" + intToStr(client->getSocketFd()) + "]");
@@ -240,7 +243,6 @@ void Parser::validateResource(Client *client, Server *server)
     if(bestMatchingLocation.empty()){
         response->setStatusCode(404);
         response->setBody(getErrorPage(response->getStatus(), client->getServer()));
-        request->setState(StateParsingError);
         return;
     }
     std::map<std::string, std::vector<std::string> > locationConfig = server->getLocationDir()[bestMatchingLocation];
@@ -249,7 +251,6 @@ void Parser::validateResource(Client *client, Server *server)
     if(request->getHeaders().find("host") == request->getHeaders().end()){
         response->setStatusCode(400);
         response->setBody(getErrorPage(response->getStatus(), client->getServer()));
-        request->setState(StateParsingError);
         return;
     }
     
@@ -262,7 +263,6 @@ void Parser::validateResource(Client *client, Server *server)
     if(reqHost != server->getServerDir()["host"][0]){
         response->setStatusCode(400);
         response->setBody(getErrorPage(response->getStatus(), client->getServer()));
-        request->setState(StateParsingError);
         return;
     }
     
@@ -270,7 +270,6 @@ void Parser::validateResource(Client *client, Server *server)
     if(reqPort != server->getServerDir()["listen"][0]){
         response->setStatusCode(400);
         response->setBody(getErrorPage(response->getStatus(), client->getServer()));
-        request->setState(StateParsingError);
         return;
     }
 
@@ -284,7 +283,6 @@ void Parser::validateResource(Client *client, Server *server)
     if(!foundMethod){
         response->setStatusCode(405);
         response->setBody(getErrorPage(response->getStatus(), client->getServer()));
-        request->setState(StateParsingError);
         return;
     }
     //choose between location root or server root
@@ -318,7 +316,7 @@ void Parser::validateResource(Client *client, Server *server)
 
     //TODO: HANDLE CGI
     if(bestMatchingLocation.find("/cgi-bin") != std::string::npos){
-        return this->handleCGI(client, rootPath + urlPath + urlFile);
+        return this->handleCGI(client, rootPath + urlPath + urlFile, locationConfig);
     }
 
     //check for redirection
@@ -359,7 +357,6 @@ void Parser::validateResource(Client *client, Server *server)
     } else {
         response->setStatusCode(501);
         response->setBody(getErrorPage(501, server));
-        request->setState(StateParsingError);
         return;
     }
 }
@@ -371,13 +368,19 @@ Parser::~Parser(){}
 
 
 
-void Parser::handleCGI(Client *client, std::string target){
+void Parser::handleCGI(Client *client, std::string target, std::map<std::string, std::vector<std::string> > locationConfig){
     
     Request *request = client->getRequest();
     Response *response = client->getResponse();
-    if(!request || !response)
+    if(!request || !response )
         return;
 
+    if(target.empty()){
+        response->setStatusCode(404);
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        request->setState(StateParsingError);
+        return;
+    }
     //devo contrallare che il file esista e sia eseguibile
     if (access(target.c_str(), F_OK) != 0) {
         response->setStatusCode(404);
@@ -392,7 +395,7 @@ void Parser::handleCGI(Client *client, std::string target){
         return;
     }
     //check if the file is a cgi
-    if(!this->isValidCGIExtension(target)){
+    if(!this->isValidCGIExtension(locationConfig, target)){
         response->setStatusCode(403);
         response->setBody(getErrorPage(response->getStatus(), client->getServer()));
         request->setState(StateParsingError);
@@ -401,7 +404,16 @@ void Parser::handleCGI(Client *client, std::string target){
     
     // _cgi_obj.setCgiPath(path);
     // _cgi = 1;
-    client->getCgiObj()->setEnv(client, target); 
-    // _cgi_obj.execute(this->_code);
+    char **envp = client->getCgiObj()->generateEnv(client, target);
+    if(envp == NULL){
+        response->setStatusCode(500);
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+        request->setState(StateParsingError);
+        return;
+    }
+    client->getCgiObj()->setEnv(envp);
+    client->getCgiObj()->setArgs(target, client);
+    client->getCgiObj()->execute(client);
+    client->getCgiObj()->setCGIState(1);
     return ;
 }

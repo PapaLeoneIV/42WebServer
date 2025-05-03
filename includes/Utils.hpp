@@ -27,7 +27,7 @@ class Server;
 
 #define BUFFER_SIZE 4*1024 //4KB
 
-#define MAX_REQUEST_SIZE 2*1024*1024 //2MB
+#define MAX_REQUEST_SIZE 100*1024*1024 //100MB
 
 #define TIMEOUT_SEC 5
 

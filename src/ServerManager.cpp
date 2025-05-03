@@ -7,6 +7,7 @@
 #include "../includes/ServerManager.hpp"
 #include "../includes/Utils.hpp"
 #include "../includes/Logger.hpp"
+#include "../includes/Cgi.hpp"
 
 /**
  * Event loop, il programma tramite la funzione bloccante select(), monitora
@@ -18,18 +19,15 @@ void ServerManager::eventLoop()
     while(420){
         int fds_changed = 0;
         
-        //bisogna resettare gli fd ad ogni nuovo ciclo
         FD_ZERO(&this->_readPool);
         FD_ZERO(&this->_writePool);
         
         this->initFdSets();
 
-        //select() resetta 'timeout' ad ogni ciclo, necessati dunque di essere re inizializata
         memset(&timeout, 0, sizeof(timeout));
         timeout.tv_sec = 5;
         timeout.tv_usec = 0;
 
-        // Controllo i timeout delle connessioni persistenti
         time_t currentTime = time(NULL);
         this->handleClientTimeout(currentTime);
 
@@ -47,24 +45,77 @@ void ServerManager::eventLoop()
                     clientRegistred = true;
                 }
             }
-            
-
             if(FD_ISSET(fd, &this->_readPool) && this->_clients_map.count(fd) > 0){
                 this->processRequest(this->_clients_map[fd]);
             }
+           
             if(FD_ISSET(fd, &this->_writePool) && this->_clients_map.count(fd) > 0){
-                /** if (cgi_state == 1 && FD_ISSET(_clients_map[i].response._cgi_obj.pipe_in[1], &write_set_cpy))
-                    sendCgiBody(_clients_map[i], _clients_map[i].response._cgi_obj);
-                else if (cgi_state == 1 && FD_ISSET(_clients_map[i].response._cgi_obj.pipe_out[0], &recv_set_cpy))
-                    readCgiResponse(_clients_map[i], _clients_map[i].response._cgi_obj);
-                else if ((cgi_state == 0 || cgi_state == 2)  && FD_ISSET(i, &write_set_cpy))
-                    sendResponse(i, _clients_map[i]); */
-                this->sendResponse(fd, this->_clients_map[fd]);
+                Cgi *cgi_obj = this->_clients_map[fd]->getCgiObj();
+                //cgi_state = 0 la richiesta non è indirizzata a un cgi;
+                //cgi_state = 1 la richiesta era indirizzata a un cgi e ho aperto il processo
+                //cgi_state = 2 la richiesta era indirizzata a un cgi e ho chiuso il processo
+                int cgi_state = cgi_obj->getCGIState();
+                if (cgi_state == 1 && FD_ISSET(cgi_obj->getPipeOut()[1], &this->_writePool))
+                    sendCgiBody(fd, _clients_map[fd], cgi_obj);
+                else if (cgi_state == 1 && FD_ISSET(cgi_obj->getPipeOut()[0], &this->_readPool))
+                    readCgiResponse(fd, _clients_map[fd], cgi_obj);
+                else if ((cgi_state == 0 || cgi_state == 2)  && FD_ISSET(fd, &this->_writePool))
+                    this->sendResponse(fd, this->_clients_map[fd]);
             }
         }            
     }
 }
 
+
+void ServerManager::sendCgiBody(SOCKET fd, Client *client, Cgi *cgi_obj){
+    Request *request = client->getRequest();
+    Response *response = client->getResponse();
+    if (!request || !response) {
+        Logger::error("ServerManager", "Invalid request or response state [" + intToStr(fd) + "]");
+        return;
+    }
+    
+    int bytes_sent;
+
+    if (request->getBody().length() == 0)
+        bytes_sent = 0;
+    else if (request->getBody().length() >= MAX_REQUEST_SIZE)
+        bytes_sent = write(cgi_obj->getPipeIn()[1], request->getBody().c_str(), MAX_REQUEST_SIZE);
+    else
+        bytes_sent = write(cgi_obj->getPipeIn()[1], request->getBody().c_str(), request->getBody().length());
+
+    if (bytes_sent < 0)
+    {
+        Logger::error(__FILE__,  "sendCgiBody() Error while sending CGI data to CGI process");
+        removeFromSet(cgi_obj->getPipeIn()[1], &this->_writePool);
+        close(cgi_obj->getPipeIn()[1]);
+        close(cgi_obj->getPipeOut()[1]);
+        response->setStatusCode(500);
+        response->setBody(getErrorPage(response->getStatus(), client->getServer()));
+    }
+    else if (bytes_sent == 0 || (size_t) bytes_sent == request->getBody().length())
+    {
+        removeFromSet(cgi_obj->getPipeIn()[1], &this->_writePool);
+        close(cgi_obj->getPipeIn()[1]);
+        close(cgi_obj->getPipeOut()[1]);
+    }
+    else
+    {
+        client->updateLastActivity();
+    }
+}
+
+void ServerManager::readCgiBody(SOCKET fd, Client *client, Cgi *cgi_obj){
+    Request *request = client->getRequest();
+    Response *response = client->getResponse();
+    if (!request || !response) {
+        Logger::error("ServerManager", "Invalid request or response state [" + intToStr(fd) + "]");
+        return;
+    }
+    char buffer[BUFFER_SIZE + 1];
+    int bytes_read = read(cgi_obj->getPipeOut()[0], buffer, BUFFER_SIZE);
+     
+}
 
 
 void ServerManager::registerNewConnections(SOCKET serverFd, Server *server)
@@ -81,7 +132,6 @@ void ServerManager::registerNewConnections(SOCKET serverFd, Server *server)
         delete client;
         return;
     }
-
      //setto il socket come non bloccante
     if(fcntl(new_socket, F_SETFL, O_NONBLOCK) < 0){
         Logger::error("ServerManager", "Error: fcntl failed");
@@ -108,7 +158,6 @@ void ServerManager::processRequest(Client *client)
     Request *request = client->getRequest();
     Response *response = client->getResponse();
     
-    client->updateLastActivity();
     
     char buffer[BUFFER_SIZE + 1];
     memset(buffer, 0, sizeof(buffer));
@@ -133,7 +182,7 @@ void ServerManager::processRequest(Client *client)
         request->consume(buffer);
     }
 
-    //da testare
+    //TODO: move MACRO to a variable and update it with the server config
     if(request->getBodyCounter() > MAX_REQUEST_SIZE){
         Logger::error("ServerManager", "Request body too large [" + intToStr(fd) + "]");
         response->setStatusCode(413);
@@ -144,18 +193,33 @@ void ServerManager::processRequest(Client *client)
     if(request->getState() == StateParsingComplete || request->getState() == StateParsingError){
         Logger::info("Request was consumed assigning server [" + intToStr(fd) + "]");    
         this->assignServer(client);
-        if(request->getState() == StateParsingError) {
-            Logger::error("ServerManager", "Error parsing request [" + intToStr(fd) + "]");
-            response->setStatusCode(request->getError());
-            response->setBody(getErrorPage(response->getStatus(), client->getServer()));
-        } else {
+        if(request->getState() == StateParsingComplete) {
             Logger::info("Request parsing complete, validating resource [" + intToStr(fd) + "]");
             Parser parser;
             parser.validateResource(client, client->getServer());
+            if(response->getStatus() != 200){
+                this->removeFromSet(fd, &this->_readPool);
+                this->addToSet(fd, &this->_writePool);
+                return;
+            }
+        }
+        if(client->getCgiObj()->getCGIState() == 1 && request->getState() == StateParsingComplete){
+            Logger::info("Request is a CGI request [" + intToStr(fd) + "]");
+            this->addToSet(client->getCgiObj()->getPipeOut()[0], &this->_readPool);
+            this->addToSet(client->getCgiObj()->getPipeOut()[1], &this->_writePool);
+            return;
+        }
+        if(request->getState() == StateParsingError){
+            Logger::error("ServerManager", "Error parsing request [" + intToStr(fd) + "]");
+            response->setStatusCode(request->getError());
+            response->setBody(getErrorPage(response->getStatus(), client->getServer()));
         }
         this->removeFromSet(fd, &this->_readPool);
         this->addToSet(fd, &this->_writePool);
     }
+
+    client->updateLastActivity();
+    return;
 }
 
 void ServerManager::assignServer(Client *client){
